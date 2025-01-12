@@ -4,12 +4,11 @@ using UnityEngine.Events;
 /// <summary>
 /// Central event system for game-wide events
 /// </summary>
-
-
 public static class GameEvents
 {
     // Currency events
     public static readonly UnityEvent<float> OnMoneyChanged = new UnityEvent<float>();
+    
     // Timer events
     public static readonly UnityEvent OnSessionStarted = new UnityEvent();
     public static readonly UnityEvent OnSessionCompleted = new UnityEvent();

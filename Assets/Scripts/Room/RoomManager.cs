@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Events;
 
 /// <summary>
 /// Manages the study room's appearance and placed items
@@ -10,82 +9,63 @@ public class RoomManager : MonoBehaviour
     [SerializeField] private MeshRenderer wallRenderer;
     [SerializeField] private MeshRenderer floorRenderer;
     [SerializeField] private Transform roomItemsContainer;
+    
+    [SerializeField] private Material defaultWallpaper;
+    [SerializeField] private Material defaultFlooring;
 
     private Dictionary<ItemType, GameObject> activeItems = new Dictionary<ItemType, GameObject>();
+    private ISaveSystem saveSystem;
 
     private void Awake()
     {
-        LoadRoomState();
+        saveSystem = new PlayerPrefsSaveSystem();
     }
 
     private void Start()
     {
-        if (roomItemsContainer == null)
-        {
-            roomItemsContainer = transform;
-            Debug.LogWarning("RoomManager: No room items container assigned, using own transform");
-        }
+        LoadRoomState();
     }
 
     /// <summary>
-    /// Applies a wallpaper material to the room's walls
+    /// Applies a wallpaper material to the room walls
     /// </summary>
     public void ApplyWallpaper(Material wallpaperMaterial)
     {
-        if (wallpaperMaterial == null)
+        if (wallRenderer != null && wallpaperMaterial != null)
         {
-            Debug.LogError("RoomManager: Cannot apply wallpaper - material is null");
-            return;
+            wallRenderer.material = wallpaperMaterial;
+            SaveRoomState();
         }
-
-        wallRenderer.material = wallpaperMaterial;
-        SaveRoomState();
     }
 
     /// <summary>
-    /// Applies a flooring material to the room's floor
+    /// Applies a flooring material to the room floor
     /// </summary>
     public void ApplyFlooring(Material floorMaterial)
     {
-        if (floorMaterial == null)
+        if (floorRenderer != null && floorMaterial != null)
         {
-            Debug.LogError("RoomManager: Cannot apply flooring - material is null");
-            return;
+            floorRenderer.material = floorMaterial;
+            SaveRoomState();
         }
-
-        floorRenderer.material = floorMaterial;
-        SaveRoomState();
     }
 
     /// <summary>
-    /// Places a room item at the specified position
+    /// Places a furniture or decoration item in the room
     /// </summary>
     public void PlaceItem(GameObject itemPrefab, ItemType itemType, Vector3 position)
     {
-        if (itemPrefab == null)
-        {
-            Debug.LogError($"RoomManager: Cannot place {itemType} - prefab is null");
-            return;
-        }
+        if (itemPrefab == null) return;
 
         RemoveItem(itemType);
 
-        // Calculate rotation based on item type
-        Quaternion rotation = GetDefaultRotation(itemType);
-        GameObject newItem = Instantiate(itemPrefab, position, rotation, roomItemsContainer);
-        if (activeItems.ContainsKey(itemType))
-        {
-            activeItems[itemType] = newItem;
-        }
-        else
-        {
-            activeItems.Add(itemType, newItem);
-        }
+        GameObject newItem = Instantiate(itemPrefab, position, Quaternion.identity, roomItemsContainer);
+        activeItems.Add(itemType, newItem);
         SaveRoomState();
     }
 
     /// <summary>
-    /// Removes an item of the specified type from the room
+    /// Removes an item from the room
     /// </summary>
     public void RemoveItem(ItemType itemType)
     {
@@ -93,28 +73,7 @@ public class RoomManager : MonoBehaviour
         {
             Destroy(activeItems[itemType]);
             activeItems.Remove(itemType);
-        }
-    }
-
-    private Quaternion GetDefaultRotation(ItemType itemType)
-    {
-        switch (itemType)
-        {
-            case ItemType.Chair:
-                // Rotate chair to face desk
-                return Quaternion.Euler(0, 180, 0);
-            case ItemType.Computer:
-                // Face computer screen towards chair
-                return Quaternion.Euler(0, 180, 0);
-            case ItemType.Bed:
-                // Place bed parallel to wall
-                return Quaternion.Euler(0, 90, 0);
-            case ItemType.Desk:
-            case ItemType.Dresser:
-                // Place against wall
-                return Quaternion.Euler(0, 0, 0);
-            default:
-                return Quaternion.identity;
+            SaveRoomState();
         }
     }
 
@@ -122,15 +81,63 @@ public class RoomManager : MonoBehaviour
     {
         var roomData = new RoomData
         {
-            WallMaterial = wallRenderer.material,
-            FloorMaterial = floorRenderer.material
+            currentWallpaper = wallRenderer?.material?.name ?? defaultWallpaper?.name,
+            currentFlooring = floorRenderer?.material?.name ?? defaultFlooring?.name
         };
 
-        GameEvents.OnRoomCustomized.Invoke(roomData);
+        foreach (var item in activeItems)
+        {
+            var itemTransform = item.Value.transform;
+            roomData.placedItems.Add(new PlacedItemData(
+                item.Key,
+                itemTransform.position,
+                itemTransform.rotation,
+                item.Value.name.Replace("(Clone)", "")
+            ));
+        }
+
+        saveSystem.SaveData("RoomState", roomData);
     }
 
     private void LoadRoomState()
     {
-        // TODO: Implement room state loading from save data
+        var roomData = saveSystem.LoadData("RoomState", new RoomData());
+        
+        // Load materials
+        if (!string.IsNullOrEmpty(roomData.currentWallpaper))
+        {
+            Material wallpaper = ResourceManager.Instance.GetMaterial(roomData.currentWallpaper);
+            if (wallpaper != null)
+                wallRenderer.material = wallpaper;
+            else if (defaultWallpaper != null)
+                wallRenderer.material = defaultWallpaper;
+        }
+
+        if (!string.IsNullOrEmpty(roomData.currentFlooring))
+        {
+            Material flooring = ResourceManager.Instance.GetMaterial(roomData.currentFlooring);
+            if (flooring != null)
+                floorRenderer.material = flooring;
+            else if (defaultFlooring != null)
+                floorRenderer.material = defaultFlooring;
+        }
+
+        // Clear existing items
+        foreach (var item in activeItems.Values)
+        {
+            Destroy(item);
+        }
+        activeItems.Clear();
+
+        // Load placed items
+        foreach (var itemData in roomData.placedItems)
+        {
+            GameObject prefab = ResourceManager.Instance.GetPrefab(itemData.prefabName);
+            if (prefab != null)
+            {
+                GameObject newItem = Instantiate(prefab, itemData.position, itemData.rotation, roomItemsContainer);
+                activeItems[itemData.type] = newItem;
+            }
+        }
     }
 }

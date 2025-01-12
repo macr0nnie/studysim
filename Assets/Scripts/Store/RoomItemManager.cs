@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections.Generic;
-using Events;
 
 /// <summary>
 /// Manages the room customization store functionality, including purchasing and applying room items
@@ -9,64 +8,67 @@ public class RoomItemManager : MonoBehaviour
 {
     [SerializeField] private List<RoomCustomizationItem> availableItems = new List<RoomCustomizationItem>();
     private RoomManager roomManager;
-    private List<int> purchasedItems = new List<int>();
+    private ISaveSystem saveSystem;
 
     private void Awake()
     {
         roomManager = FindObjectOfType<RoomManager>();
-        if (roomManager == null)
-        {
-            Debug.LogError("RoomItemManager: No RoomManager found in scene");
-        }
-
+        saveSystem = new PlayerPrefsSaveSystem();
         LoadPurchasedItems();
     }
 
     /// <summary>
-    /// Attempts to purchase an item from the store
+    /// Attempts to purchase a room item at the given index
     /// </summary>
-    /// <returns>True if purchase was successful</returns>
+    /// <param name="index">Index of the item to purchase</param>
+    /// <returns>True if purchase was successful, false otherwise</returns>
     public bool PurchaseItem(int index)
     {
-        if (index < 0 || index >= availableItems.Count)
+        if (index >= 0 && index < availableItems.Count)
         {
-            Debug.LogError($"RoomItemManager: Invalid item index {index}");
-            return false;
+            RoomCustomizationItem item = availableItems[index];
+            if (!item.IsOwned)
+            {
+                if (CurrencyManager.Instance.SpendMoney(item.Price))
+                {
+                    item.IsOwned = true;
+                    SavePurchasedItems();
+                    return true;
+                }
+            }
         }
-
-        var item = availableItems[index];
-        GameEvents.OnAttemptPurchase.Invoke(item.Cost);
-
-        // Add to purchased items and save
-        purchasedItems.Add(index);
-        SavePurchasedItems();
-        return true;
+        return false;
     }
 
     /// <summary>
-    /// Applies a purchased item to the room
+    /// Applies a purchased room item at the specified position
     /// </summary>
+    /// <param name="index">Index of the item to apply</param>
+    /// <param name="position">Position to place the item</param>
     public void ApplyItem(int index, Vector3 position)
     {
-        if (index < 0 || index >= availableItems.Count)
+        if (index >= 0 && index < availableItems.Count)
         {
-            Debug.LogError($"RoomItemManager: Invalid item index {index}");
-            return;
+            availableItems[index].Apply();
         }
-
-        var item = availableItems[index];
-        roomManager.PlaceItem(item.Prefab, item.Type, position);
     }
 
     private void SavePurchasedItems()
     {
-        // TODO: Implement save functionality for purchased items
-        // This should persist the purchasedItems list to disk
+        var saveData = new List<bool>();
+        foreach (var item in availableItems)
+        {
+            saveData.Add(item.IsOwned);
+        }
+        saveSystem.SaveData("RoomItems", saveData);
     }
 
     private void LoadPurchasedItems()
     {
-        // TODO: Implement load functionality for purchased items
-        // This should load the purchasedItems list from disk
+        var saveData = saveSystem.LoadData("RoomItems", new List<bool>());
+        for (int i = 0; i < Mathf.Min(saveData.Count, availableItems.Count); i++)
+        {
+            availableItems[i].IsOwned = saveData[i];
+        }
     }
 }

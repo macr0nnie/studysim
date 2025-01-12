@@ -4,6 +4,12 @@
 public enum ItemType
 {
     Wallpaper,
+    Desk,
+    Chair,
+    Computer,
+    Bed,
+    Dresser,
+    Lamp,
     Flooring,
     Furniture,
     Decoration

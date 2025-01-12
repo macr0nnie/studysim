@@ -126,7 +126,7 @@ public class RoomManager : MonoBehaviour
             FloorMaterial = floorRenderer.material
         };
 
-        GameEvents.OnRoomCustomized.Invoke(roomData);
+        GameEvents.OnRoomCustomized?.Invoke(roomData);
     }
 
     private void LoadRoomState()

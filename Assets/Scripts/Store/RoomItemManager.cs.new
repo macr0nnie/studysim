@@ -35,7 +35,7 @@ public class RoomItemManager : MonoBehaviour
         }
 
         var item = availableItems[index];
-        GameEvents.OnAttemptPurchase.Invoke(item.Cost);
+        GameEvents.OnAttemptPurchase?.Invoke(item.Cost);
 
         // Add to purchased items and save
         purchasedItems.Add(index);

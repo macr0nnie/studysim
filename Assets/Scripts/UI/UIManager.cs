@@ -1,0 +1,110 @@
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+using System;
+
+/// <summary>
+/// Manages all UI elements and interactions
+/// Setup: Attach to a UI Canvas in the scene
+/// Dependencies: Requires TextMeshPro and Unity UI components
+/// </summary>
+public class UIManager : MonoBehaviour
+{
+    [Header("Timer UI")]
+    [SerializeField] private TextMeshProUGUI timerText;
+    [SerializeField] private Button startTimerButton;
+    [SerializeField] private Button pauseTimerButton;
+    [SerializeField] private Button resetTimerButton;
+    
+    [Header("Decoration UI")]
+    [SerializeField] private GameObject decorationPanel;
+    [SerializeField] private Transform furnitureButtonContainer;
+    [SerializeField] private Button decorationModeButton;
+    
+    [Header("Audio UI")]
+    [SerializeField] private GameObject audioPanel;
+    [SerializeField] private Slider musicVolumeSlider;
+    [SerializeField] private Button nextTrackButton;
+    [SerializeField] private Button previousTrackButton;
+    
+    private TimerManager timerManager;
+    private RoomManager roomManager;
+    private AudioManager audioManager;
+
+    private void Start()
+    {
+        InitializeManagers();
+        SetupUIListeners();
+    }
+
+    private void InitializeManagers()
+    {
+        timerManager = FindObjectOfType<TimerManager>();
+        roomManager = FindObjectOfType<RoomManager>();
+        audioManager = FindObjectOfType<AudioManager>();
+
+        if (timerManager == null || roomManager == null || audioManager == null)
+        {
+            Debug.LogError("Required managers not found in scene!");
+        }
+    }
+
+    private void SetupUIListeners()
+    {
+        // Timer UI
+        if (startTimerButton) startTimerButton.onClick.AddListener(timerManager.StartTimer);
+        if (pauseTimerButton) pauseTimerButton.onClick.AddListener(timerManager.PauseTimer);
+        if (resetTimerButton) resetTimerButton.onClick.AddListener(timerManager.ResetTimer);
+        
+        // Audio UI
+        if (musicVolumeSlider) 
+        {
+            musicVolumeSlider.onValueChanged.AddListener(audioManager.SetMusicVolume);
+        }
+        if (nextTrackButton) nextTrackButton.onClick.AddListener(audioManager.NextTrack);
+        if (previousTrackButton) previousTrackButton.onClick.AddListener(audioManager.PreviousTrack);
+        
+        // Decoration UI
+        if (decorationModeButton)
+        {
+            decorationModeButton.onClick.AddListener(() => TogglePanel(decorationPanel));
+        }
+
+        // Subscribe to timer events
+        timerManager.OnTimerTick += UpdateTimerDisplay;
+        timerManager.OnTimerComplete += OnTimerComplete;
+    }
+
+    private void UpdateTimerDisplay(float timeRemaining)
+    {
+        if (timerText == null) return;
+        
+        TimeSpan timeSpan = TimeSpan.FromSeconds(timeRemaining);
+        timerText.text = $"{timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}";
+    }
+
+    private void OnTimerComplete()
+    {
+        // TODO: Show completion UI and rewards
+    }
+
+    public void TogglePanel(GameObject panel)
+    {
+        if (panel == null) return;
+        panel.SetActive(!panel.activeSelf);
+    }
+
+    public void StartFurniturePlacement(GameObject furniturePrefab)
+    {
+        roomManager.StartPlacingFurniture(furniturePrefab);
+    }
+
+    private void OnDestroy()
+    {
+        if (timerManager != null)
+        {
+            timerManager.OnTimerTick -= UpdateTimerDisplay;
+            timerManager.OnTimerComplete -= OnTimerComplete;
+        }
+    }
+}

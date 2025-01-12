@@ -29,7 +29,4 @@ public class SimpleAudioManager : MonoBehaviour, IAudioManager
     {
         audioSource.volume = Mathf.Clamp01(volume);
     }
-
-    
-
 }

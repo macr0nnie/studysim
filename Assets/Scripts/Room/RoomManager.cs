@@ -5,13 +5,16 @@ public class RoomManager : MonoBehaviour
 {
     [Header("Placement Settings")]
     [SerializeField] private LayerMask placementLayer;
+    [SerializeField] private LayerMask furnitureLayer;
+    [SerializeField] private LayerMask wallLayer;
+    [SerializeField] private LayerMask shelfLayer;
     [SerializeField] private float snapThreshold = 0.5f;
 
     [Header("Visual Feedback")]
     [SerializeField] private Material validPlacementMaterial;
     [SerializeField] private Material invalidPlacementMaterial;
 
-    private List<GameObject> placedObjects = new List<GameObject>();
+    private Dictionary<Vector2Int, GameObject> placedObjects = new Dictionary<Vector2Int, GameObject>();
     private GameObject currentPreview;
     private bool isPlacementValid;
     private Camera mainCamera;
@@ -42,11 +45,13 @@ public class RoomManager : MonoBehaviour
         {
             UpdatePreviewPosition();
             HandlePlacement();
+            HandleRotationAndFlipping();
         }
         else if (isEditMode && selectedObject != null)
         {
             UpdateSelectedObjectPosition();
             HandleEditMode();
+            HandleRotationAndFlipping();
         }
         else
         {
@@ -82,13 +87,46 @@ public class RoomManager : MonoBehaviour
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-        if (Physics.Raycast(ray, out hit, 100f, placementLayer))
+        if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
         {
             Vector3 position = hit.point;
-            position = SnapToNearbyObjects(position);
+            Furniture furniture = currentPreview.GetComponent<Furniture>();
 
-            // Adjust the Y position to place the object on top of the placement plane
-            position.y += currentPreview.GetComponent<Collider>().bounds.extents.y;
+            if (furniture != null)
+            {
+                switch (furniture.Type)
+                {
+                    case Furniture.FurnitureType.Wall:
+                        if (((1 << hit.collider.gameObject.layer) & wallLayer) != 0)
+                        {
+                            position = SnapToWall(position, hit.normal);
+                        }
+                        else
+                        {
+                            isPlacementValid = false;
+                            SetPreviewMaterial(invalidPlacementMaterial);
+                            return;
+                        }
+                        break;
+                    case Furniture.FurnitureType.Shelf:
+                        if (((1 << hit.collider.gameObject.layer) & shelfLayer) != 0)
+                        {
+                            position = SnapToShelf(position);
+                        }
+                        else
+                        {
+                            isPlacementValid = false;
+                            SetPreviewMaterial(invalidPlacementMaterial);
+                            return;
+                        }
+                        break;
+                    case Furniture.FurnitureType.Floor:
+                    default:
+                        position = SnapToNearbyObjects(position);
+                        position.y += currentPreview.GetComponent<Collider>().bounds.extents.y;
+                        break;
+                }
+            }
 
             currentPreview.transform.position = position;
             isPlacementValid = IsValidPlacement(position);
@@ -100,9 +138,21 @@ public class RoomManager : MonoBehaviour
         }
     }
 
+    private Vector3 SnapToWall(Vector3 position, Vector3 normal)
+    {
+        position += normal * currentPreview.GetComponent<Collider>().bounds.extents.z;
+        return position;
+    }
+
+    private Vector3 SnapToShelf(Vector3 position)
+    {
+        position.y += currentPreview.GetComponent<Collider>().bounds.extents.y;
+        return position;
+    }
+
     private Vector3 SnapToNearbyObjects(Vector3 position)
     {
-        foreach (GameObject placedObject in placedObjects)
+        foreach (GameObject placedObject in placedObjects.Values)
         {
             Collider collider = placedObject.GetComponent<Collider>();
             if (collider != null)
@@ -130,16 +180,63 @@ public class RoomManager : MonoBehaviour
         }
     }
 
+    private void HandleRotationAndFlipping()
+    {
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            if (currentPreview != null)
+            {
+                currentPreview.transform.Rotate(Vector3.up, 90f);
+            }
+            else if (selectedObject != null)
+            {
+                selectedObject.transform.Rotate(Vector3.up, 90f);
+            }
+        }
+
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            if (currentPreview != null)
+            {
+                currentPreview.transform.Rotate(Vector3.forward, 180f);
+            }
+            else if (selectedObject != null)
+            {
+                selectedObject.transform.Rotate(Vector3.forward, 180f);
+            }
+        }
+    }
+
     private void PlaceObject()
     {
         Vector3 position = currentPreview.transform.position;
+        Vector2Int gridPos = GetGridPosition(position);
 
-        GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
-        placedObjects.Add(placedObject);
-        ResetPreviewMaterial(placedObject);
+        if (placedObjects.ContainsKey(gridPos))
+        {
+            SwapObject(gridPos);
+        }
+        else
+        {
+            GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
+            placedObjects[gridPos] = placedObject;
+            ResetPreviewMaterial(placedObject);
+        }
+
         Destroy(currentPreview);
         currentPreview = null;
         Debug.Log("Object placed successfully.");
+    }
+
+    private void SwapObject(Vector2Int gridPos)
+    {
+        GameObject existingObject = placedObjects[gridPos];
+        Destroy(existingObject);
+
+        GameObject placedObject = Instantiate(currentPreview, currentPreview.transform.position, currentPreview.transform.rotation);
+        placedObjects[gridPos] = placedObject;
+        ResetPreviewMaterial(placedObject);
+        Debug.Log("Object swapped successfully.");
     }
 
     private void CancelPlacement()
@@ -154,11 +251,10 @@ public class RoomManager : MonoBehaviour
 
     private bool IsValidPlacement(Vector3 position)
     {
-        Collider[] colliders = Physics.OverlapBox(position, currentPreview.GetComponent<Collider>().bounds.extents, Quaternion.identity, placementLayer);
+        Collider[] colliders = Physics.OverlapBox(position, currentPreview.GetComponent<Collider>().bounds.extents, currentPreview.transform.rotation, furnitureLayer);
         bool isValid = colliders.Length == 0;
 
-        // Additional check to ensure no intersection with other placed objects
-        foreach (GameObject placedObject in placedObjects)
+        foreach (GameObject placedObject in placedObjects.Values)
         {
             if (placedObject.GetComponent<Collider>().bounds.Intersects(currentPreview.GetComponent<Collider>().bounds))
             {
@@ -189,10 +285,11 @@ public class RoomManager : MonoBehaviour
         }
     }
 
-    public void EnterEditMode(GameObject selectedObject)
+    private Vector2Int GetGridPosition(Vector3 worldPosition)
     {
-        isEditMode = true;
-        this.selectedObject = selectedObject;
+        int x = Mathf.FloorToInt(worldPosition.x / snapThreshold);
+        int y = Mathf.FloorToInt(worldPosition.z / snapThreshold);
+        return new Vector2Int(x, y);
     }
 
     private void UpdateSelectedObjectPosition()
@@ -200,21 +297,56 @@ public class RoomManager : MonoBehaviour
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-        if (Physics.Raycast(ray, out hit, 100f, placementLayer))
+        if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
         {
             Vector3 position = hit.point;
-            position = SnapToNearbyObjects(position);
+            Furniture furniture = selectedObject.GetComponent<Furniture>();
 
-            // Adjust the Y position to place the object on top of the placement plane
-            position.y += selectedObject.GetComponent<Collider>().bounds.extents.y;
+            if (furniture != null)
+            {
+                switch (furniture.Type)
+                {
+                    case Furniture.FurnitureType.Wall:
+                        if (((1 << hit.collider.gameObject.layer) & wallLayer) != 0)
+                        {
+                            position = SnapToWall(position, hit.normal);
+                        }
+                        else
+                        {
+                            isPlacementValid = false;
+                            SetPreviewMaterial(invalidPlacementMaterial);
+                            return;
+                        }
+                        break;
+                    case Furniture.FurnitureType.Shelf:
+                        if (((1 << hit.collider.gameObject.layer) & shelfLayer) != 0)
+                        {
+                            position = SnapToShelf(position);
+                        }
+                        else
+                        {
+                            isPlacementValid = false;
+                            SetPreviewMaterial(invalidPlacementMaterial);
+                            return;
+                        }
+                        break;
+                    case Furniture.FurnitureType.Floor:
+                    default:
+                        position = SnapToNearbyObjects(position);
+                        position.y += selectedObject.GetComponent<Collider>().bounds.extents.y;
+                        break;
+                }
+            }
 
             selectedObject.transform.position = position;
+            isPlacementValid = IsValidPlacement(position);
+            SetPreviewMaterial(isPlacementValid ? validPlacementMaterial : invalidPlacementMaterial);
         }
     }
 
     private void HandleEditMode()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (Input.GetMouseButtonDown(0) && isPlacementValid)
         {
             PlaceSelectedObject();
         }
@@ -243,14 +375,20 @@ public class RoomManager : MonoBehaviour
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
 
-            if (Physics.Raycast(ray, out hit, 100f, placementLayer))
+            if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
             {
                 GameObject hitObject = hit.collider.gameObject;
-                if (placedObjects.Contains(hitObject))
+                if (placedObjects.ContainsValue(hitObject))
                 {
                     EnterEditMode(hitObject);
                 }
             }
         }
+    }
+
+    public void EnterEditMode(GameObject selectedObject)
+    {
+        isEditMode = true;
+        this.selectedObject = selectedObject;
     }
 }

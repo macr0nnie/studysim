@@ -115,6 +115,7 @@ public class RoomManager : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0) && isPlacementValid)
         {
+            Debug.Log("Placing object...");
             Vector2Int gridPos = GetGridPosition(currentPreview.transform.position);
             
             if (!placedObjects.ContainsKey(gridPos))
@@ -188,6 +189,7 @@ public class RoomManager : MonoBehaviour
         {
             case MaterialType.Wall:
                 // Apply wall material
+
                 break;
             case MaterialType.Floor:
                 // Apply floor material

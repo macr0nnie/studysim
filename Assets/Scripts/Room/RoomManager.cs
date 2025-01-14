@@ -1,26 +1,22 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Manages the room decoration system including furniture placement and wall/floor customization
-/// Setup: Attach to an empty GameObject that serves as the room container
-/// Dependencies: Requires GridSystem component and furniture prefabs
-/// </summary>
 public class RoomManager : MonoBehaviour
 {
-    [Header("Grid Settings")]
-    [SerializeField] private Vector2 gridSize = new Vector2(10, 10);
-    [SerializeField] private float cellSize = 1f;
+    [Header("Placement Settings")]
     [SerializeField] private LayerMask placementLayer;
-    
+    [SerializeField] private float snapThreshold = 0.5f;
+
     [Header("Visual Feedback")]
     [SerializeField] private Material validPlacementMaterial;
     [SerializeField] private Material invalidPlacementMaterial;
-    
-    private Dictionary<Vector2Int, GameObject> placedObjects = new Dictionary<Vector2Int, GameObject>();
+
+    private List<GameObject> placedObjects = new List<GameObject>();
     private GameObject currentPreview;
     private bool isPlacementValid;
     private Camera mainCamera;
+    private bool isEditMode = false;
+    private GameObject selectedObject;
 
     private void Start()
     {
@@ -38,8 +34,6 @@ public class RoomManager : MonoBehaviour
             enabled = false;
             return;
         }
-
-        InitializeGrid();
     }
 
     private void Update()
@@ -49,26 +43,15 @@ public class RoomManager : MonoBehaviour
             UpdatePreviewPosition();
             HandlePlacement();
         }
-    }
-
-    private void InitializeGrid()
-    {
-        if (gridSize.x <= 0 || gridSize.y <= 0)
+        else if (isEditMode && selectedObject != null)
         {
-            Debug.LogError("Invalid grid size!");
-            enabled = false;
-            return;
+            UpdateSelectedObjectPosition();
+            HandleEditMode();
         }
-
-        if (cellSize <= 0)
+        else
         {
-            Debug.LogError("Invalid cell size!");
-            enabled = false;
-            return;
+            HandleObjectSelection();
         }
-
-        placedObjects.Clear();
-        // Additional grid initialization can be added here if needed
     }
 
     public void StartPlacingFurniture(GameObject furniturePrefab)
@@ -102,28 +85,44 @@ public class RoomManager : MonoBehaviour
         if (Physics.Raycast(ray, out hit, 100f, placementLayer))
         {
             Vector3 position = hit.point;
-            Vector2Int gridPosition = GetGridPosition(position);
-            position = SnapToGrid(position);
-            
+            position = SnapToNearbyObjects(position);
+
+            // Adjust the Y position to place the object on top of the placement plane
+            position.y += currentPreview.GetComponent<Collider>().bounds.extents.y;
+
             currentPreview.transform.position = position;
-            isPlacementValid = IsValidPlacement(gridPosition);
+            isPlacementValid = IsValidPlacement(position);
             SetPreviewMaterial(isPlacementValid ? validPlacementMaterial : invalidPlacementMaterial);
         }
+        else
+        {
+            Debug.LogWarning("Raycast did not hit any placement surface.");
+        }
+    }
+
+    private Vector3 SnapToNearbyObjects(Vector3 position)
+    {
+        foreach (GameObject placedObject in placedObjects)
+        {
+            Collider collider = placedObject.GetComponent<Collider>();
+            if (collider != null)
+            {
+                Vector3 closestPoint = collider.ClosestPoint(position);
+                if (Vector3.Distance(position, closestPoint) <= snapThreshold)
+                {
+                    position = closestPoint;
+                    break;
+                }
+            }
+        }
+        return position;
     }
 
     private void HandlePlacement()
     {
         if (Input.GetMouseButtonDown(0) && isPlacementValid)
         {
-            Debug.Log("Placing object...");
-            Vector2Int gridPos = GetGridPosition(currentPreview.transform.position);
-            
-            if (!placedObjects.ContainsKey(gridPos))
-            {
-                GameObject placedObject = Instantiate(currentPreview, currentPreview.transform.position, currentPreview.transform.rotation);
-                placedObjects[gridPos] = placedObject;
-                ResetPreviewMaterial(placedObject);
-            }
+            PlaceObject();
         }
         else if (Input.GetMouseButtonDown(1))
         {
@@ -131,28 +130,45 @@ public class RoomManager : MonoBehaviour
         }
     }
 
-    private Vector2Int GetGridPosition(Vector3 worldPosition)
+    private void PlaceObject()
     {
-        return new Vector2Int(
-            Mathf.RoundToInt(worldPosition.x / cellSize),
-            Mathf.RoundToInt(worldPosition.z / cellSize)
-        );
+        Vector3 position = currentPreview.transform.position;
+
+        GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
+        placedObjects.Add(placedObject);
+        ResetPreviewMaterial(placedObject);
+        Destroy(currentPreview);
+        currentPreview = null;
+        Debug.Log("Object placed successfully.");
     }
 
-    private Vector3 SnapToGrid(Vector3 position)
+    private void CancelPlacement()
     {
-        return new Vector3(
-            Mathf.Round(position.x / cellSize) * cellSize,
-            0f,
-            Mathf.Round(position.z / cellSize) * cellSize
-        );
+        if (currentPreview != null)
+        {
+            Destroy(currentPreview);
+            currentPreview = null;
+            Debug.Log("Placement canceled.");
+        }
     }
 
-    private bool IsValidPlacement(Vector2Int gridPosition)
+    private bool IsValidPlacement(Vector3 position)
     {
-        return !placedObjects.ContainsKey(gridPosition) &&
-               gridPosition.x >= 0 && gridPosition.x < gridSize.x &&
-               gridPosition.y >= 0 && gridPosition.y < gridSize.y;
+        Collider[] colliders = Physics.OverlapBox(position, currentPreview.GetComponent<Collider>().bounds.extents, Quaternion.identity, placementLayer);
+        bool isValid = colliders.Length == 0;
+
+        // Additional check to ensure no intersection with other placed objects
+        foreach (GameObject placedObject in placedObjects)
+        {
+            if (placedObject.GetComponent<Collider>().bounds.Intersects(currentPreview.GetComponent<Collider>().bounds))
+            {
+                isValid = false;
+                break;
+            }
+        }
+
+        Debug.Log("Placement valid: " + isValid);
+        return isValid;
     }
 
     private void SetPreviewMaterial(Material material)
@@ -160,46 +176,81 @@ public class RoomManager : MonoBehaviour
         Renderer[] renderers = currentPreview.GetComponentsInChildren<Renderer>();
         foreach (Renderer renderer in renderers)
         {
-            Material[] materials = new Material[renderer.materials.Length];
-            for (int i = 0; i < materials.Length; i++)
-            {
-                materials[i] = material;
-            }
-            renderer.materials = materials;
+            renderer.material = material;
         }
     }
 
     private void ResetPreviewMaterial(GameObject obj)
     {
-        // Reset materials to original if needed
-    }
-
-    public void CancelPlacement()
-    {
-        if (currentPreview != null)
+        Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
+        foreach (Renderer renderer in renderers)
         {
-            Destroy(currentPreview);
-            currentPreview = null;
+            renderer.material = validPlacementMaterial;
         }
     }
 
-    public void ChangeMaterial(MaterialType type, Material newMaterial)
+    public void EnterEditMode(GameObject selectedObject)
     {
-        switch (type)
-        {
-            case MaterialType.Wall:
-                // Apply wall material
+        isEditMode = true;
+        this.selectedObject = selectedObject;
+    }
 
-                break;
-            case MaterialType.Floor:
-                // Apply floor material
-                break;
+    private void UpdateSelectedObjectPosition()
+    {
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, 100f, placementLayer))
+        {
+            Vector3 position = hit.point;
+            position = SnapToNearbyObjects(position);
+
+            // Adjust the Y position to place the object on top of the placement plane
+            position.y += selectedObject.GetComponent<Collider>().bounds.extents.y;
+
+            selectedObject.transform.position = position;
         }
     }
-}
 
-public enum MaterialType
-{
-    Wall,
-    Floor
+    private void HandleEditMode()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            PlaceSelectedObject();
+        }
+        else if (Input.GetMouseButtonDown(1))
+        {
+            CancelEditMode();
+        }
+    }
+
+    private void PlaceSelectedObject()
+    {
+        selectedObject = null;
+        isEditMode = false;
+    }
+
+    private void CancelEditMode()
+    {
+        selectedObject = null;
+        isEditMode = false;
+    }
+
+    private void HandleObjectSelection()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit, 100f, placementLayer))
+            {
+                GameObject hitObject = hit.collider.gameObject;
+                if (placedObjects.Contains(hitObject))
+                {
+                    EnterEditMode(hitObject);
+                }
+            }
+        }
+    }
 }

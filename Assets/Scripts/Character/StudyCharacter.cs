@@ -32,6 +32,17 @@ public class StudyCharacter : MonoBehaviour
         if (animator == null)
         {
             animator = GetComponent<Animator>();
+            if (animator == null)
+            {
+                Debug.LogError("Animator component not found!");
+                enabled = false;
+                return;
+            }
+        }
+
+        if (dialogueEvents == null || dialogueEvents.Length == 0)
+        {
+            Debug.LogWarning("No dialogue events configured.");
         }
         
         // Start in studying state
@@ -54,22 +65,47 @@ public class StudyCharacter : MonoBehaviour
 
     public void TriggerDialogue(string triggerName)
     {
+        if (string.IsNullOrEmpty(triggerName))
+        {
+            Debug.LogError("Invalid trigger name!");
+            return;
+        }
+
+        if (currentDialogueCoroutine != null)
+        {
+            StopCoroutine(currentDialogueCoroutine);
+            animator.SetBool(InteractingParam, false);
+        }
+
         foreach (var dialogueEvent in dialogueEvents)
         {
-            if (dialogueEvent.triggerName == triggerName && !dialogueEvent.hasOccurred)
+            if (dialogueEvent != null && dialogueEvent.triggerName == triggerName && !dialogueEvent.hasOccurred)
             {
-                StartCoroutine(PlayDialogueSequence(dialogueEvent));
+                currentDialogueCoroutine = StartCoroutine(PlayDialogueSequence(dialogueEvent));
                 break;
             }
         }
     }
 
+    private Coroutine currentDialogueCoroutine;
+
     private IEnumerator PlayDialogueSequence(DialogueEvent dialogueEvent)
     {
+        if (dialogueEvent == null || dialogueEvent.dialogueLines == null)
+        {
+            Debug.LogError("Invalid dialogue event!");
+            yield break;
+        }
+
+        StopStudying();
         animator.SetBool(InteractingParam, true);
         
         foreach (string line in dialogueEvent.dialogueLines)
         {
+            if (string.IsNullOrEmpty(line))
+            {
+                continue;
+            }
             // TODO: Implement dialogue UI system
             Debug.Log($"Character says: {line}");
             yield return new WaitForSeconds(2f); // Adjust timing as needed

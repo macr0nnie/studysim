@@ -25,6 +25,20 @@ public class RoomManager : MonoBehaviour
     private void Start()
     {
         mainCamera = Camera.main;
+        if (mainCamera == null)
+        {
+            Debug.LogError("Main camera not found!");
+            enabled = false;
+            return;
+        }
+
+        if (validPlacementMaterial == null || invalidPlacementMaterial == null)
+        {
+            Debug.LogError("Placement materials not assigned!");
+            enabled = false;
+            return;
+        }
+
         InitializeGrid();
     }
 
@@ -39,17 +53,44 @@ public class RoomManager : MonoBehaviour
 
     private void InitializeGrid()
     {
-        // Initialize grid visualization if needed
+        if (gridSize.x <= 0 || gridSize.y <= 0)
+        {
+            Debug.LogError("Invalid grid size!");
+            enabled = false;
+            return;
+        }
+
+        if (cellSize <= 0)
+        {
+            Debug.LogError("Invalid cell size!");
+            enabled = false;
+            return;
+        }
+
+        placedObjects.Clear();
+        // Additional grid initialization can be added here if needed
     }
 
     public void StartPlacingFurniture(GameObject furniturePrefab)
     {
+        if (furniturePrefab == null)
+        {
+            Debug.LogError("Furniture prefab is null!");
+            return;
+        }
+
         if (currentPreview != null)
         {
             Destroy(currentPreview);
         }
 
         currentPreview = Instantiate(furniturePrefab);
+        if (currentPreview == null)
+        {
+            Debug.LogError("Failed to instantiate furniture preview!");
+            return;
+        }
+
         SetPreviewMaterial(validPlacementMaterial);
     }
 

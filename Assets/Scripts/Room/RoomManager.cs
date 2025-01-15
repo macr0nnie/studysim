@@ -9,16 +9,27 @@ public class RoomManager : MonoBehaviour
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private LayerMask shelfLayer;
     [SerializeField] private float snapThreshold = 0.5f;
+    [SerializeField] private float gridSize = 1.0f;
 
     [Header("Visual Feedback")]
     [SerializeField] private Material validPlacementMaterial;
     [SerializeField] private Material invalidPlacementMaterial;
 
-    private Dictionary<Vector2Int, GameObject> placedObjects = new Dictionary<Vector2Int, GameObject>();
+    [Header("Effects")]
+    [SerializeField] private GameObject placementParticlePrefab;
+
+    private List<GameObject> placedObjects = new List<GameObject>();
     private GameObject currentPreview;
+    private GameObject selectedObject;
     private bool isPlacementValid;
     private Camera mainCamera;
     private bool isEditMode = false;
+
+    private Stack<GameObject> undoStack = new Stack<GameObject>();
+    private Stack<GameObject> redoStack = new Stack<GameObject>();
+
+    private float lastClickTime;
+    private const float doubleClickThreshold = 0.3f;
 
     private void Start()
     {
@@ -33,6 +44,13 @@ public class RoomManager : MonoBehaviour
         if (validPlacementMaterial == null || invalidPlacementMaterial == null)
         {
             Debug.LogError("Placement materials not assigned!");
+            enabled = false;
+            return;
+        }
+
+        if (placementParticlePrefab == null)
+        {
+            Debug.LogError("Placement particle prefab not assigned!");
             enabled = false;
             return;
         }
@@ -53,6 +71,21 @@ public class RoomManager : MonoBehaviour
         else
         {
             HandleObjectSelection();
+        }
+
+        if (Input.GetKeyDown(KeyCode.Z))
+        {
+            Undo();
+        }
+
+        if (Input.GetKeyDown(KeyCode.Y))
+        {
+            Redo();
+        }
+
+        if (Input.GetKeyDown(KeyCode.F))
+        {
+            EnterEditMode();
         }
     }
 
@@ -122,7 +155,6 @@ public class RoomManager : MonoBehaviour
                     default:
                         if (((1 << hit.collider.gameObject.layer) & placementLayer) != 0)
                         {
-                            position = SnapToNearbyObjects(position);
                             position.y += currentPreview.GetComponent<Collider>().bounds.extents.y;
                         }
                         else
@@ -161,24 +193,6 @@ public class RoomManager : MonoBehaviour
         return position;
     }
 
-    private Vector3 SnapToNearbyObjects(Vector3 position)
-    {
-        foreach (GameObject placedObject in placedObjects.Values)
-        {
-            Collider collider = placedObject.GetComponent<Collider>();
-            if (collider != null)
-            {
-                Vector3 closestPoint = collider.ClosestPoint(position);
-                if (Vector3.Distance(position, closestPoint) <= snapThreshold)
-                {
-                    position = closestPoint;
-                    break;
-                }
-            }
-        }
-        return position;
-    }
-
     private void HandlePlacement()
     {
         if (Input.GetMouseButtonDown(0) && isPlacementValid)
@@ -199,6 +213,10 @@ public class RoomManager : MonoBehaviour
             {
                 currentPreview.transform.Rotate(Vector3.up, 90f);
             }
+            else if (selectedObject != null)
+            {
+                selectedObject.transform.Rotate(Vector3.up, 90f);
+            }
         }
 
         if (Input.GetKeyDown(KeyCode.F))
@@ -207,39 +225,34 @@ public class RoomManager : MonoBehaviour
             {
                 currentPreview.transform.Rotate(Vector3.forward, 180f);
             }
+            else if (selectedObject != null)
+            {
+                selectedObject.transform.Rotate(Vector3.forward, 180f);
+            }
+        }
+
+        if (Input.GetKey(KeyCode.LeftAlt) && Input.GetKeyDown(KeyCode.R))
+        {
+            if (selectedObject != null)
+            {
+                selectedObject.transform.Rotate(Vector3.right, 90f);
+            }
         }
     }
 
     private void PlaceObject()
     {
         Vector3 position = currentPreview.transform.position;
-        Vector2Int gridPos = GetGridPosition(position);
 
-        if (placedObjects.ContainsKey(gridPos))
-        {
-            SwapObject(gridPos);
-        }
-        else
-        {
-            GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
-            placedObjects[gridPos] = placedObject;
-            ResetPreviewMaterial(placedObject);
-        }
+        GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
+        placedObjects.Add(placedObject);
+        undoStack.Push(placedObject);
+        ResetPreviewMaterial(placedObject);
+        PlayPlacementEffect(position);
 
         Destroy(currentPreview);
         currentPreview = null;
         Debug.Log("Object placed successfully.");
-    }
-
-    private void SwapObject(Vector2Int gridPos)
-    {
-        GameObject existingObject = placedObjects[gridPos];
-        Destroy(existingObject);
-
-        GameObject placedObject = Instantiate(currentPreview, currentPreview.transform.position, currentPreview.transform.rotation);
-        placedObjects[gridPos] = placedObject;
-        ResetPreviewMaterial(placedObject);
-        Debug.Log("Object swapped successfully.");
     }
 
     private void CancelPlacement()
@@ -257,7 +270,7 @@ public class RoomManager : MonoBehaviour
         Collider[] colliders = Physics.OverlapBox(position, currentPreview.GetComponent<Collider>().bounds.extents, currentPreview.transform.rotation, furnitureLayer);
         bool isValid = colliders.Length == 0;
 
-        foreach (GameObject placedObject in placedObjects.Values)
+        foreach (GameObject placedObject in placedObjects)
         {
             if (placedObject.GetComponent<Collider>().bounds.Intersects(currentPreview.GetComponent<Collider>().bounds))
             {
@@ -288,13 +301,6 @@ public class RoomManager : MonoBehaviour
         }
     }
 
-    private Vector2Int GetGridPosition(Vector3 worldPosition)
-    {
-        int x = Mathf.FloorToInt(worldPosition.x / snapThreshold);
-        int y = Mathf.FloorToInt(worldPosition.z / snapThreshold);
-        return new Vector2Int(x, y);
-    }
-
     private void HandleEditMode()
     {
         if (Input.GetMouseButtonDown(0))
@@ -305,28 +311,22 @@ public class RoomManager : MonoBehaviour
             if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
             {
                 GameObject hitObject = hit.collider.gameObject;
-                if (placedObjects.ContainsValue(hitObject))
+                if (placedObjects.Contains(hitObject))
                 {
-                    Vector3 position = hit.point;
-                    Quaternion rotation = hitObject.transform.rotation;
-
-                    if (hitObject.GetComponent<Furniture>().Type == Furniture.FurnitureType.Wall)
-                    {
-                        position = SnapToWall(position, hit.normal);
-                    }
-                    else if (hitObject.GetComponent<Furniture>().Type == Furniture.FurnitureType.Shelf)
-                    {
-                        position = SnapToShelf(position);
-                    }
-                    else
-                    {
-                        position = SnapToNearbyObjects(position);
-                        position.y += hitObject.GetComponent<Collider>().bounds.extents.y;
-                    }
-
-                    hitObject.transform.position = position;
-                    hitObject.transform.rotation = rotation;
+                    selectedObject = hitObject;
                 }
+            }
+        }
+
+        if (selectedObject != null)
+        {
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
+            {
+                Vector3 position = hit.point;
+                selectedObject.transform.position = position;
             }
         }
     }
@@ -341,11 +341,88 @@ public class RoomManager : MonoBehaviour
             if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
             {
                 GameObject hitObject = hit.collider.gameObject;
-                if (placedObjects.ContainsValue(hitObject))
+                if (placedObjects.Contains(hitObject))
                 {
-                    isEditMode = true;
+                    float timeSinceLastClick = Time.time - lastClickTime;
+                    if (timeSinceLastClick <= doubleClickThreshold)
+                    {
+                        isEditMode = true;
+                        selectedObject = hitObject;
+                    }
+                    lastClickTime = Time.time;
                 }
             }
+        }
+        else if (Input.GetMouseButtonDown(1)) // Right-click to delete
+        {
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
+            {
+                GameObject hitObject = hit.collider.gameObject;
+                DeleteObject(hitObject);
+            }
+        }
+    }
+
+    private void EnterEditMode()
+    {
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        RaycastHit hit;
+
+        if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
+        {
+            GameObject hitObject = hit.collider.gameObject;
+            if (placedObjects.Contains(hitObject))
+            {
+                isEditMode = true;
+                selectedObject = hitObject;
+            }
+        }
+    }
+
+    private void DeleteObject(GameObject obj)
+    {
+        if (placedObjects.Contains(obj))
+        {
+            placedObjects.Remove(obj);
+            undoStack.Push(obj);
+            obj.SetActive(false);
+        }
+    }
+
+    public void Undo()
+    {
+        if (undoStack.Count > 0)
+        {
+            GameObject lastObject = undoStack.Pop();
+            redoStack.Push(lastObject);
+            lastObject.SetActive(!lastObject.activeSelf);
+        }
+    }
+
+    public void Redo()
+    {
+        if (redoStack.Count > 0)
+        {
+            GameObject lastObject = redoStack.Pop();
+            undoStack.Push(lastObject);
+            lastObject.SetActive(!lastObject.activeSelf);
+        }
+    }
+
+    private void PlayPlacementEffect(Vector3 position)
+    {
+        if (placementParticlePrefab != null)
+        {
+            GameObject particleEffect = Instantiate(placementParticlePrefab, position, Quaternion.identity);
+            ParticleSystem particleSystem = particleEffect.GetComponent<ParticleSystem>();
+            if (particleSystem != null)
+            {
+                particleSystem.Play();
+            }
+            Destroy(particleEffect, 2f); // Destroy the particle effect after 2 seconds
         }
     }
 }

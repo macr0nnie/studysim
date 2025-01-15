@@ -9,16 +9,26 @@ public class RoomManager : MonoBehaviour
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private LayerMask shelfLayer;
     [SerializeField] private float snapThreshold = 0.5f;
+    [SerializeField] private float gridSize = 1.0f;
 
     [Header("Visual Feedback")]
     [SerializeField] private Material validPlacementMaterial;
     [SerializeField] private Material invalidPlacementMaterial;
+
+    [Header("UI")]
+    //[SerializeField] private ObjectPropertiesPanel propertiesPanel;
+
+    [Header("Effects")]
+    [SerializeField] private GameObject placementParticlePrefab;
 
     private Dictionary<Vector2Int, GameObject> placedObjects = new Dictionary<Vector2Int, GameObject>();
     private GameObject currentPreview;
     private bool isPlacementValid;
     private Camera mainCamera;
     private bool isEditMode = false;
+
+    private Stack<GameObject> undoStack = new Stack<GameObject>();
+    private Stack<GameObject> redoStack = new Stack<GameObject>();
 
     private void Start()
     {
@@ -33,6 +43,13 @@ public class RoomManager : MonoBehaviour
         if (validPlacementMaterial == null || invalidPlacementMaterial == null)
         {
             Debug.LogError("Placement materials not assigned!");
+            enabled = false;
+            return;
+        }
+
+        if (placementParticlePrefab == null)
+        {
+            Debug.LogError("Placement particle prefab not assigned!");
             enabled = false;
             return;
         }
@@ -84,7 +101,7 @@ public class RoomManager : MonoBehaviour
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-        if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
+        if (Physics.Raycast(ray, out hit, 100f))
         {
             Vector3 position = hit.point;
             Quaternion rotation = currentPreview.transform.rotation;
@@ -135,7 +152,7 @@ public class RoomManager : MonoBehaviour
                 }
             }
 
-            currentPreview.transform.position = position;
+            currentPreview.transform.position = SnapToGrid(position);
             currentPreview.transform.rotation = rotation;
             isPlacementValid = IsValidPlacement(position);
             SetPreviewMaterial(isPlacementValid ? validPlacementMaterial : invalidPlacementMaterial);
@@ -143,10 +160,18 @@ public class RoomManager : MonoBehaviour
         else
         {
             Vector3 position = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f));
-            currentPreview.transform.position = position;
+            currentPreview.transform.position = SnapToGrid(position);
             isPlacementValid = false;
             SetPreviewMaterial(invalidPlacementMaterial);
         }
+    }
+
+    private Vector3 SnapToGrid(Vector3 position)
+    {
+        position.x = Mathf.Round(position.x / gridSize) * gridSize;
+        position.y = Mathf.Round(position.y / gridSize) * gridSize;
+        position.z = Mathf.Round(position.z / gridSize) * gridSize;
+        return position;
     }
 
     private Vector3 SnapToWall(Vector3 position, Vector3 normal)
@@ -223,7 +248,9 @@ public class RoomManager : MonoBehaviour
         {
             GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
             placedObjects[gridPos] = placedObject;
+            undoStack.Push(placedObject);
             ResetPreviewMaterial(placedObject);
+            PlayPlacementEffect(position);
         }
 
         Destroy(currentPreview);
@@ -238,7 +265,9 @@ public class RoomManager : MonoBehaviour
 
         GameObject placedObject = Instantiate(currentPreview, currentPreview.transform.position, currentPreview.transform.rotation);
         placedObjects[gridPos] = placedObject;
+        undoStack.Push(placedObject);
         ResetPreviewMaterial(placedObject);
+        PlayPlacementEffect(currentPreview.transform.position);
         Debug.Log("Object swapped successfully.");
     }
 
@@ -290,8 +319,8 @@ public class RoomManager : MonoBehaviour
 
     private Vector2Int GetGridPosition(Vector3 worldPosition)
     {
-        int x = Mathf.FloorToInt(worldPosition.x / snapThreshold);
-        int y = Mathf.FloorToInt(worldPosition.z / snapThreshold);
+        int x = Mathf.FloorToInt(worldPosition.x / gridSize);
+        int y = Mathf.FloorToInt(worldPosition.z / gridSize);
         return new Vector2Int(x, y);
     }
 
@@ -326,6 +355,7 @@ public class RoomManager : MonoBehaviour
 
                     hitObject.transform.position = position;
                     hitObject.transform.rotation = rotation;
+                    //propertiesPanel.SelectObject(hitObject);
                 }
             }
         }
@@ -338,14 +368,69 @@ public class RoomManager : MonoBehaviour
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
 
-            if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
+            if (Physics.Raycast(ray, out hit, 100f))
             {
                 GameObject hitObject = hit.collider.gameObject;
                 if (placedObjects.ContainsValue(hitObject))
                 {
                     isEditMode = true;
+                    //propertiesPanel.SelectObject(hitObject);
                 }
             }
+        }
+        else if (Input.GetMouseButtonDown(1)) // Right-click to delete
+        {
+            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit, 100f))
+            {
+                GameObject hitObject = hit.collider.gameObject;
+                DeleteObject(hitObject);
+            }
+        }
+    }
+
+    private void DeleteObject(GameObject obj)
+    {
+        if (placedObjects.ContainsValue(obj))
+        {
+            placedObjects.Remove(GetGridPosition(obj.transform.position));
+            Destroy(obj);
+        }
+    }
+
+    public void Undo()
+    {
+        if (undoStack.Count > 0)
+        {
+            GameObject lastObject = undoStack.Pop();
+            redoStack.Push(lastObject);
+            Destroy(lastObject);
+        }
+    }
+
+    public void Redo()
+    {
+        if (redoStack.Count > 0)
+        {
+            GameObject lastObject = redoStack.Pop();
+            undoStack.Push(lastObject);
+            lastObject.SetActive(true);
+        }
+    }
+
+    private void PlayPlacementEffect(Vector3 position)
+    {
+        if (placementParticlePrefab != null)
+        {
+            GameObject particleEffect = Instantiate(placementParticlePrefab, position, Quaternion.identity);
+            ParticleSystem particleSystem = particleEffect.GetComponent<ParticleSystem>();
+            if (particleSystem != null)
+            {
+                particleSystem.Play();
+            }
+            Destroy(particleEffect, 2f); // Destroy the particle effect after 2 seconds
         }
     }
 }

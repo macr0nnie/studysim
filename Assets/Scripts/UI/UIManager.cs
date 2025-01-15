@@ -96,6 +96,7 @@ public class UIManager : MonoBehaviour
 
     public void StartFurniturePlacement(GameObject furniturePrefab)
     {
+        Debug.Log("Starting furniture placement...");
         roomManager.StartPlacingFurniture(furniturePrefab);
     }
 

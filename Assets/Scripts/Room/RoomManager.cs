@@ -33,6 +33,8 @@ public class RoomManager : MonoBehaviour
 
     private void Start()
     {
+
+        //set upt the script check if things to intizalized
         mainCamera = Camera.main;
         if (mainCamera == null)
         {
@@ -193,6 +195,7 @@ public class RoomManager : MonoBehaviour
         return position;
     }
 
+
     private void HandlePlacement()
     {
         if (Input.GetMouseButtonDown(0) && isPlacementValid)
@@ -205,6 +208,7 @@ public class RoomManager : MonoBehaviour
         }
     }
 
+
     private void HandleRotationAndFlipping()
     {
         if (Input.GetKeyDown(KeyCode.R))
@@ -215,7 +219,7 @@ public class RoomManager : MonoBehaviour
             }
             else if (selectedObject != null)
             {
-                selectedObject.transform.Rotate(Vector3.up, 90f);
+                selectedObject.transform.Rotate(Vector3.up, -90f);
             }
         }
 
@@ -227,7 +231,7 @@ public class RoomManager : MonoBehaviour
             }
             else if (selectedObject != null)
             {
-                selectedObject.transform.Rotate(Vector3.forward, 180f);
+                selectedObject.transform.Rotate(Vector3.back, 90f);
             }
         }
 

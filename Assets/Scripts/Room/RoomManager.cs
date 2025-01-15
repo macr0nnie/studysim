@@ -87,7 +87,7 @@ public class RoomManager : MonoBehaviour
         if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
         {
             Vector3 position = hit.point;
-            Quaternion rotation = Quaternion.identity;
+            Quaternion rotation = currentPreview.transform.rotation;
             Furniture furniture = currentPreview.GetComponent<Furniture>();
 
             if (furniture != null)
@@ -98,7 +98,6 @@ public class RoomManager : MonoBehaviour
                         if (((1 << hit.collider.gameObject.layer) & wallLayer) != 0)
                         {
                             position = SnapToWall(position, hit.normal);
-                            rotation = Quaternion.LookRotation(-hit.normal);
                         }
                         else
                         {
@@ -114,13 +113,24 @@ public class RoomManager : MonoBehaviour
                         }
                         else
                         {
-                            position = hit.point;
+                            isPlacementValid = false;
+                            SetPreviewMaterial(invalidPlacementMaterial);
+                            return;
                         }
                         break;
                     case Furniture.FurnitureType.Floor:
                     default:
-                        position = SnapToNearbyObjects(position);
-                        position.y += currentPreview.GetComponent<Collider>().bounds.extents.y;
+                        if (((1 << hit.collider.gameObject.layer) & placementLayer) != 0)
+                        {
+                            position = SnapToNearbyObjects(position);
+                            position.y += currentPreview.GetComponent<Collider>().bounds.extents.y;
+                        }
+                        else
+                        {
+                            isPlacementValid = false;
+                            SetPreviewMaterial(invalidPlacementMaterial);
+                            return;
+                        }
                         break;
                 }
             }
@@ -303,7 +313,6 @@ public class RoomManager : MonoBehaviour
                     if (hitObject.GetComponent<Furniture>().Type == Furniture.FurnitureType.Wall)
                     {
                         position = SnapToWall(position, hit.normal);
-                        rotation = Quaternion.LookRotation(-hit.normal);
                     }
                     else if (hitObject.GetComponent<Furniture>().Type == Furniture.FurnitureType.Shelf)
                     {

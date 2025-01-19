@@ -3,7 +3,9 @@ using System.Collections.Generic;
 
 public class RoomManager : MonoBehaviour
 {
-    [Header("Placement Settings")]
+ 
+
+    //settings
     [SerializeField] private LayerMask placementLayer;
     [SerializeField] private LayerMask furnitureLayer;
     [SerializeField] private LayerMask wallLayer;
@@ -11,25 +13,27 @@ public class RoomManager : MonoBehaviour
     [SerializeField] private float snapThreshold = 0.5f;
     [SerializeField] private float gridSize = 1.0f;
 
-    [Header("Visual Feedback")]
+    //materials and effects
     [SerializeField] private Material validPlacementMaterial;
     [SerializeField] private Material invalidPlacementMaterial;
 
-    [Header("Effects")]
-    [SerializeField] private GameObject placementParticlePrefab;
+    [SerializeField] private GameObject placementParticlePrefab; //need to change
 
-    private List<GameObject> placedObjects = new List<GameObject>();
-    private GameObject currentPreview;
-    private GameObject selectedObject;
+    private List<GameObject> placedObjects = new List<GameObject>(); //keeps track of objects in the scene
+    private GameObject currentPreview; 
+    private GameObject selectedObject; 
     private bool isPlacementValid;
     private Camera mainCamera;
-    private bool isEditMode = false;
+    private bool isEditMode = false; //fix this
 
+
+    //keep track of the object's positions so we can undo and redo 
+    //edit mode things not working
     private Stack<GameObject> undoStack = new Stack<GameObject>();
     private Stack<GameObject> redoStack = new Stack<GameObject>();
 
-    private float lastClickTime;
-    private const float doubleClickThreshold = 0.3f;
+    private float lastClickTime; //check for double click (part of edit mode)
+    private const float doubleClickThreshold = 0.3f; //how soon in between clicks
 
     private void Start()
     {
@@ -68,7 +72,7 @@ public class RoomManager : MonoBehaviour
         }
         else if (isEditMode)
         {
-            HandleEditMode();
+            HandleEditMode(); //needs to be fixed 
         }
         else
         {
@@ -77,20 +81,22 @@ public class RoomManager : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.Z))
         {
-            Undo();
+            Undo(); //this sort of works
         }
 
         if (Input.GetKeyDown(KeyCode.Y))
         {
-            Redo();
+            Redo(); //not really working the way i want it to
         }
 
         if (Input.GetKeyDown(KeyCode.F))
         {
-            EnterEditMode();
+            EnterEditMode(); //not working
+            //(need to debug edit mode here)
         }
     }
 
+    //gets a reference of the furniture to show near the mouse. 
     public void StartPlacingFurniture(GameObject furniturePrefab)
     {
         if (furniturePrefab == null)
@@ -111,25 +117,30 @@ public class RoomManager : MonoBehaviour
             return;
         }
 
-        SetPreviewMaterial(validPlacementMaterial);
+        SetPreviewMaterial(validPlacementMaterial); //remember to set the orginal material back
     }
 
+    //move the preview position around
     private void UpdatePreviewPosition()
     {
+        //future me make sure to change the game objects back to the orginal materials
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
+        //check if the ray hits the one of the three layers
         if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
         {
             Vector3 position = hit.point;
-            Quaternion rotation = currentPreview.transform.rotation;
-            Furniture furniture = currentPreview.GetComponent<Furniture>();
+            Quaternion rotation = currentPreview.transform.rotation; //furntiure rotation
+            Furniture furniture = currentPreview.GetComponent<Furniture>(); //the furniture objs have a class
 
             if (furniture != null)
             {
+                //check how to place the object based on the furniture type
                 switch (furniture.Type)
                 {
                     case Furniture.FurnitureType.Wall:
+                        //check if the object it currently hovering ovr the layer
                         if (((1 << hit.collider.gameObject.layer) & wallLayer) != 0)
                         {
                             position = SnapToWall(position, hit.normal);
@@ -185,12 +196,14 @@ public class RoomManager : MonoBehaviour
 
     private Vector3 SnapToWall(Vector3 position, Vector3 normal)
     {
+        //change make the object change rotatation when it is hovering over a wall
         position += normal * currentPreview.GetComponent<Collider>().bounds.extents.z;
         return position;
     }
 
     private Vector3 SnapToShelf(Vector3 position)
     {
+        //make the object stand straight
         position.y += currentPreview.GetComponent<Collider>().bounds.extents.y;
         return position;
     }
@@ -209,6 +222,8 @@ public class RoomManager : MonoBehaviour
     }
 
 
+    //rotatation
+    //make smoother rotation use a corotine later
     private void HandleRotationAndFlipping()
     {
         if (Input.GetKeyDown(KeyCode.R))
@@ -249,14 +264,19 @@ public class RoomManager : MonoBehaviour
         Vector3 position = currentPreview.transform.position;
 
         GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
+        
+        //edit mode functionality
+        //make it so the objects are stored in a list
         placedObjects.Add(placedObject);
         undoStack.Push(placedObject);
-        ResetPreviewMaterial(placedObject);
-        PlayPlacementEffect(position);
+        
+        ResetPreviewMaterial(placedObject);//this is not working
+        
+        PlayPlacementEffect(position); //effect
 
         Destroy(currentPreview);
         currentPreview = null;
-        Debug.Log("Object placed successfully.");
+        //Debug.Log("Object placed successfully.");
     }
 
     private void CancelPlacement()
@@ -296,6 +316,7 @@ public class RoomManager : MonoBehaviour
         }
     }
 
+    //check this later
     private void ResetPreviewMaterial(GameObject obj)
     {
         Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();

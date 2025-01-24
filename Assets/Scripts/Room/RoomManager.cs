@@ -128,6 +128,7 @@ public class RoomManager : MonoBehaviour
         RaycastHit hit;
 
         //check if the ray hits the one of the three layers
+        //seperate to check each layer individualy
         if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
         {
             Vector3 position = hit.point;

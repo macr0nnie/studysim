@@ -34,6 +34,9 @@ public class RoomManager : MonoBehaviour
 
     private float lastClickTime; //check for double click (part of edit mode)
     private const float doubleClickThreshold = 0.3f; //how soon in between clicks
+    //color change walls and floors
+    
+
 
     private void Start()
     {
@@ -134,7 +137,7 @@ public class RoomManager : MonoBehaviour
             Vector3 position = hit.point;
             Quaternion rotation = currentPreview.transform.rotation; //furntiure rotation
             Furniture furniture = currentPreview.GetComponent<Furniture>(); //the furniture objs have a class
-
+            
             if (furniture != null)
             {
                 //check how to place the object based on the furniture type

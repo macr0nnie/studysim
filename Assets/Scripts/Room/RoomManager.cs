@@ -22,6 +22,7 @@ public class RoomManager : MonoBehaviour
     private List<GameObject> placedObjects = new List<GameObject>(); //keeps track of objects in the scene
     private GameObject currentPreview; 
     private GameObject selectedObject; 
+
     private bool isPlacementValid;
     private Camera mainCamera;
     private bool isEditMode = false; //fix this
@@ -37,6 +38,9 @@ public class RoomManager : MonoBehaviour
     //color change walls and floors
     
 
+
+    private Stack<GameObject> undoStack = new Stack<GameObject>();
+    private Stack<GameObject> redoStack = new Stack<GameObject>();
 
     private void Start()
     {
@@ -130,9 +134,11 @@ public class RoomManager : MonoBehaviour
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
+
         //check if the ray hits the one of the three layers
         //seperate to check each layer individualy
         if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
+
         {
             Vector3 position = hit.point;
             Quaternion rotation = currentPreview.transform.rotation; //furntiure rotation
@@ -184,7 +190,7 @@ public class RoomManager : MonoBehaviour
                 }
             }
 
-            currentPreview.transform.position = position;
+            currentPreview.transform.position = SnapToGrid(position);
             currentPreview.transform.rotation = rotation;
             isPlacementValid = IsValidPlacement(position);
             SetPreviewMaterial(isPlacementValid ? validPlacementMaterial : invalidPlacementMaterial);
@@ -192,10 +198,18 @@ public class RoomManager : MonoBehaviour
         else
         {
             Vector3 position = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f));
-            currentPreview.transform.position = position;
+            currentPreview.transform.position = SnapToGrid(position);
             isPlacementValid = false;
             SetPreviewMaterial(invalidPlacementMaterial);
         }
+    }
+
+    private Vector3 SnapToGrid(Vector3 position)
+    {
+        position.x = Mathf.Round(position.x / gridSize) * gridSize;
+        position.y = Mathf.Round(position.y / gridSize) * gridSize;
+        position.z = Mathf.Round(position.z / gridSize) * gridSize;
+        return position;
     }
 
     private Vector3 SnapToWall(Vector3 position, Vector3 normal)
@@ -281,6 +295,7 @@ public class RoomManager : MonoBehaviour
         Destroy(currentPreview);
         currentPreview = null;
         //Debug.Log("Object placed successfully.");
+
     }
 
     private void CancelPlacement()
@@ -330,6 +345,7 @@ public class RoomManager : MonoBehaviour
         }
     }
 
+
     private void HandleEditMode()
     {
         if (Input.GetMouseButtonDown(0))
@@ -356,29 +372,7 @@ public class RoomManager : MonoBehaviour
             {
                 Vector3 position = hit.point;
                 selectedObject.transform.position = position;
-            }
-        }
-    }
 
-    private void HandleObjectSelection()
-    {
-        if (Input.GetMouseButtonDown(0))
-        {
-            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
-            {
-                GameObject hitObject = hit.collider.gameObject;
-                if (placedObjects.Contains(hitObject))
-                {
-                    float timeSinceLastClick = Time.time - lastClickTime;
-                    if (timeSinceLastClick <= doubleClickThreshold)
-                    {
-                        isEditMode = true;
-                        selectedObject = hitObject;
-                    }
-                    lastClickTime = Time.time;
                 }
             }
         }
@@ -387,13 +381,9 @@ public class RoomManager : MonoBehaviour
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
 
-            if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
-            {
-                GameObject hitObject = hit.collider.gameObject;
-                DeleteObject(hitObject);
-            }
-        }
-    }
+
+            if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))=
+
 
     private void EnterEditMode()
     {
@@ -418,6 +408,7 @@ public class RoomManager : MonoBehaviour
             placedObjects.Remove(obj);
             undoStack.Push(obj);
             obj.SetActive(false);
+
         }
     }
 
@@ -427,7 +418,9 @@ public class RoomManager : MonoBehaviour
         {
             GameObject lastObject = undoStack.Pop();
             redoStack.Push(lastObject);
+UpgradingTimer+AddingSounds
             lastObject.SetActive(!lastObject.activeSelf);
+
         }
     }
 
@@ -437,7 +430,9 @@ public class RoomManager : MonoBehaviour
         {
             GameObject lastObject = redoStack.Pop();
             undoStack.Push(lastObject);
+
             lastObject.SetActive(!lastObject.activeSelf);
+
         }
     }
 

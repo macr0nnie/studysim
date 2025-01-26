@@ -1,10 +1,5 @@
 using UnityEngine;
-
-/// <summary>
-/// Controls the isometric camera view with proper scaling and positioning for different screen sizes
-/// Setup: Attach to the main camera in the scene
-/// Dependencies: None
-/// </summary>
+using System.Collections;
 public class IsometricCameraController : MonoBehaviour
 {
     [Header("Camera Settings")]
@@ -44,18 +39,14 @@ public class IsometricCameraController : MonoBehaviour
 
     private void OnEnable()
     {
-#if UNITY_2022_1_OR_NEWER
+
         Application.onBeforeRender += UpdateCameraSettings;
-#endif
-        // Handle screen resolution changes
         //Screen.onResolutionChanged += OnResolutionChanged;
     }
 
     private void OnDisable()
     {
-#if UNITY_2022_1_OR_NEWER
         Application.onBeforeRender -= UpdateCameraSettings;
-#endif
         //Screen.onResolutionChanged -= OnResolutionChanged;
     }
 
@@ -113,8 +104,6 @@ public class IsometricCameraController : MonoBehaviour
         targetOrthoSize = initialOrthoSize;
         UpdateCameraSettings();
     }
-
-#if UNITY_EDITOR
     private void OnValidate()
     {
         // Validate and update settings in editor
@@ -132,5 +121,4 @@ public class IsometricCameraController : MonoBehaviour
             UpdateCameraSettings();
         }
     }
-#endif
 }

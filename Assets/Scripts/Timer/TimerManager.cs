@@ -37,6 +37,8 @@ public class TimerManager : MonoBehaviour
     private void Start()
     {
         ResetTimer();
+        plusButton.onClick.AddListener(AddFiveMinutes);
+        minusButton.onClick.AddListener(RemoveFiveMinutes);
     }
 
     private void Update()
@@ -97,6 +99,25 @@ public class TimerManager : MonoBehaviour
         if (!isTimerRunning)
         {
             studyDuration = minutes * 60f;
+            ResetTimer();
+        }
+    }
+
+    public void AddFiveMinutes()
+    {
+        if (!isTimerRunning && studyDuration < 7200f) // 2 hours in seconds
+        {
+            studyDuration += 150f; // 5 minutes in seconds
+            if (studyDuration > 7200f) studyDuration = 7200f; // Ensure it does not exceed 2 hours
+            ResetTimer();
+        }
+    }
+
+    public void RemoveFiveMinutes()
+    {
+        if (!isTimerRunning && studyDuration > 300f)
+        {
+            studyDuration -= 150f; // 5 minutes in seconds
             ResetTimer();
         }
     }

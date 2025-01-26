@@ -55,6 +55,8 @@ public class UIManager : MonoBehaviour
         if (startTimerButton) startTimerButton.onClick.AddListener(timerManager.StartTimer);
         if (pauseTimerButton) pauseTimerButton.onClick.AddListener(timerManager.PauseTimer);
         if (resetTimerButton) resetTimerButton.onClick.AddListener(timerManager.ResetTimer);
+        if (timerManager.plusButton) timerManager.plusButton.onClick.AddListener(timerManager.AddFiveMinutes);
+        if (timerManager.minusButton) timerManager.minusButton.onClick.AddListener(timerManager.RemoveFiveMinutes);
         
         // Audio UI
         if (musicVolumeSlider) 
@@ -80,7 +82,8 @@ public class UIManager : MonoBehaviour
         if (timerText == null) return;
         
         TimeSpan timeSpan = TimeSpan.FromSeconds(timeRemaining);
-        timerText.text = $"{timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}";
+        int totalMinutes = (int)timeSpan.TotalMinutes;
+        timerText.text = $"{totalMinutes:D2}:{timeSpan.Seconds:D2}";
     }
 
     private void OnTimerComplete()

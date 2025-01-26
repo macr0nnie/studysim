@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using UnityEngine.Events;
+using UnityEngine.UI;
 
 /// <summary>
 /// Manages the Pomodoro timer functionality and reward system
@@ -28,6 +29,10 @@ public class TimerManager : MonoBehaviour
     public float CurrentTime => currentTime;
     public bool IsTimerRunning => isTimerRunning;
     public bool IsStudySession => isStudySession;
+
+    
+    public Button plusButton;
+    public Button minusButton;
 
     private void Start()
     {

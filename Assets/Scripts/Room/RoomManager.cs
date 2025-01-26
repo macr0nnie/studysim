@@ -126,25 +126,20 @@ public class RoomManager : MonoBehaviour
     //move the preview position around
     private void UpdatePreviewPosition()
     {
-        //future me make sure to change the game objects back to the orginal materials
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
 
-        //check if the ray hits the one of the three layers
-        //seperate to check each layer individualy
         if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
         {
             Vector3 position = hit.point;
-            Quaternion rotation = currentPreview.transform.rotation; //furntiure rotation
-            Furniture furniture = currentPreview.GetComponent<Furniture>(); //the furniture objs have a class
-            
+            Quaternion rotation = currentPreview.transform.rotation;
+            Furniture furniture = currentPreview.GetComponent<Furniture>();
+
             if (furniture != null)
             {
-                //check how to place the object based on the furniture type
                 switch (furniture.Type)
                 {
                     case Furniture.FurnitureType.Wall:
-                        //check if the object it currently hovering ovr the layer
                         if (((1 << hit.collider.gameObject.layer) & wallLayer) != 0)
                         {
                             position = SnapToWall(position, hit.normal);
@@ -153,7 +148,7 @@ public class RoomManager : MonoBehaviour
                         {
                             isPlacementValid = false;
                             SetPreviewMaterial(invalidPlacementMaterial);
-                            return;
+                            break;
                         }
                         break;
                     case Furniture.FurnitureType.Shelf:
@@ -165,7 +160,7 @@ public class RoomManager : MonoBehaviour
                         {
                             isPlacementValid = false;
                             SetPreviewMaterial(invalidPlacementMaterial);
-                            return;
+                            break;
                         }
                         break;
                     case Furniture.FurnitureType.Floor:
@@ -178,40 +173,40 @@ public class RoomManager : MonoBehaviour
                         {
                             isPlacementValid = false;
                             SetPreviewMaterial(invalidPlacementMaterial);
-                            return;
+                            break;
                         }
                         break;
                 }
             }
 
-            currentPreview.transform.position = position;
+            currentPreview.transform.position = Vector3.Lerp(currentPreview.transform.position, position, Time.deltaTime * 10f);
             currentPreview.transform.rotation = rotation;
             isPlacementValid = IsValidPlacement(position);
             SetPreviewMaterial(isPlacementValid ? validPlacementMaterial : invalidPlacementMaterial);
         }
         else
         {
+            // Fallback to handle transition smoothly
             Vector3 position = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f));
-            currentPreview.transform.position = position;
+            currentPreview.transform.position = Vector3.Lerp(currentPreview.transform.position, position, Time.deltaTime * 10f);
             isPlacementValid = false;
             SetPreviewMaterial(invalidPlacementMaterial);
         }
     }
 
-    private Vector3 SnapToWall(Vector3 position, Vector3 normal)
-    {
-        //change make the object change rotatation when it is hovering over a wall
-        position += normal * currentPreview.GetComponent<Collider>().bounds.extents.z;
-        return position;
-    }
+private Vector3 SnapToWall(Vector3 position, Vector3 normal)
+{
+    // Adjust the position to snap to the wall and handle transitions smoothly
+    position += normal * (currentPreview.GetComponent<Collider>().bounds.extents.z + snapThreshold);
+    return position;
+}
 
-    private Vector3 SnapToShelf(Vector3 position)
-    {
-        //make the object stand straight
-        position.y += currentPreview.GetComponent<Collider>().bounds.extents.y;
-        return position;
-    }
-
+private Vector3 SnapToShelf(Vector3 position)
+{
+    // Adjust the position to snap to the shelf and handle transitions smoothly
+    position.y += currentPreview.GetComponent<Collider>().bounds.extents.y + snapThreshold;
+    return position;
+}
 
     private void HandlePlacement()
     {

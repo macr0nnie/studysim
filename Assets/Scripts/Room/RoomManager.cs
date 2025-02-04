@@ -3,45 +3,38 @@ using System.Collections.Generic;
 
 public class RoomManager : MonoBehaviour
 {
- 
-
-    //settings
+    // Settings
     [SerializeField] private LayerMask placementLayer;
     [SerializeField] private LayerMask furnitureLayer;
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private LayerMask shelfLayer;
     [SerializeField] private float snapThreshold = 0.5f;
     [SerializeField] private float gridSize = 1.0f;
+    [SerializeField] private bool useGridPlacement = true; // Toggle for grid-based placement
 
-    //materials and effects
+    // Materials and effects
     [SerializeField] private Material validPlacementMaterial;
     [SerializeField] private Material invalidPlacementMaterial;
+    [SerializeField] private GameObject placementParticlePrefab; // Particle effect prefab
 
-    [SerializeField] private GameObject placementParticlePrefab; //need to change
-
-    private List<GameObject> placedObjects = new List<GameObject>(); //keeps track of objects in the scene
-    private GameObject currentPreview; 
-    private GameObject selectedObject; 
+    // Runtime data
+    private List<GameObject> placedObjects = new List<GameObject>(); // Tracks placed objects
+    private GameObject currentPreview;
+    private GameObject selectedObject;
     private bool isPlacementValid;
     private Camera mainCamera;
-    private bool isEditMode = false; //fix this
+    private bool isEditMode = false; // Start in placement mode
 
-
-    //keep track of the object's positions so we can undo and redo 
-    //edit mode things not working
+    // Undo/Redo stacks
     private Stack<GameObject> undoStack = new Stack<GameObject>();
     private Stack<GameObject> redoStack = new Stack<GameObject>();
 
-    private float lastClickTime; //check for double click (part of edit mode)
-    private const float doubleClickThreshold = 0.3f; //how soon in between clicks
-    //color change walls and floors
-    
-
+    // For double-click detection in object selection
+    private float lastClickTime;
+    private const float doubleClickThreshold = 0.3f;
 
     private void Start()
     {
-
-        //set upt the script check if things to intizalized
         mainCamera = Camera.main;
         if (mainCamera == null)
         {
@@ -67,39 +60,49 @@ public class RoomManager : MonoBehaviour
 
     private void Update()
     {
+        // If a preview object exists, update its position and allow placement/rotation.
         if (currentPreview != null)
         {
             UpdatePreviewPosition();
             HandlePlacement();
             HandleRotationAndFlipping();
         }
+        // Else, if in edit mode, allow editing (selection & dragging).
         else if (isEditMode)
         {
-            HandleEditMode(); //needs to be fixed 
+            HandleEditMode();
         }
+        // Otherwise, handle standard object selection.
         else
         {
             HandleObjectSelection();
         }
 
+        // Undo/Redo input
         if (Input.GetKeyDown(KeyCode.Z))
         {
-            Undo(); //this sort of works
+            Undo();
         }
-
         if (Input.GetKeyDown(KeyCode.Y))
         {
-            Redo(); //not really working the way i want it to
+            Redo();
         }
 
-        if (Input.GetKeyDown(KeyCode.F))
+        // Press F to attempt to enter edit mode
+        if (Input.GetKeyDown(KeyCode.E))
         {
-            EnterEditMode(); //not working
-            //(need to debug edit mode here)
+            EnterEditMode();
+            Debug.Log("isEditMode: " + isEditMode);
+        }
+
+        // Toggle grid placement
+        if (Input.GetKeyDown(KeyCode.G))
+        {
+            ToggleGridPlacement();
         }
     }
 
-    //gets a reference of the furniture to show near the mouse. 
+    // Called by UI or other scripts to start placing a furniture object.
     public void StartPlacingFurniture(GameObject furniturePrefab)
     {
         if (furniturePrefab == null)
@@ -120,31 +123,28 @@ public class RoomManager : MonoBehaviour
             return;
         }
 
-        SetPreviewMaterial(validPlacementMaterial); //remember to set the orginal material back
+        SetPreviewMaterial(validPlacementMaterial);
     }
 
-    //move the preview position around
+    // Updates the preview object's position based on a raycast from the mouse.
     private void UpdatePreviewPosition()
     {
-        //future me make sure to change the game objects back to the orginal materials
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
         RaycastHit hit;
+        int mask = placementLayer | wallLayer | shelfLayer;
 
-        //check if the ray hits the one of the three layers
-        //seperate to check each layer individualy
-        if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
+        if (Physics.Raycast(ray, out hit, 100f, mask))
         {
             Vector3 position = hit.point;
-            Quaternion rotation = currentPreview.transform.rotation; //furntiure rotation
-            Furniture furniture = currentPreview.GetComponent<Furniture>(); //the furniture objs have a class
-            
+            Quaternion rotation = currentPreview.transform.rotation;
+            Furniture furniture = currentPreview.GetComponent<Furniture>();
+
+            // Adjust position based on furniture type.
             if (furniture != null)
             {
-                //check how to place the object based on the furniture type
                 switch (furniture.Type)
                 {
                     case Furniture.FurnitureType.Wall:
-                        //check if the object it currently hovering ovr the layer
                         if (((1 << hit.collider.gameObject.layer) & wallLayer) != 0)
                         {
                             position = SnapToWall(position, hit.normal);
@@ -184,6 +184,11 @@ public class RoomManager : MonoBehaviour
                 }
             }
 
+            if (useGridPlacement)
+            {
+                position = SnapToGrid(position);
+            }
+
             currentPreview.transform.position = position;
             currentPreview.transform.rotation = rotation;
             isPlacementValid = IsValidPlacement(position);
@@ -200,19 +205,41 @@ public class RoomManager : MonoBehaviour
 
     private Vector3 SnapToWall(Vector3 position, Vector3 normal)
     {
-        //change make the object change rotatation when it is hovering over a wall
+        // Shift the object so that it aligns with the wall.
         position += normal * currentPreview.GetComponent<Collider>().bounds.extents.z;
         return position;
     }
 
     private Vector3 SnapToShelf(Vector3 position)
     {
-        //make the object stand straight
+        // Adjust position to stand straight on a shelf.
         position.y += currentPreview.GetComponent<Collider>().bounds.extents.y;
         return position;
     }
 
+    // Checks placement validity using overlap detection.
+    private bool IsValidPlacement(Vector3 position)
+    {
+        Collider[] colliders = Physics.OverlapBox(
+            position,
+            currentPreview.GetComponent<Collider>().bounds.extents,
+            currentPreview.transform.rotation,
+            furnitureLayer
+        );
 
+        bool isValid = colliders.Length == 0;
+        foreach (GameObject placedObj in placedObjects)
+        {
+            if (placedObj.GetComponent<Collider>().bounds.Intersects(currentPreview.GetComponent<Collider>().bounds))
+            {
+                isValid = false;
+                break;
+            }
+        }
+        return isValid;
+    }
+
+    // Handles placement input.
     private void HandlePlacement()
     {
         if (Input.GetMouseButtonDown(0) && isPlacementValid)
@@ -225,32 +252,18 @@ public class RoomManager : MonoBehaviour
         }
     }
 
-
-    //rotatation
-    //make smoother rotation use a corotine later
+    // Handles rotation for the preview or selected object.
     private void HandleRotationAndFlipping()
     {
         if (Input.GetKeyDown(KeyCode.R))
         {
             if (currentPreview != null)
             {
-                currentPreview.transform.Rotate(Vector3.up, 90f);
+                currentPreview.transform.Rotate(Vector3.up, -90f);
             }
             else if (selectedObject != null)
             {
                 selectedObject.transform.Rotate(Vector3.up, -90f);
-            }
-        }
-
-        if (Input.GetKeyDown(KeyCode.F))
-        {
-            if (currentPreview != null)
-            {
-                currentPreview.transform.Rotate(Vector3.forward, 180f);
-            }
-            else if (selectedObject != null)
-            {
-                selectedObject.transform.Rotate(Vector3.back, 90f);
             }
         }
 
@@ -263,24 +276,19 @@ public class RoomManager : MonoBehaviour
         }
     }
 
+    // Instantiates the preview as a placed object.
     private void PlaceObject()
     {
         Vector3 position = currentPreview.transform.position;
-
         GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
-        
-        //edit mode functionality
-        //make it so the objects are stored in a list
         placedObjects.Add(placedObject);
         undoStack.Push(placedObject);
-        
-        ResetPreviewMaterial(placedObject);//this is not working
-        
-        PlayPlacementEffect(position); //effect
-
+        ResetPreviewMaterial(placedObject);
+        PlayPlacementEffect(position);
         Destroy(currentPreview);
         currentPreview = null;
-        //Debug.Log("Object placed successfully.");
+
+        Debug.Log("Placed object: " + placedObject.name + "; total placed: " + placedObjects.Count);
     }
 
     private void CancelPlacement()
@@ -289,26 +297,7 @@ public class RoomManager : MonoBehaviour
         {
             Destroy(currentPreview);
             currentPreview = null;
-            Debug.Log("Placement canceled.");
         }
-    }
-
-    private bool IsValidPlacement(Vector3 position)
-    {
-        Collider[] colliders = Physics.OverlapBox(position, currentPreview.GetComponent<Collider>().bounds.extents, currentPreview.transform.rotation, furnitureLayer);
-        bool isValid = colliders.Length == 0;
-
-        foreach (GameObject placedObject in placedObjects)
-        {
-            if (placedObject.GetComponent<Collider>().bounds.Intersects(currentPreview.GetComponent<Collider>().bounds))
-            {
-                isValid = false;
-                break;
-            }
-        }
-
-        Debug.Log("Placement valid: " + isValid);
-        return isValid;
     }
 
     private void SetPreviewMaterial(Material material)
@@ -320,7 +309,7 @@ public class RoomManager : MonoBehaviour
         }
     }
 
-    //check this later
+    // Resets the material of a placed object (after placement).
     private void ResetPreviewMaterial(GameObject obj)
     {
         Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
@@ -330,85 +319,115 @@ public class RoomManager : MonoBehaviour
         }
     }
 
+    // -------------------- Edit Mode Functions --------------------
+
+    // Handle edit mode input: selection and dragging.
     private void HandleEditMode()
     {
+        Debug.Log("Edit Mode Active");
+
+        // Selection: On mouse button down, try to select an object.
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
+            int mask = placementLayer | wallLayer | shelfLayer;
+            if (Physics.Raycast(ray, out hit, 100f, mask))
             {
+                // Use the root object in case the collider is on a child.
                 GameObject hitObject = hit.collider.gameObject;
-                if (placedObjects.Contains(hitObject))
+                GameObject rootObject = hitObject.transform.root.gameObject;
+                if (placedObjects.Contains(rootObject))
                 {
-                    selectedObject = hitObject;
+                    selectedObject = rootObject;
+                    Debug.Log("Selected object for editing: " + selectedObject.name);
                 }
             }
         }
 
-        if (selectedObject != null)
+        // Dragging: While holding down the mouse, move the selected object.
+        if (selectedObject != null && Input.GetMouseButton(0))
         {
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
+            if (Physics.Raycast(ray, out hit, 100f, placementLayer))
             {
-                Vector3 position = hit.point;
-                selectedObject.transform.position = position;
+                Vector3 newPosition = hit.point;
+                if (useGridPlacement)
+                {
+                    newPosition = SnapToGrid(newPosition);
+                }
+                selectedObject.transform.position = newPosition;
+                Debug.Log("Moving object to: " + newPosition);
             }
         }
     }
 
+    // Handle normal object selection (supports double-click to trigger edit mode).
     private void HandleObjectSelection()
     {
         if (Input.GetMouseButtonDown(0))
         {
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
+            int mask = placementLayer | wallLayer | shelfLayer;
+            if (Physics.Raycast(ray, out hit, 100f, mask))
             {
                 GameObject hitObject = hit.collider.gameObject;
-                if (placedObjects.Contains(hitObject))
+                GameObject rootObject = hitObject.transform.root.gameObject;
+                if (placedObjects.Contains(rootObject))
                 {
-                    float timeSinceLastClick = Time.time - lastClickTime;
-                    if (timeSinceLastClick <= doubleClickThreshold)
+                    // If double-clicked within threshold, enter edit mode.
+                    if (Time.time - lastClickTime <= doubleClickThreshold)
                     {
                         isEditMode = true;
-                        selectedObject = hitObject;
+                        selectedObject = rootObject;
+                        Debug.Log("Entering Edit Mode on object: " + rootObject.name);
                     }
                     lastClickTime = Time.time;
                 }
             }
         }
-        else if (Input.GetMouseButtonDown(1)) // Right-click to delete
+        // Right-click to delete an object.
+        else if (Input.GetMouseButtonDown(1))
         {
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
-
-            if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
+            int mask = placementLayer | wallLayer | shelfLayer;
+            if (Physics.Raycast(ray, out hit, 100f, mask))
             {
                 GameObject hitObject = hit.collider.gameObject;
-                DeleteObject(hitObject);
+                DeleteObject(hitObject.transform.root.gameObject);
             }
         }
     }
 
+    // Attempts to enter edit mode based on a raycast hit from the mouse position.
     private void EnterEditMode()
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
+          RaycastHit hit;
+    // Use a broad mask, e.g., Everything (or remove the mask)
+    if (Physics.Raycast(ray, out hit, 100f))
+    {
+        GameObject hitObject = hit.collider.gameObject;
+        GameObject rootObject = hitObject.transform.root.gameObject;
+        Debug.Log("EnterEditMode ray hit: " + hitObject.name + ", root: " + rootObject.name +
+                  "; layer: " + LayerMask.LayerToName(hitObject.layer));
 
-        if (Physics.Raycast(ray, out hit, 100f, placementLayer | wallLayer | shelfLayer))
+        // Now, if the root object is in placedObjects, enter edit mode.
+        if (placedObjects.Contains(rootObject))
         {
-            GameObject hitObject = hit.collider.gameObject;
-            if (placedObjects.Contains(hitObject))
-            {
-                isEditMode = true;
-                selectedObject = hitObject;
-            }
+            isEditMode = true;
+            selectedObject = rootObject;
+            Debug.Log("Edit mode enabled on " + rootObject.name);
         }
+        else
+        {
+            Debug.Log("The hit object (" + rootObject.name + ") is not in placedObjects. Total objects: " + placedObjects.Count);
+        }
+    }
+
     }
 
     private void DeleteObject(GameObject obj)
@@ -441,6 +460,7 @@ public class RoomManager : MonoBehaviour
         }
     }
 
+    // Plays a particle effect at the specified position.
     private void PlayPlacementEffect(Vector3 position)
     {
         if (placementParticlePrefab != null)
@@ -451,7 +471,22 @@ public class RoomManager : MonoBehaviour
             {
                 particleSystem.Play();
             }
-            Destroy(particleEffect, 2f); // Destroy the particle effect after 2 seconds
+            Destroy(particleEffect, 2f);
         }
+    }
+
+    // Snaps the given position to the defined grid.
+    private Vector3 SnapToGrid(Vector3 position)
+    {
+        position.x = Mathf.Round(position.x / gridSize) * gridSize;
+        position.z = Mathf.Round(position.z / gridSize) * gridSize;
+        return position;
+    }
+
+    // Toggles the grid-based placement.
+    private void ToggleGridPlacement()
+    {
+        useGridPlacement = !useGridPlacement;
+        Debug.Log("Grid placement " + (useGridPlacement ? "enabled" : "disabled"));
     }
 }

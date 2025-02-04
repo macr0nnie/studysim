@@ -27,6 +27,9 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button nextTrackButton;
     [SerializeField] private Button previousTrackButton;
     
+    [Header ("Color Picker UI")]
+    [SerializeField] private GameObject colorPickerPanel;
+    [SerializeField] private Button closeColorPickerButton;
     private TimerManager timerManager;
     private RoomManager roomManager;
     private AudioManager audioManager;
@@ -71,6 +74,10 @@ public class UIManager : MonoBehaviour
         {
             decorationModeButton.onClick.AddListener(() => TogglePanel(decorationPanel));
         }
+         if (closeColorPickerButton)
+        {
+            closeColorPickerButton.onClick.AddListener(() => TogglePanel(colorPickerPanel));
+        }
 
         // Subscribe to timer events
         timerManager.OnTimerTick += UpdateTimerDisplay;
@@ -96,6 +103,7 @@ public class UIManager : MonoBehaviour
         if (panel == null) return;
         panel.SetActive(!panel.activeSelf);
     }
+    
 
     public void StartFurniturePlacement(GameObject furniturePrefab)
     {

@@ -27,6 +27,9 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Slider musicVolumeSlider;
     [SerializeField] private Button nextTrackButton;
     [SerializeField] private Button previousTrackButton;
+    [SerializeField] private Button openAudioStore;
+    [SerializeField] private Button ipodHomeButton;
+
     
     [Header ("Color Picker UI")]
     [SerializeField] private GameObject colorPickerPanel;

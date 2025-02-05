@@ -15,6 +15,7 @@ public class RoomManager : MonoBehaviour
     // Materials and effects
     [SerializeField] private Material validPlacementMaterial;
     [SerializeField] private Material invalidPlacementMaterial;
+
     [SerializeField] private GameObject placementParticlePrefab; // Particle effect prefab
 
     // Runtime data
@@ -88,11 +89,10 @@ public class RoomManager : MonoBehaviour
             Redo();
         }
 
-        // Press F to attempt to enter edit mode
+        // Press E to attempt to enter edit mode
         if (Input.GetKeyDown(KeyCode.E))
         {
             EnterEditMode();
-            Debug.Log("isEditMode: " + isEditMode);
         }
 
         // Toggle grid placement
@@ -319,8 +319,6 @@ public class RoomManager : MonoBehaviour
         }
     }
 
-    // -------------------- Edit Mode Functions --------------------
-
     // Handle edit mode input: selection and dragging.
     private void HandleEditMode()
     {
@@ -331,10 +329,8 @@ public class RoomManager : MonoBehaviour
         {
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
-            int mask = placementLayer | wallLayer | shelfLayer;
-            if (Physics.Raycast(ray, out hit, 100f, mask))
+            if (Physics.Raycast(ray, out hit, 100f))
             {
-                // Use the root object in case the collider is on a child.
                 GameObject hitObject = hit.collider.gameObject;
                 GameObject rootObject = hitObject.transform.root.gameObject;
                 if (placedObjects.Contains(rootObject))
@@ -344,7 +340,6 @@ public class RoomManager : MonoBehaviour
                 }
             }
         }
-
         // Dragging: While holding down the mouse, move the selected object.
         if (selectedObject != null && Input.GetMouseButton(0))
         {
@@ -405,28 +400,9 @@ public class RoomManager : MonoBehaviour
     // Attempts to enter edit mode based on a raycast hit from the mouse position.
     private void EnterEditMode()
     {
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-          RaycastHit hit;
-    // Use a broad mask, e.g., Everything (or remove the mask)
-    if (Physics.Raycast(ray, out hit, 100f))
-    {
-        GameObject hitObject = hit.collider.gameObject;
-        GameObject rootObject = hitObject.transform.root.gameObject;
-        Debug.Log("EnterEditMode ray hit: " + hitObject.name + ", root: " + rootObject.name +
-                  "; layer: " + LayerMask.LayerToName(hitObject.layer));
+        isEditMode = !isEditMode; // Toggle edit mode state
+        Debug.Log("Edit Mode: " + (isEditMode ? "Enabled" : "Disabled"));
 
-        // Now, if the root object is in placedObjects, enter edit mode.
-        if (placedObjects.Contains(rootObject))
-        {
-            isEditMode = true;
-            selectedObject = rootObject;
-            Debug.Log("Edit mode enabled on " + rootObject.name);
-        }
-        else
-        {
-            Debug.Log("The hit object (" + rootObject.name + ") is not in placedObjects. Total objects: " + placedObjects.Count);
-        }
-    }
 
     }
 

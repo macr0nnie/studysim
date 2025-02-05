@@ -19,7 +19,8 @@ public class UIManager : MonoBehaviour
     [Header("Decoration UI")]
     [SerializeField] private GameObject decorationPanel;
     [SerializeField] private Transform furnitureButtonContainer;
-    [SerializeField] private Button decorationModeButton;
+   
+    [SerializeField] private Button editModeButton;
     
     [Header("Audio UI")]
     [SerializeField] private GameObject audioPanel;
@@ -69,11 +70,7 @@ public class UIManager : MonoBehaviour
         if (nextTrackButton) nextTrackButton.onClick.AddListener(audioManager.NextTrack);
         if (previousTrackButton) previousTrackButton.onClick.AddListener(audioManager.PreviousTrack);
         
-        // Decoration UI
-        if (decorationModeButton)
-        {
-            decorationModeButton.onClick.AddListener(() => TogglePanel(decorationPanel));
-        }
+        
          if (closeColorPickerButton)
         {
             closeColorPickerButton.onClick.AddListener(() => TogglePanel(colorPickerPanel));

@@ -82,6 +82,7 @@ public class UIManager : MonoBehaviour
         // Subscribe to timer events
         timerManager.OnTimerTick += UpdateTimerDisplay;
         timerManager.OnTimerComplete += OnTimerComplete;
+
     }
 
     private void UpdateTimerDisplay(float timeRemaining)
@@ -96,12 +97,20 @@ public class UIManager : MonoBehaviour
     private void OnTimerComplete()
     {
         // TODO: Show completion UI and rewards
+        //finish the 
     }
 
     public void TogglePanel(GameObject panel)
     {
         if (panel == null) return;
         panel.SetActive(!panel.activeSelf);
+    }
+    //i need a method that can close the current panel and open the new one
+    public void OpenPanel(GameObject panelToOpen, GameObject panelToClose)
+    {
+        if (panelToOpen == null || panelToClose == null) return;
+        panelToClose.SetActive(false);
+        panelToOpen.SetActive(true);
     }
     
 

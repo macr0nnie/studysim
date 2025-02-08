@@ -14,7 +14,7 @@ public class AudioManager : MonoBehaviour
     public class Soundscape
     {
         public string name;
-        public AudioClip[] clip;
+        public AudioClip clip;
         public bool isLocked = true;
         public int price;
     }

@@ -41,6 +41,7 @@ public class ChromeWebEx : MonoBehaviour
             }
 
             // Send a response back to the client
+            //set the extension to check wheter distraction blocking is on or not!
             HttpListenerResponse response = context.Response;
             string responseString = "Unity received your request!";
             byte[] buffer = Encoding.UTF8.GetBytes(responseString);

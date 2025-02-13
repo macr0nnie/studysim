@@ -11,3 +11,5 @@ public class Furniture : MonoBehaviour
 
     public FurnitureType Type;
 }
+
+

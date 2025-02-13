@@ -15,6 +15,7 @@ public class RoomManager : MonoBehaviour
     // Materials and effects
     [SerializeField] private Material validPlacementMaterial;
     [SerializeField] private Material invalidPlacementMaterial;
+
     [SerializeField] private GameObject placementParticlePrefab; // Particle effect prefab
 
     // Runtime data
@@ -32,9 +33,6 @@ public class RoomManager : MonoBehaviour
     // For double-click detection in object selection
     private float lastClickTime;
     private const float doubleClickThreshold = 0.3f;
-
-    // Dictionary to store original materials for prefabs
-    private Dictionary<GameObject, Material[]> prefabOriginalMaterials = new Dictionary<GameObject, Material[]>();
 
     private void Start()
     {
@@ -118,24 +116,12 @@ public class RoomManager : MonoBehaviour
             Destroy(currentPreview);
         }
 
-        // Store original materials for the prefab if not already stored
-        if (!prefabOriginalMaterials.ContainsKey(furniturePrefab))
-        {
-            StoreOriginalMaterials(furniturePrefab);
-        }
-
         currentPreview = Instantiate(furniturePrefab);
         if (currentPreview == null)
         {
             Debug.LogError("Failed to instantiate furniture preview!");
             return;
         }
-
-        // Attach a script to the preview object to store the prefab reference
-        var prefabReference = currentPreview.AddComponent<PrefabReference>();
-        prefabReference.Prefab = furniturePrefab;
-
-        SetPreviewMaterial(validPlacementMaterial);
     }
 
     // Updates the preview object's position based on a raycast from the mouse.
@@ -164,7 +150,7 @@ public class RoomManager : MonoBehaviour
                         else
                         {
                             isPlacementValid = false;
-                            SetPreviewMaterial(invalidPlacementMaterial);
+                           // SetPreviewMaterial(invalidPlacementMaterial);
                             return;
                         }
                         break;
@@ -176,7 +162,7 @@ public class RoomManager : MonoBehaviour
                         else
                         {
                             isPlacementValid = false;
-                            SetPreviewMaterial(invalidPlacementMaterial);
+                           // SetPreviewMaterial(invalidPlacementMaterial);
                             return;
                         }
                         break;
@@ -189,7 +175,7 @@ public class RoomManager : MonoBehaviour
                         else
                         {
                             isPlacementValid = false;
-                            SetPreviewMaterial(invalidPlacementMaterial);
+                          // SetPreviewMaterial(invalidPlacementMaterial);
                             return;
                         }
                         break;
@@ -204,14 +190,14 @@ public class RoomManager : MonoBehaviour
             currentPreview.transform.position = position;
             currentPreview.transform.rotation = rotation;
             isPlacementValid = IsValidPlacement(position);
-            SetPreviewMaterial(isPlacementValid ? validPlacementMaterial : invalidPlacementMaterial);
+           // SetPreviewMaterial(isPlacementValid ? validPlacementMaterial : invalidPlacementMaterial);
         }
         else
         {
             Vector3 position = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f));
             currentPreview.transform.position = position;
             isPlacementValid = false;
-            SetPreviewMaterial(invalidPlacementMaterial);
+          //  SetPreviewMaterial(invalidPlacementMaterial);
         }
     }
 
@@ -295,19 +281,7 @@ public class RoomManager : MonoBehaviour
         GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
         placedObjects.Add(placedObject);
         undoStack.Push(placedObject);
-
-        // Retrieve the prefab reference from the preview object
-        var prefabReference = currentPreview.GetComponent<PrefabReference>();
-        if (prefabReference != null && prefabReference.Prefab != null)
-        {
-            // Restore the original materials for the placed object
-            RestoreOriginalMaterials(placedObject);
-        }
-        else
-        {
-            Debug.LogWarning("Prefab reference not found for placed object!");
-        }
-
+        //ResetPreviewMaterial(placedObject);
         PlayPlacementEffect(position);
         Destroy(currentPreview);
         currentPreview = null;
@@ -324,45 +298,7 @@ public class RoomManager : MonoBehaviour
         }
     }
 
-    private void SetPreviewMaterial(Material material)
-    {
-        Renderer[] renderers = currentPreview.GetComponentsInChildren<Renderer>();
-        foreach (Renderer renderer in renderers)
-        {
-            renderer.material = material;
-        }
-    }
-
-    // Store the original materials of the prefab
-    private void StoreOriginalMaterials(GameObject prefab)
-    {
-        Renderer[] renderers = prefab.GetComponentsInChildren<Renderer>();
-        Material[] materials = new Material[renderers.Length];
-        for (int i = 0; i < renderers.Length; i++)
-        {
-            materials[i] = renderers[i].sharedMaterial; // Use sharedMaterial instead of material
-        }
-        prefabOriginalMaterials[prefab] = materials;
-    }
-
-    // Restore the original materials of the object
-    private void RestoreOriginalMaterials(GameObject obj)
-    {
-        // Check if the object has a reference to its prefab
-        if (prefabOriginalMaterials.ContainsKey(obj))
-        {
-            Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
-            Material[] materials = prefabOriginalMaterials[obj];
-            for (int i = 0; i < renderers.Length; i++)
-            {
-                renderers[i].sharedMaterial = materials[i]; // Use sharedMaterial instead of material
-            }
-        }
-        else
-        {
-            Debug.LogWarning("No original materials found for object: " + obj.name);
-        }
-    }
+  
 
     // Handle edit mode input: selection and dragging.
     private void HandleEditMode()
@@ -447,6 +383,8 @@ public class RoomManager : MonoBehaviour
     {
         isEditMode = !isEditMode; // Toggle edit mode state
         Debug.Log("Edit Mode: " + (isEditMode ? "Enabled" : "Disabled"));
+
+
     }
 
     private void DeleteObject(GameObject obj)
@@ -508,10 +446,4 @@ public class RoomManager : MonoBehaviour
         useGridPlacement = !useGridPlacement;
         Debug.Log("Grid placement " + (useGridPlacement ? "enabled" : "disabled"));
     }
-}
-
-
-public class PrefabReference : MonoBehaviour
-{
-    public GameObject Prefab { get; set; }
 }

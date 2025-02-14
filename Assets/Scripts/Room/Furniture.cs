@@ -8,7 +8,6 @@ public class Furniture : MonoBehaviour
         Wall,
         Shelf
     }
-
     public FurnitureType Type;
 }
 

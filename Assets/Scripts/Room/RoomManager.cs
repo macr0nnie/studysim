@@ -197,7 +197,7 @@ public class RoomManager : MonoBehaviour
             Vector3 position = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f));
             currentPreview.transform.position = position;
             isPlacementValid = false;
-          //  SetPreviewMaterial(invalidPlacementMaterial);
+            //SetPreviewMaterial(invalidPlacementMaterial);
         }
     }
 

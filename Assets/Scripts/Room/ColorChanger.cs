@@ -2,17 +2,30 @@ using UnityEngine;
 
 public class ColorChanger : MonoBehaviour
 {
+    [SerializeField] private ColorPicker colorPicker;
+    [SerializeField] private Renderer targetRenderer; // The renderer of the object to change color
 
-    private Camera mainCamera;
-    private Color originalColor;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    private void OnEnable()
     {
-        
+        if (colorPicker != null)
+        {
+            colorPicker.OnColorChanged += HandleColorChanged;
+        }
     }
-    // Update is called once per frame
-    void Update()
+
+    private void OnDisable()
     {
-        
+        if (colorPicker != null)
+        {
+            colorPicker.OnColorChanged -= HandleColorChanged;
+        }
+    }
+
+    private void HandleColorChanged(Color newColor)
+    {
+        if (targetRenderer != null)
+        {
+            targetRenderer.material.color = newColor;
+        }
     }
 }

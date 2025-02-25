@@ -1,0 +1,71 @@
+// File: PlaylistItemUI.cs
+using System;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class PlaylistItemUI : MonoBehaviour
+{
+    [SerializeField] private Text titleText;
+    [SerializeField] private Text descriptionText;
+    [SerializeField] private Image coverImage;
+    [SerializeField] private Button playButton;
+    [SerializeField] private Button buyButton;
+    [SerializeField] private Text priceText;
+    [SerializeField] private GameObject lockIcon;
+    
+    private Playlist playlist;
+    
+    public event Action<Playlist> OnPlayClicked;
+    public event Action<Playlist> OnBuyClicked;
+    
+    private void Awake()
+    {
+        playButton.onClick.AddListener(HandlePlayButton);
+        buyButton.onClick.AddListener(HandleBuyButton);
+    }
+    
+    public void SetPlaylist(Playlist playlist)
+    {
+        this.playlist = playlist;
+        
+        titleText.text = playlist.title;
+        descriptionText.text = playlist.description;
+        
+        if (playlist.coverArt != null)
+            coverImage.sprite = playlist.coverArt;
+            
+        priceText.text = playlist.price.ToString();
+        
+        // Update locked/unlocked state
+        UpdateUnlockState();
+    }
+    
+    private void UpdateUnlockState()
+    {
+        bool isUnlocked = playlist.isUnlocked;
+        
+        // Update UI elements
+        playButton.gameObject.SetActive(isUnlocked);
+        buyButton.gameObject.SetActive(!isUnlocked);
+        priceText.gameObject.SetActive(!isUnlocked);
+        lockIcon.SetActive(!isUnlocked);
+    }
+    
+    private void HandlePlayButton()
+    {
+        if (playlist != null && playlist.isUnlocked)
+            OnPlayClicked?.Invoke(playlist);
+    }
+    
+    private void HandleBuyButton()
+    {
+        if (playlist != null && !playlist.isUnlocked)
+            OnBuyClicked?.Invoke(playlist);
+    }
+    
+    private void OnDestroy()
+    {
+        playButton.onClick.RemoveListener(HandlePlayButton);
+        buyButton.onClick.RemoveListener(HandleBuyButton);
+    }
+}

@@ -9,13 +9,9 @@ public class TaskList : MonoBehaviour
     public Text taskID;
     public Text isComplete;
 
-    
     //edit task
-
     //add task
-    
     //delete task
-
     //display tasks
         
 }

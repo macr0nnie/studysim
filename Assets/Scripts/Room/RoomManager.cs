@@ -122,6 +122,8 @@ public class RoomManager : MonoBehaviour
             Debug.LogError("Failed to instantiate furniture preview!");
             return;
         }
+
+        SetPreviewMaterial(validPlacementMaterial);
     }
 
     // Updates the preview object's position based on a raycast from the mouse.
@@ -150,7 +152,7 @@ public class RoomManager : MonoBehaviour
                         else
                         {
                             isPlacementValid = false;
-                           // SetPreviewMaterial(invalidPlacementMaterial);
+                            SetPreviewMaterial(invalidPlacementMaterial);
                             return;
                         }
                         break;
@@ -162,7 +164,7 @@ public class RoomManager : MonoBehaviour
                         else
                         {
                             isPlacementValid = false;
-                           // SetPreviewMaterial(invalidPlacementMaterial);
+                            SetPreviewMaterial(invalidPlacementMaterial);
                             return;
                         }
                         break;
@@ -175,7 +177,7 @@ public class RoomManager : MonoBehaviour
                         else
                         {
                             isPlacementValid = false;
-                          // SetPreviewMaterial(invalidPlacementMaterial);
+                            SetPreviewMaterial(invalidPlacementMaterial);
                             return;
                         }
                         break;
@@ -190,14 +192,14 @@ public class RoomManager : MonoBehaviour
             currentPreview.transform.position = position;
             currentPreview.transform.rotation = rotation;
             isPlacementValid = IsValidPlacement(position);
-           // SetPreviewMaterial(isPlacementValid ? validPlacementMaterial : invalidPlacementMaterial);
+            SetPreviewMaterial(isPlacementValid ? validPlacementMaterial : invalidPlacementMaterial);
         }
         else
         {
             Vector3 position = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f));
             currentPreview.transform.position = position;
             isPlacementValid = false;
-            //SetPreviewMaterial(invalidPlacementMaterial);
+            SetPreviewMaterial(invalidPlacementMaterial);
         }
     }
 
@@ -281,7 +283,7 @@ public class RoomManager : MonoBehaviour
         GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
         placedObjects.Add(placedObject);
         undoStack.Push(placedObject);
-        //ResetPreviewMaterial(placedObject);
+        ResetPreviewMaterial(placedObject);
         PlayPlacementEffect(position);
         Destroy(currentPreview);
         currentPreview = null;
@@ -298,7 +300,24 @@ public class RoomManager : MonoBehaviour
         }
     }
 
-  
+    private void SetPreviewMaterial(Material material)
+    {
+        Renderer[] renderers = currentPreview.GetComponentsInChildren<Renderer>();
+        foreach (Renderer renderer in renderers)
+        {
+            renderer.material = material;
+        }
+    }
+
+    // Resets the material of a placed object (after placement).
+    private void ResetPreviewMaterial(GameObject obj)
+    {
+        Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
+        foreach (Renderer renderer in renderers)
+        {
+            renderer.material = validPlacementMaterial;
+        }
+    }
 
     // Handle edit mode input: selection and dragging.
     private void HandleEditMode()

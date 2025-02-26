@@ -1,16 +1,16 @@
-// File: PlaylistItemUI.cs
 using System;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class PlaylistItemUI : MonoBehaviour
 {
-    [SerializeField] private Text titleText;
-    [SerializeField] private Text descriptionText;
+    [SerializeField] private TMP_Text titleText; // Changed to TMP_Text
+    [SerializeField] private TMP_Text descriptionText; // Changed to TMP_Text
     [SerializeField] private Image coverImage;
     [SerializeField] private Button playButton;
     [SerializeField] private Button buyButton;
-    [SerializeField] private Text priceText;
+    [SerializeField] private TMP_Text priceText; // Changed to TMP_Text
     [SerializeField] private GameObject lockIcon;
     
     private Playlist playlist;

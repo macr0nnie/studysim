@@ -1,8 +1,8 @@
-
-// File: iPodUIController.cs
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
+
 
 public class iPodUIController : MonoBehaviour
 {
@@ -13,14 +13,14 @@ public class iPodUIController : MonoBehaviour
     [Header("UI Elements")]
     [SerializeField] private Transform playlistContainer;
     [SerializeField] private GameObject playlistItemPrefab;
-    [SerializeField] private Text currentSongText;
-    [SerializeField] private Text currentArtistText;
+    [SerializeField] private TMP_Text currentSongText;
+    [SerializeField] private TMP_Text currentArtistText;
     [SerializeField] private Image currentCoverImage;
     [SerializeField] private Slider progressSlider;
     [SerializeField] private Button playPauseButton;
     [SerializeField] private Button nextButton;
     [SerializeField] private Button previousButton;
-    [SerializeField] private Text coinsText;
+    [SerializeField] private TMP_Text coinsText; //get this from the gm instead this is just to test.
     
     private void Start()
     {
@@ -77,11 +77,13 @@ public class iPodUIController : MonoBehaviour
     
     private void HandleBuyPlaylist(Playlist playlist)
     {
+
+        //refactor notes make sure to change it do the player currency comes from the game manager 
+        //or this one for the furniture system 
         if (musicPlayer.PurchasePlaylist(playlist, playerCurrency.GetCoins()))
         {
             // Deduct coins
             playerCurrency.SpendCoins(playlist.price);
-            
             // Update UI
             UpdateCurrencyDisplay();
             LoadPlaylists(); // Refresh to update locked status

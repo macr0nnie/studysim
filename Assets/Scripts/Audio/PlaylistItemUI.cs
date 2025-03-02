@@ -29,13 +29,10 @@ public class PlaylistItemUI : MonoBehaviour
         this.playlist = playlist;
         
         titleText.text = playlist.title;
-        descriptionText.text = playlist.description;
-        
+       // descriptionText.text = playlist.description;
         if (playlist.coverArt != null)
             coverImage.sprite = playlist.coverArt;
-            
         priceText.text = playlist.price.ToString();
-        
         // Update locked/unlocked state
         UpdateUnlockState();
     }

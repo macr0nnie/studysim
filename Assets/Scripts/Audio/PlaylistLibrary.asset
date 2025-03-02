@@ -14,32 +14,83 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playlists:
   - title: WhiteNoise
-    description: 
-    coverArt: {fileID: 0}
+    coverArt: {fileID: 21300000, guid: 9ed00ba868431d6449cd80d3956fdd54, type: 3}
     price: 0
-    isUnlocked: 0
+    isUnlocked: 1
     songs:
-    - title: 
-      artist: 
+    - title: WhiteNoise
+      artist: Someone
       audioClip: {fileID: 8300000, guid: 00bd63b80dc8e984c8b6b6b3bec6c208, type: 3}
-      coverArt: {fileID: 0}
+      coverArt: {fileID: 21300000, guid: 0ebd493d0f278ad4ab4d5e8eb3ca8850, type: 3}
   - title: ForestSounds
-    description: 
-    coverArt: {fileID: 0}
+    coverArt: {fileID: 21300000, guid: 967be7654748fa44598661553384c41e, type: 3}
     price: 0
-    isUnlocked: 0
+    isUnlocked: 1
     songs:
-    - title: 
-      artist: 
+    - title: Forest Sounds
+      artist: Mother Nature
       audioClip: {fileID: 8300000, guid: 3a1c3f9f0a69a034ca7070118d12a09a, type: 3}
-      coverArt: {fileID: 0}
+      coverArt: {fileID: 21300000, guid: 967be7654748fa44598661553384c41e, type: 3}
   - title: Cafe
-    description: 
-    coverArt: {fileID: 0}
-    price: 0
-    isUnlocked: 0
+    coverArt: {fileID: 21300000, guid: 2fde7768c968ee34ab34c0a841dc300d, type: 3}
+    price: 20
+    isUnlocked: 1
     songs:
-    - title: 
-      artist: 
+    - title: Forest Sounds
+      artist: Mother Nature
       audioClip: {fileID: 8300000, guid: 31bc2940b9f402b4baae96e4fb97ad37, type: 3}
-      coverArt: {fileID: 0}
+      coverArt: {fileID: 21300000, guid: b47100d0ea09b974c9aa9248cda3f838, type: 3}
+  - title: OceanSounds
+    coverArt: {fileID: 21300000, guid: 2fde7768c968ee34ab34c0a841dc300d, type: 3}
+    price: 20
+    isUnlocked: 1
+    songs:
+    - title: Forest Sounds
+      artist: Mother Nature
+      audioClip: {fileID: 8300000, guid: 31bc2940b9f402b4baae96e4fb97ad37, type: 3}
+      coverArt: {fileID: 21300000, guid: b47100d0ea09b974c9aa9248cda3f838, type: 3}
+  - title: ClassicPiano
+    coverArt: {fileID: 21300000, guid: d8668a107123d4245bfd629007e0de7a, type: 3}
+    price: 20
+    isUnlocked: 1
+    songs:
+    - title: Forest Sounds
+      artist: Mother Nature
+      audioClip: {fileID: 8300000, guid: 31bc2940b9f402b4baae96e4fb97ad37, type: 3}
+      coverArt: {fileID: 21300000, guid: b47100d0ea09b974c9aa9248cda3f838, type: 3}
+  - title: ClassicPiano
+    coverArt: {fileID: 21300000, guid: d8668a107123d4245bfd629007e0de7a, type: 3}
+    price: 20
+    isUnlocked: 1
+    songs:
+    - title: Forest Sounds
+      artist: Mother Nature
+      audioClip: {fileID: 8300000, guid: 31bc2940b9f402b4baae96e4fb97ad37, type: 3}
+      coverArt: {fileID: 21300000, guid: b47100d0ea09b974c9aa9248cda3f838, type: 3}
+  - title: ClassicPiano
+    coverArt: {fileID: 21300000, guid: d8668a107123d4245bfd629007e0de7a, type: 3}
+    price: 20
+    isUnlocked: 1
+    songs:
+    - title: Forest Sounds
+      artist: Mother Nature
+      audioClip: {fileID: 8300000, guid: 31bc2940b9f402b4baae96e4fb97ad37, type: 3}
+      coverArt: {fileID: 21300000, guid: b47100d0ea09b974c9aa9248cda3f838, type: 3}
+  - title: ClassicPiano
+    coverArt: {fileID: 21300000, guid: d8668a107123d4245bfd629007e0de7a, type: 3}
+    price: 20
+    isUnlocked: 1
+    songs:
+    - title: Forest Sounds
+      artist: Mother Nature
+      audioClip: {fileID: 8300000, guid: 31bc2940b9f402b4baae96e4fb97ad37, type: 3}
+      coverArt: {fileID: 21300000, guid: b47100d0ea09b974c9aa9248cda3f838, type: 3}
+  - title: ClassicPiano
+    coverArt: {fileID: 21300000, guid: d8668a107123d4245bfd629007e0de7a, type: 3}
+    price: 20
+    isUnlocked: 1
+    songs:
+    - title: Forest Sounds
+      artist: Mother Nature
+      audioClip: {fileID: 8300000, guid: 31bc2940b9f402b4baae96e4fb97ad37, type: 3}
+      coverArt: {fileID: 21300000, guid: b47100d0ea09b974c9aa9248cda3f838, type: 3}

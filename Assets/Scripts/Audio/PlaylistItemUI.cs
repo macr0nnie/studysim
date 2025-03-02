@@ -6,7 +6,7 @@ using TMPro;
 public class PlaylistItemUI : MonoBehaviour
 {
     [SerializeField] private TMP_Text titleText; // Changed to TMP_Text
-    [SerializeField] private TMP_Text descriptionText; // Changed to TMP_Text
+   // [SerializeField] private TMP_Text descriptionText; // Changed to TMP_Text
     [SerializeField] private Image coverImage;
     [SerializeField] private Button playButton;
     [SerializeField] private Button buyButton;

@@ -483,7 +483,7 @@ GameObject:
   - component: {fileID: 1781155604072186995}
   - component: {fileID: 7725354124096623340}
   m_Layer: 5
-  m_Name: Playlist_Item
+  m_Name: Playlist_Item_Old
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

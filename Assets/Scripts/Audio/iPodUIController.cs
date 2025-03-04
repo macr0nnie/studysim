@@ -2,8 +2,6 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-
-
 public class iPodUIController : MonoBehaviour
 {
     [Header("Player References")]
@@ -21,7 +19,11 @@ public class iPodUIController : MonoBehaviour
     [SerializeField] private Button nextButton;
     [SerializeField] private Button previousButton;
     [SerializeField] private TMP_Text coinsText; //get this from the gm instead this is just to test.
-    
+    [SerializeField] private GameObject currentPlayingScreen; // Reference to the current playing screen
+    [SerializeField] private GameObject storeScreen; // Reference to the store screen
+    [SerializeField] private GameObject homeScreen; // Reference to the home screen
+    bool home = false;
+
     private void Start()
     {
         if (musicPlayer == null)
@@ -45,7 +47,7 @@ public class iPodUIController : MonoBehaviour
         // Update currency display
         UpdateCurrencyDisplay();
     }
-    
+
     private void LoadPlaylists()
     {
         // Clear existing items
@@ -111,7 +113,29 @@ public class iPodUIController : MonoBehaviour
     {
         progressSlider.value = progress;
     }
-    
+
+    //home button
+    public void OnHomeButtonClicked()
+    {
+        // Logic to return to the main menu or previous screen
+        Debug.Log("Home button clicked");
+        // check which screen is opened and switch to it
+        //if the current playing is opened then go to the store screen
+        //if the store screen is opened then go to the current playing screen
+
+        if (homeScreen)
+        {
+            //go to the current playing screen
+
+  
+        }
+        else if (home)
+        {
+            //go to the store screen
+        }   
+
+
+    }
     private void UpdateCurrencyDisplay()
     {
         coinsText.text = playerCurrency.GetCoins().ToString();

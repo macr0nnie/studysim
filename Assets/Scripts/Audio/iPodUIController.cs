@@ -20,9 +20,12 @@ public class iPodUIController : MonoBehaviour
     [SerializeField] private Button previousButton;
     [SerializeField] private TMP_Text coinsText; //get this from the gm instead this is just to test.
     [SerializeField] private GameObject currentPlayingScreen; // Reference to the current playing screen
+
+    //panel opening and closing/ipod controls
     [SerializeField] private GameObject storeScreen; // Reference to the store screen
     [SerializeField] private GameObject homeScreen; // Reference to the home screen
-    bool home = false;
+    [SerializeField] private GameObject homeButton; // Reference to the home button
+    bool is_home = false;
 
     private void Start()
     {
@@ -115,26 +118,27 @@ public class iPodUIController : MonoBehaviour
     }
 
     //home button
-    public void OnHomeButtonClicked()
+     public void OnHomeButtonClicked()
     {
         // Logic to return to the main menu or previous screen
         Debug.Log("Home button clicked");
-        // check which screen is opened and switch to it
-        //if the current playing is opened then go to the store screen
-        //if the store screen is opened then go to the current playing screen
-
-        if (homeScreen)
+        
+        // Check which screen is currently active and switch to the other screen
+        if (is_home)
         {
-            //go to the current playing screen
-
-  
+            // Go to the store screen
+            homeScreen.SetActive(false);
+            storeScreen.SetActive(true);
         }
-        else if (home)
+        else
         {
-            //go to the store screen
-        }   
-
-
+            // Go to the home screen
+            storeScreen.SetActive(false);
+            homeScreen.SetActive(true);
+        }
+        
+        // Toggle the flag
+        is_home = !is_home;
     }
     private void UpdateCurrencyDisplay()
     {

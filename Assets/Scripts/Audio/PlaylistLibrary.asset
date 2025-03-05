@@ -22,6 +22,10 @@ MonoBehaviour:
       artist: Someone
       audioClip: {fileID: 8300000, guid: 00bd63b80dc8e984c8b6b6b3bec6c208, type: 3}
       coverArt: {fileID: 21300000, guid: 0ebd493d0f278ad4ab4d5e8eb3ca8850, type: 3}
+    - title: WhiteNoise
+      artist: Someone
+      audioClip: {fileID: 8300000, guid: 3a1c3f9f0a69a034ca7070118d12a09a, type: 3}
+      coverArt: {fileID: 21300000, guid: e05849db482326149bb5765593c1cf7c, type: 3}
   - title: ForestSounds
     coverArt: {fileID: 21300000, guid: 967be7654748fa44598661553384c41e, type: 3}
     price: 0

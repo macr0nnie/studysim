@@ -49,4 +49,5 @@ public class PlayerCurrency : MonoBehaviour
         PlayerPrefs.SetInt("PlayerCoins", coins);
         PlayerPrefs.Save();
     }
+    
 }

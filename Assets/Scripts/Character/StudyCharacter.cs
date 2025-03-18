@@ -110,7 +110,7 @@ public class StudyCharacter : MonoBehaviour
             Debug.Log($"Character says: {line}");
             yield return new WaitForSeconds(2f); // Adjust timing as needed
         }
-        
+   
         animator.SetBool(InteractingParam, false);
         dialogueEvent.hasOccurred = true;
         
@@ -119,7 +119,6 @@ public class StudyCharacter : MonoBehaviour
             StartStudying();
         }
     }
-
     public void OnInteractionStart()
     {
         StopStudying();

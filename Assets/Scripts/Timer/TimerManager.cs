@@ -88,10 +88,14 @@ public class TimerManager : MonoBehaviour
         OnTimerComplete?.Invoke();
     }
 
-    private void GrantRewards()
+    public void GrantRewards()
     {
         // TODO: Implement connection to currency and experience systems
         Debug.Log($"Granted {baseMoneyReward} money and {baseExperienceReward} experience");
+        //give money 
+        //give experience
+        //check the current length of the time
+        //if the time is more than 25 minutues. 
     }
 
     public void SetCustomDuration(float minutes)

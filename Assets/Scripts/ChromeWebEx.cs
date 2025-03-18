@@ -29,7 +29,6 @@ public class ChromeWebEx : MonoBehaviour
             // Wait for an incoming request
             HttpListenerContext context = _httpListener.GetContext();
             HttpListenerRequest request = context.Request;
-
             // Log the incoming request data
             if (request.HttpMethod == "POST")
             {
@@ -39,7 +38,6 @@ public class ChromeWebEx : MonoBehaviour
                     Debug.Log($"Received message: {requestBody}");
                 }
             }
-
             // Send a response back to the client
             //set the extension to check wheter distraction blocking is on or not!
             HttpListenerResponse response = context.Response;
@@ -50,7 +48,6 @@ public class ChromeWebEx : MonoBehaviour
             response.OutputStream.Close();
         }
     }
-
     void OnApplicationQuit()
     {
         // Stop the listener when the application quits

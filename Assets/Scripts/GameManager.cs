@@ -8,6 +8,8 @@ public class GameManager : MonoBehaviour
     public event Action<GameState> OnGameStateChanged;
     
     private GameState currentGameState;
+
+    //
     
     private void Awake()
     {
@@ -27,6 +29,14 @@ public class GameManager : MonoBehaviour
         currentGameState = newState;
         OnGameStateChanged?.Invoke(newState);
     }
+    public void LoadSave(int saveSlot)
+    {
+       //PlayerPrefs.SetInt("SaveSlot", saveSlot);
+       //PlayerPrefs.GetString("SaveSlot", "0");
+    }
+
+
+    
 }
 
 public enum GameState

@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System;
-
 /// <summary>
 /// Manages all UI elements and interactions
 /// Setup: Attach to a UI Canvas in the scene
@@ -29,6 +28,13 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button previousTrackButton;
     [SerializeField] private Button openAudioStore;
     [SerializeField] private Button ipodHomeButton;
+    
+    //player currency UI 
+    [Header("Player Currency UI")]
+ // Reference to the PlayerCurrency script
+    [SerializeField] private PlayerCurrency playerCurrency; // Reference to the PlayerCurrency script
+    [SerializeField] private TMP_Text playerCoinsText;
+    [SerializeField] private TMP_Text playerExperienceText;
 
     
     [Header ("Color Picker UI")]
@@ -55,7 +61,6 @@ public class UIManager : MonoBehaviour
             Debug.LogError("Required managers not found in scene!");
         }
     }
-
     private void SetupUIListeners()
     {
         // Timer UI
@@ -78,10 +83,21 @@ public class UIManager : MonoBehaviour
         {
             closeColorPickerButton.onClick.AddListener(() => TogglePanel(colorPickerPanel));
         }
+        //subscribe to the player currency changed event
+        if (playerCurrency != null)
+        {
+            playerCurrency.OnCoinsChanged.AddListener(UpdateCurrencyUI);
+        }
 
         // Subscribe to timer events
         timerManager.OnTimerTick += UpdateTimerDisplay;
         timerManager.OnTimerComplete += OnTimerComplete;
+
+             //subscribe to the player currency changed event
+        if (playerCurrency != null)
+        {
+            playerCurrency.OnCoinsChanged.AddListener(UpdateCurrencyUI);
+        }
 
     }
 
@@ -96,10 +112,8 @@ public class UIManager : MonoBehaviour
 
     private void OnTimerComplete()
     {
-        // TODO: Show completion UI and rewards
-        //finish the 
+        
     }
-
     public void TogglePanel(GameObject panel)
     {
         if (panel == null) return;
@@ -112,20 +126,27 @@ public class UIManager : MonoBehaviour
         panelToClose.SetActive(false);
         panelToOpen.SetActive(true);
     }
-    
-
     public void StartFurniturePlacement(GameObject furniturePrefab)
     {
         Debug.Log("Starting furniture placement...");
         roomManager.StartPlacingFurniture(furniturePrefab);
     }
-
     private void OnDestroy()
     {
         if (timerManager != null)
         {
             timerManager.OnTimerTick -= UpdateTimerDisplay;
             timerManager.OnTimerComplete -= OnTimerComplete;
+        }
+    }
+    //on the onpplayer currency changed there is a player currency changed function 
+    ///when that function is invoced the Currency UI should be updated.
+    public void UpdateCurrencyUI(int coins)
+    {
+        //when the player earns coins or spends coins, update the UI
+        if (playerCoinsText != null)
+        {
+            playerCoinsText.text = coins.ToString();
         }
     }
 }

@@ -2,7 +2,6 @@ using UnityEngine;
 using System;
 using UnityEngine.Events;
 using UnityEngine.UI;
-
 /// <summary>
 /// Manages the Pomodoro timer functionality and reward system
 /// Setup: Attach to an empty GameObject in the scene
@@ -17,7 +16,7 @@ public class TimerManager : MonoBehaviour
     [Header("Rewards")]
     [SerializeField] private int baseMoneyReward = 100;
     [SerializeField] private int baseExperienceReward = 50;
-    
+
     public event Action<float> OnTimerTick;
     public event Action OnTimerComplete;
     public UnityEvent OnStudySessionComplete;
@@ -29,8 +28,7 @@ public class TimerManager : MonoBehaviour
     public float CurrentTime => currentTime;
     public bool IsTimerRunning => isTimerRunning;
     public bool IsStudySession => isStudySession;
-
-    
+    public PlayerCurrency playerCurrency;
     public Button plusButton;
     public Button minusButton;
 
@@ -55,49 +53,36 @@ public class TimerManager : MonoBehaviour
             CompleteTimer();
         }
     }
-
     public void StartTimer()
     {
         isTimerRunning = true;
     }
-
     public void PauseTimer()
     {
         isTimerRunning = false;
     }
-
     public void ResetTimer()
     {
         currentTime = isStudySession ? studyDuration : breakDuration;
         isTimerRunning = false;
         OnTimerTick?.Invoke(currentTime);
     }
-
     private void CompleteTimer()
     {
         isTimerRunning = false;
-        
         if (isStudySession)
         {
             GrantRewards();
             OnStudySessionComplete?.Invoke();
         }
-        
         isStudySession = !isStudySession;
         ResetTimer();
         OnTimerComplete?.Invoke();
     }
-
     public void GrantRewards()
     {
-        // TODO: Implement connection to currency and experience systems
-        Debug.Log($"Granted {baseMoneyReward} money and {baseExperienceReward} experience");
-        //give money 
-        //give experience
-        //check the current length of the time
-        //if the time is more than 25 minutues. 
+        playerCurrency.AddCoins(baseMoneyReward);
     }
-
     public void SetCustomDuration(float minutes)
     {
         if (!isTimerRunning)
@@ -106,7 +91,6 @@ public class TimerManager : MonoBehaviour
             ResetTimer();
         }
     }
-
     public void AddFiveMinutes()
     {
         if (!isTimerRunning && studyDuration < 7200f) // 2 hours in seconds
@@ -116,7 +100,6 @@ public class TimerManager : MonoBehaviour
             ResetTimer();
         }
     }
-
     public void RemoveFiveMinutes()
     {
         if (!isTimerRunning && studyDuration > 300f)

@@ -5,18 +5,15 @@ using UnityEngine;
 
 public class ChromeWebEx : MonoBehaviour
 {
-   private HttpListener _httpListener;
+    private HttpListener _httpListener;
     private Thread _listenerThread;
-
     void Start()
     {
         // Initialize the HttpListener and listen on localhost:8080
         _httpListener = new HttpListener();
         _httpListener.Prefixes.Add("http://localhost:8080/");
         _httpListener.Start();
-
         Debug.Log("HTTP Server started on http://localhost:8080/");
-
         // Start the listener thread
         _listenerThread = new Thread(HandleRequests);
         _listenerThread.Start();

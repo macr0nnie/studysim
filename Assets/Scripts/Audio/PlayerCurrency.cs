@@ -3,10 +3,9 @@ using UnityEngine.Events;
 
 public class PlayerCurrency : MonoBehaviour
 {
-    [SerializeField] private int startingCoins = 100;
-    
+    [SerializeField] private int startingCoins = 0;
     public UnityEvent<int> OnCoinsChanged;
-    
+
     private int coins;
     
     private void Awake()
@@ -21,8 +20,7 @@ public class PlayerCurrency : MonoBehaviour
     
     public void AddCoins(int amount)
     {
-        if (amount <= 0) return;
-        
+        if (amount <= 0) return;        
         coins += amount;
         SaveCoins();
         OnCoinsChanged.Invoke(coins);
@@ -32,7 +30,7 @@ public class PlayerCurrency : MonoBehaviour
     {
         if (amount <= 0) return false;
         if (coins < amount) return false;
-        
+
         coins -= amount;
         SaveCoins();
         OnCoinsChanged.Invoke(coins);

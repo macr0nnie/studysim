@@ -146,7 +146,7 @@ public class UIManager : MonoBehaviour
         //when the player earns coins or spends coins, update the UI
         if (playerCoinsText != null)
         {
-            playerCoinsText.text = coins.ToString();
+            playerCoinsText.text = "Gems " +  coins.ToString();
         }
     }
 }

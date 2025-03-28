@@ -5,7 +5,6 @@ public class PlayerCurrency : MonoBehaviour
 {
     [SerializeField] private int startingCoins = 500;
     public UnityEvent<int> OnCoinsChanged;
-
     private int coins;
     
     private void Awake()
@@ -40,6 +39,7 @@ public class PlayerCurrency : MonoBehaviour
     private void LoadCoins()
     {
         coins = PlayerPrefs.GetInt("PlayerCoins", startingCoins);
+        //Debug.Log($"Player has {coins} coins.");
     }
     
     private void SaveCoins()

@@ -34,7 +34,10 @@ public class UIManager : MonoBehaviour
  // Reference to the PlayerCurrency script
     [SerializeField] private PlayerCurrency playerCurrency; // Reference to the PlayerCurrency script
     [SerializeField] private TMP_Text playerCoinsText;
-    [SerializeField] private TMP_Text playerExperienceText;
+    [SerializeField] private Experience playerExperience; //reference the player experience script
+    [SerializeField] private TMP_Text playerExperienceText; //reference the player experience script 
+    [SerializeField] private Slider experienceSlider; //reference the player experience script
+
 
     
     [Header ("Color Picker UI")]
@@ -49,6 +52,17 @@ public class UIManager : MonoBehaviour
         InitializeManagers();
         SetupUIListeners();
         //UpdateCurrencyUI(playerCurrency.GetCoins());
+    }
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.M))
+        {
+            TogglePanel(audioPanel);
+        }
+         if (Input.GetKeyDown(KeyCode.I))
+        {
+            TogglePanel(decorationPanel);
+        }
     }
 
     private void InitializeManagers()
@@ -163,5 +177,12 @@ public class UIManager : MonoBehaviour
         {
             playerCoinsText.text = "Gems " +  coins.ToString();
         }
+    }
+    public void UpdateExperienceUI()
+    {
+        //update the experience progress bar when the player earns experience points
+        experienceSlider.value = playerExperience.GetPlayerLevel();
+        //player level text is the player level
+        playerExperienceText.text = "Level " + playerExperience.GetPlayerLevel().ToString();
     }
 }

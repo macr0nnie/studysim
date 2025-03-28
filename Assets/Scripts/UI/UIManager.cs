@@ -48,6 +48,7 @@ public class UIManager : MonoBehaviour
     {
         InitializeManagers();
         SetupUIListeners();
+        //UpdateCurrencyUI(playerCurrency.GetCoins());
     }
 
     private void InitializeManagers()
@@ -129,7 +130,21 @@ public class UIManager : MonoBehaviour
     public void StartFurniturePlacement(GameObject furniturePrefab)
     {
         Debug.Log("Starting furniture placement...");
-        roomManager.StartPlacingFurniture(furniturePrefab);
+        //check if the player has enough currency to place the furniture
+        if (playerCurrency.GetCoins() < 10)
+        {
+            Debug.Log("Not enough currency to place furniture!");
+            return;
+        }
+        else
+        {
+             roomManager.StartPlacingFurniture(furniturePrefab);
+            // Deduct coins
+            playerCurrency.SpendCoins(10);
+            // Update UI
+            UpdateCurrencyUI(playerCurrency.GetCoins());
+        }
+       
     }
     private void OnDestroy()
     {

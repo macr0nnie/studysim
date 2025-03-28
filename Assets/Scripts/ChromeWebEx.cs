@@ -2,16 +2,23 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using UnityEngine;
+using TMPro;    
 
 public class ChromeWebEx : MonoBehaviour
 {
     private HttpListener _httpListener;
     private Thread _listenerThread;
+    
+    //debugging
+    [SerializeField] private TMP_Text debugText;
+
     void Start()
     {
         // Initialize the HttpListener and listen on localhost:8080
         _httpListener = new HttpListener();
         _httpListener.Prefixes.Add("http://localhost:8080/");
+          debugText.text = "Connected to Chrome Extension!";
+
         _httpListener.Start();
         Debug.Log("HTTP Server started on http://localhost:8080/");
         // Start the listener thread
@@ -32,6 +39,8 @@ public class ChromeWebEx : MonoBehaviour
                 {
                     string requestBody = reader.ReadToEnd();
                     Debug.Log($"Received message: {requestBody}");
+                   // debugText.text =$"Received message: {requestBody}" ;
+                    
                 }
             }
             // Send a response back to the client

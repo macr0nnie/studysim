@@ -18,7 +18,6 @@ public class ChromeWebEx : MonoBehaviour
         _listenerThread = new Thread(HandleRequests);
         _listenerThread.Start();
     }
-
     private void HandleRequests()
     {
         while (_httpListener.IsListening)

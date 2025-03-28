@@ -2,22 +2,25 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using UnityEngine;
-using TMPro;    
+using TMPro;
 
 public class ChromeWebEx : MonoBehaviour
 {
     private HttpListener _httpListener;
     private Thread _listenerThread;
-    
-    //debugging
+
+    // Debugging
     [SerializeField] private TMP_Text debugText;
+
+    private string _receivedMessage; // Store the received message
+    private bool _messageReceived;  // Flag to indicate a new message
 
     void Start()
     {
         // Initialize the HttpListener and listen on localhost:8080
         _httpListener = new HttpListener();
         _httpListener.Prefixes.Add("http://localhost:8080/");
-          debugText.text = "Connected to Chrome Extension!";
+        debugText.text = "Connected to Chrome Extension!";
 
         _httpListener.Start();
         Debug.Log("HTTP Server started on http://localhost:8080/");
@@ -25,34 +28,61 @@ public class ChromeWebEx : MonoBehaviour
         _listenerThread = new Thread(HandleRequests);
         _listenerThread.Start();
     }
+
     private void HandleRequests()
     {
         while (_httpListener.IsListening)
         {
-            // Wait for an incoming request
-            HttpListenerContext context = _httpListener.GetContext();
-            HttpListenerRequest request = context.Request;
-            // Log the incoming request data
-            if (request.HttpMethod == "POST")
+            try
             {
-                using (var reader = new System.IO.StreamReader(request.InputStream, request.ContentEncoding))
+                // Wait for an incoming request
+                HttpListenerContext context = _httpListener.GetContext();
+                HttpListenerRequest request = context.Request;
+
+                // Log the incoming request data
+                if (request.HttpMethod == "POST")
                 {
-                    string requestBody = reader.ReadToEnd();
-                    Debug.Log($"Received message: {requestBody}");
-                   // debugText.text =$"Received message: {requestBody}" ;
-                    
+                    using (var reader = new System.IO.StreamReader(request.InputStream, request.ContentEncoding))
+                    {
+                        string requestBody = reader.ReadToEnd();
+                        Debug.Log($"Received message: {requestBody}");
+
+                        // Store the message and set the flag
+                        _receivedMessage = requestBody;
+                        _messageReceived = true;
+                    }
                 }
+
+                // Send a response back to the client
+                HttpListenerResponse response = context.Response;
+                string responseString = "Unity received your request!";
+                byte[] buffer = Encoding.UTF8.GetBytes(responseString);
+                response.ContentLength64 = buffer.Length;
+                response.OutputStream.Write(buffer, 0, buffer.Length);
+                response.OutputStream.Close();
             }
-            // Send a response back to the client
-            //set the extension to check wheter distraction blocking is on or not!
-            HttpListenerResponse response = context.Response;
-            string responseString = "Unity received your request!";
-            byte[] buffer = Encoding.UTF8.GetBytes(responseString);
-            response.ContentLength64 = buffer.Length;
-            response.OutputStream.Write(buffer, 0, buffer.Length);
-            response.OutputStream.Close();
+            catch (HttpListenerException ex)
+            {
+                Debug.LogWarning($"HttpListenerException: {ex.Message}");
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Exception: {ex.Message}");
+            }
         }
     }
+
+    void Update()
+    {
+        // Check if a new message was received
+        if (_messageReceived)
+        {
+            // Update the TMP_Text on the main thread
+            debugText.text = $"Received message: {_receivedMessage}";
+            _messageReceived = false; // Reset the flag
+        }
+    }
+
     void OnApplicationQuit()
     {
         // Stop the listener when the application quits

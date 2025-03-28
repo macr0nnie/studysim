@@ -3,7 +3,7 @@ using UnityEngine.Events;
 
 public class PlayerCurrency : MonoBehaviour
 {
-    [SerializeField] private int startingCoins = 0;
+    [SerializeField] private int startingCoins = 500;
     public UnityEvent<int> OnCoinsChanged;
 
     private int coins;

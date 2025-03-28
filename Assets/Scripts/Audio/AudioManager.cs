@@ -2,12 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 using UnityEngine.Audio;
 
-/// <summary>
-/// Manages the audio system including soundscapes and music player functionality
-/// Setup: Attach to an empty GameObject in the scene
-/// Dependencies: Requires AudioMixer and audio clips
-/// </summary>
-/// 
+
 public class AudioManager : MonoBehaviour
 {
     [System.Serializable]

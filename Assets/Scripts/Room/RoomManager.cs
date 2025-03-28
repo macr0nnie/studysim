@@ -192,7 +192,7 @@ public class RoomManager : MonoBehaviour
             currentPreview.transform.position = position;
             currentPreview.transform.rotation = rotation;
             isPlacementValid = IsValidPlacement(position);
-            SetPreviewMaterial(isPlacementValid ? validPlacementMaterial : invalidPlacementMaterial);
+            //SetPreviewMaterial(isPlacementValid ? validPlacementMaterial : invalidPlacementMaterial);
         }
         else
         {
@@ -305,7 +305,7 @@ public class RoomManager : MonoBehaviour
         Renderer[] renderers = currentPreview.GetComponentsInChildren<Renderer>();
         foreach (Renderer renderer in renderers)
         {
-            renderer.material = material;
+            //renderer.material = material;
         }
     }
 
@@ -315,7 +315,7 @@ public class RoomManager : MonoBehaviour
         Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
         foreach (Renderer renderer in renderers)
         {
-            renderer.material = validPlacementMaterial;
+            //renderer.material = validPlacementMaterial;
         }
     }
 

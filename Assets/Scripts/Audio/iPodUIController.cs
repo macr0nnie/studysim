@@ -96,7 +96,6 @@ public class iPodUIController : MonoBehaviour
         else
         {
             Debug.Log("Not enough coins to purchase this playlist!");
-            // You could show a UI message here
         }
     }
     
@@ -120,23 +119,17 @@ public class iPodUIController : MonoBehaviour
     //home button
      public void OnHomeButtonClicked()
     {
-        // Logic to return to the main menu or previous screen
-        Debug.Log("Home button clicked");
-        
-        // Check which screen is currently active and switch to the other screen
         if (is_home)
         {
-            // Go to the store screen
             homeScreen.SetActive(false);
             storeScreen.SetActive(true);
         }
         else
         {
-            // Go to the home screen
+
             storeScreen.SetActive(false);
             homeScreen.SetActive(true);
         }
-        
         // Toggle the flag
         is_home = !is_home;
     }

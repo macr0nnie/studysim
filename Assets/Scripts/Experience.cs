@@ -42,8 +42,7 @@ public class Experience : MonoBehaviour
         experiencePoints = new_experience;
         SavePlayerLevel();
     }
-    //get the current experience points
-    //save player level and experience points to player prefs
+
 }
 
 

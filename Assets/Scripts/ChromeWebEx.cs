@@ -63,11 +63,11 @@ public class ChromeWebEx : MonoBehaviour
             }
             catch (HttpListenerException ex)
             {
-                Debug.LogWarning($"HttpListenerException: {ex.Message}");
+               // Debug.LogWarning($"HttpListenerException: {ex.Message}");
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"Exception: {ex.Message}");
+               // Debug.LogError($"Exception: {ex.Message}");
             }
         }
     }

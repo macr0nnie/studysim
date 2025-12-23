@@ -10,27 +10,23 @@ public class RoomManager : MonoBehaviour
     [SerializeField] private LayerMask shelfLayer;
     [SerializeField] private float snapThreshold = 0.5f;
     [SerializeField] private float gridSize = 1.0f;
-    [SerializeField] private bool useGridPlacement = true; // Toggle for grid-based placement
+    [SerializeField] private bool useGridPlacement = true; 
 
-    // Materials and effects
     [SerializeField] private Material validPlacementMaterial;
     [SerializeField] private Material invalidPlacementMaterial;
 
-    [SerializeField] private GameObject placementParticlePrefab; // Particle effect prefab
+    [SerializeField] private GameObject placementParticlePrefab; 
 
-    // Runtime data
-    private List<GameObject> placedObjects = new List<GameObject>(); // Tracks placed objects
+    private List<GameObject> placedObjects = new List<GameObject>(); 
     private GameObject currentPreview;
     private GameObject selectedObject;
     private bool isPlacementValid;
     private Camera mainCamera;
-    private bool isEditMode = false; // Start in placement mode
+    private bool isEditMode = false; 
 
-    // Undo/Redo stacks
     private Stack<GameObject> undoStack = new Stack<GameObject>();
     private Stack<GameObject> redoStack = new Stack<GameObject>();
 
-    // For double-click detection in object selection
     private float lastClickTime;
     private const float doubleClickThreshold = 0.3f;
 
@@ -61,25 +57,23 @@ public class RoomManager : MonoBehaviour
 
     private void Update()
     {
-        // If a preview object exists, update its position and allow placement/rotation.
+        
         if (currentPreview != null)
         {
             UpdatePreviewPosition();
             HandlePlacement();
             HandleRotationAndFlipping();
         }
-        // Else, if in edit mode, allow editing (selection & dragging).
         else if (isEditMode)
         {
             HandleEditMode();
         }
-        // Otherwise, handle standard object selection.
+ 
         else
         {
             HandleObjectSelection();
         }
 
-        // Undo/Redo input
         if (Input.GetKeyDown(KeyCode.Z))
         {
             Undo();
@@ -88,45 +82,41 @@ public class RoomManager : MonoBehaviour
         {
             Redo();
         }
-
-        // Press E to attempt to enter edit mode
         if (Input.GetKeyDown(KeyCode.E))
         {
             EnterEditMode();
         }
-
-        // Toggle grid placement
         if (Input.GetKeyDown(KeyCode.G))
         {
             ToggleGridPlacement();
         }
     }
 
-    // Called by UI or other scripts to start placing a furniture object.
     public void StartPlacingFurniture(GameObject furniturePrefab)
     {
+        //why do we need this there should always be a valid furniture prefab? for this function to run?
         if (furniturePrefab == null)
         {
             Debug.LogError("Furniture prefab is null!");
             return;
         }
-
+        //remove the current preview
         if (currentPreview != null)
         {
             Destroy(currentPreview);
         }
-
+        //update the current preview with the new furniture prefab
         currentPreview = Instantiate(furniturePrefab);
+
         if (currentPreview == null)
         {
             Debug.LogError("Failed to instantiate furniture preview!");
             return;
         }
-
         SetPreviewMaterial(validPlacementMaterial);
     }
 
-    // Updates the preview object's position based on a raycast from the mouse.
+    //update the current 
     private void UpdatePreviewPosition()
     {
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);

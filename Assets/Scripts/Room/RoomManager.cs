@@ -10,19 +10,19 @@ public class RoomManager : MonoBehaviour
     [SerializeField] private LayerMask shelfLayer;
     [SerializeField] private float snapThreshold = 0.5f;
     [SerializeField] private float gridSize = 1.0f;
-    [SerializeField] private bool useGridPlacement = true; 
+    [SerializeField] private bool useGridPlacement = true;
 
     [SerializeField] private Material validPlacementMaterial;
     [SerializeField] private Material invalidPlacementMaterial;
 
-    [SerializeField] private GameObject placementParticlePrefab; 
+    [SerializeField] private GameObject placementParticlePrefab;
 
-    private List<GameObject> placedObjects = new List<GameObject>(); 
+    private List<GameObject> placedObjects = new List<GameObject>();
     private GameObject currentPreview;
     private GameObject selectedObject;
     private bool isPlacementValid;
     private Camera mainCamera;
-    private bool isEditMode = false; 
+    private bool isEditMode = false;
 
     private Stack<GameObject> undoStack = new Stack<GameObject>();
     private Stack<GameObject> redoStack = new Stack<GameObject>();
@@ -57,7 +57,7 @@ public class RoomManager : MonoBehaviour
 
     private void Update()
     {
-        
+
         if (currentPreview != null)
         {
             UpdatePreviewPosition();
@@ -68,7 +68,7 @@ public class RoomManager : MonoBehaviour
         {
             HandleEditMode();
         }
- 
+
         else
         {
             HandleObjectSelection();
@@ -228,7 +228,6 @@ public class RoomManager : MonoBehaviour
         }
         return isValid;
     }
-
     // Handles placement input.
     private void HandlePlacement()
     {
@@ -241,7 +240,6 @@ public class RoomManager : MonoBehaviour
             CancelPlacement();
         }
     }
-
     // Handles rotation for the preview or selected object.
     private void HandleRotationAndFlipping()
     {
@@ -265,7 +263,6 @@ public class RoomManager : MonoBehaviour
             }
         }
     }
-
     // Instantiates the preview as a placed object.
     private void PlaceObject()
     {
@@ -280,7 +277,7 @@ public class RoomManager : MonoBehaviour
 
         Debug.Log("Placed object: " + placedObject.name + "; total placed: " + placedObjects.Count);
     }
-
+    
     private void CancelPlacement()
     {
         if (currentPreview != null)

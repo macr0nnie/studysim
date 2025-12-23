@@ -1,11 +1,6 @@
 using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// Controls the studying character's behavior and interactions
-/// Setup: Attach to the character model in the scene
-/// Dependencies: Requires character model with animations
-/// </summary>
 public class StudyCharacter : MonoBehaviour
 {
     [System.Serializable]

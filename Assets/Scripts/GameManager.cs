@@ -4,9 +4,7 @@ using System;
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
-    
     public event Action<GameState> OnGameStateChanged;
-    
     private GameState currentGameState;
     
     private void Awake()
@@ -21,14 +19,18 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
         }
     }
-
+    //message to the other scripts that the game state has changed
     public void ChangeGameState(GameState newState)
     {
+        if (currentGameState == newState) return;
         currentGameState = newState;
         OnGameStateChanged?.Invoke(newState);
     }
+    public int LoadSaveSlot()
+    {
+        return PlayerPrefs.GetInt("SaveSlot" + 0);
+    }
 }
-
 public enum GameState
 {
     Study,
@@ -36,3 +38,4 @@ public enum GameState
     Shopping,
     Paused
 }
+

@@ -17,7 +17,6 @@ public class ChromeWebEx : MonoBehaviour
 
     void Start()
     {
-        // Initialize the HttpListener and listen on localhost:8080
         _httpListener = new HttpListener();
         _httpListener.Prefixes.Add("http://localhost:8080/");
         debugText.text = "Connected to Chrome Extension!";

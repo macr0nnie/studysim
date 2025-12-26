@@ -6,7 +6,6 @@ using UnityEngine;
 public class Playlist
 {
     public string title;
-   // public string description;
     public Sprite coverArt;
     public int price;
     public bool isUnlocked;

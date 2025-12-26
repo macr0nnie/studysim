@@ -5,16 +5,15 @@ using TMPro;
 
 public class PlaylistItemUI : MonoBehaviour
 {
-    [SerializeField] private TMP_Text titleText; // Changed to TMP_Text
+    [SerializeField] private TMP_Text titleText;
    // [SerializeField] private TMP_Text descriptionText; // Changed to TMP_Text
     [SerializeField] private Image coverImage;
     [SerializeField] private Button playButton;
     [SerializeField] private Button buyButton;
-    [SerializeField] private TMP_Text priceText; // Changed to TMP_Text
+    [SerializeField] private TMP_Text priceText; 
     [SerializeField] private GameObject lockIcon;
     
     private Playlist playlist;
-    
     public event Action<Playlist> OnPlayClicked;
     public event Action<Playlist> OnBuyClicked;
     
@@ -29,19 +28,15 @@ public class PlaylistItemUI : MonoBehaviour
         this.playlist = playlist;
         
         titleText.text = playlist.title;
-       // descriptionText.text = playlist.description;
         if (playlist.coverArt != null)
             coverImage.sprite = playlist.coverArt;
         priceText.text = playlist.price.ToString();
-        // Update locked/unlocked state
         UpdateUnlockState();
     }
     
     private void UpdateUnlockState()
     {
         bool isUnlocked = playlist.isUnlocked;
-        
-        // Update UI elements
         playButton.gameObject.SetActive(isUnlocked);
         buyButton.gameObject.SetActive(!isUnlocked);
         priceText.gameObject.SetActive(!isUnlocked);

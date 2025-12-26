@@ -6,9 +6,7 @@ public class ColorPicker : MonoBehaviour
 {
     [SerializeField] private Image colorImage; // The image used for color picking
     [SerializeField] private Camera uiCamera; // The camera used for UI rendering
-
     public event Action<Color> OnColorChanged; // Event called when the color is changed
-
     private Texture2D colorTexture;
 
     private void Start()

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 public class RoomManager : MonoBehaviour
 {
+    //color picker
+
     [Header("Layers")]
     [SerializeField] private LayerMask placementLayer;
     [SerializeField] private LayerMask furnitureLayer;
@@ -216,7 +218,6 @@ public class RoomManager : MonoBehaviour
     }
 
 
-
     private void HandleSelection()
     {
         if (!Input.GetMouseButtonDown(0)) return;
@@ -255,7 +256,6 @@ public class RoomManager : MonoBehaviour
         isEditMode = !isEditMode;
         selectedObject = null;
     }
-
 
 
     private void Undo()
@@ -321,6 +321,17 @@ public class RoomManager : MonoBehaviour
     {
         GameObject fx = Instantiate(placementParticlePrefab, position, Quaternion.identity);
         Destroy(fx, 2f);
+    }
+
+    //color change script update the materials
+    private void ColorPickerUpdateWalls()
+    {
+        
+    }
+    private string GetColorRGB()
+    {
+        
+        return "";
     }
 }
 

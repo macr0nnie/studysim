@@ -28,6 +28,13 @@ public class HabitTracker : MonoBehaviour
         UpdateAllStreaks();
     }
 
+    
+    //export the data to the csv file or json?
+    public void ExportHabitsData()
+    {
+        // Implementation for exporting habits data
+    }
+
     public void AddHabit(string name, string description, int targetMinutes)
     {
         var habit = new StudyHabit

@@ -4,7 +4,6 @@ using System.Collections.Generic;
 public class RoomManager : MonoBehaviour
 {
     //color picker
-
     [Header("Layers")]
     [SerializeField] private LayerMask placementLayer;
     [SerializeField] private LayerMask furnitureLayer;
@@ -323,7 +322,6 @@ public class RoomManager : MonoBehaviour
         Destroy(fx, 2f);
     }
 
-    //color change script update the materials
     private void ColorPickerUpdateWalls()
     {
         

@@ -50,8 +50,7 @@ public class RoomManager : MonoBehaviour
     private void Update()
     {
         HandleInput();
-
-        if (currentPreview != null)
+        if (currentPreview != null && !isEditMode)
         {
             UpdatePreview();
             HandlePlacementInput();
@@ -60,10 +59,10 @@ public class RoomManager : MonoBehaviour
         {
             HandleEditMode();
         }
-        else
-        {
-            HandleSelection();
-        }
+        // else
+        // {
+        //     HandleSelection();
+        // }
     }
 
     private bool ValidateSetup()
@@ -237,10 +236,11 @@ public class RoomManager : MonoBehaviour
 
     private void HandleEditMode()
     {
+      
         if (selectedObject == null) return;
 
         if (Input.GetMouseButton(0) &&
-            RaycastFromMouse(out RaycastHit hit, placementLayer))
+            RaycastFromMouse(out RaycastHit hit, placementLayer | wallLayer | shelfLayer | furnitureLayer))
         {
             Vector3 pos = hit.point;
             if (useGridPlacement)

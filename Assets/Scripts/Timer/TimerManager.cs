@@ -6,7 +6,7 @@ using UnityEngine.UI;
 /// Manages the Pomodoro timer functionality and reward system
 /// Setup: Attach to an empty GameObject in the scene
 /// Dependencies: Requires UI elements for timer display and settings
-/// </summary>
+/// </summary>  
 public class TimerManager : MonoBehaviour
 {
     [Header("Timer Settings")]

@@ -40,6 +40,9 @@ public class UIManager : MonoBehaviour
 
 
     
+    [Header("Task List UI")]
+    [SerializeField] private GameObject taskListPanel;
+
     [Header ("Color Picker UI")]
     [SerializeField] private GameObject colorPickerPanel;
     [SerializeField] private Button closeColorPickerButton;
@@ -56,13 +59,11 @@ public class UIManager : MonoBehaviour
     private void Update()
     {
         if (Input.GetKeyDown(KeyCode.M))
-        {
             TogglePanel(audioPanel);
-        }
-         if (Input.GetKeyDown(KeyCode.I))
-        {
+        if (Input.GetKeyDown(KeyCode.I))
             TogglePanel(decorationPanel);
-        }
+        if (Input.GetKeyDown(KeyCode.T))
+            TogglePanel(taskListPanel);
     }
 
     private void InitializeManagers()
@@ -82,9 +83,6 @@ public class UIManager : MonoBehaviour
         if (startTimerButton) startTimerButton.onClick.AddListener(timerManager.StartTimer);
         if (pauseTimerButton) pauseTimerButton.onClick.AddListener(timerManager.PauseTimer);
         if (resetTimerButton) resetTimerButton.onClick.AddListener(timerManager.ResetTimer);
-        if (timerManager.plusButton) timerManager.plusButton.onClick.AddListener(timerManager.AddFiveMinutes);
-        if (timerManager.minusButton) timerManager.minusButton.onClick.AddListener(timerManager.RemoveFiveMinutes);
-        
         // Audio UI
         if (musicVolumeSlider) 
         {
@@ -104,16 +102,14 @@ public class UIManager : MonoBehaviour
             playerCurrency.OnCoinsChanged.AddListener(UpdateCurrencyUI);
         }
 
-        // Subscribe to timer events
         timerManager.OnTimerTick += UpdateTimerDisplay;
         timerManager.OnTimerComplete += OnTimerComplete;
 
-             //subscribe to the player currency changed event
-        if (playerCurrency != null)
+        if (playerExperience != null)
         {
-            playerCurrency.OnCoinsChanged.AddListener(UpdateCurrencyUI);
+            playerExperience.OnXPChanged += UpdateExperienceUI;
+            UpdateExperienceUI(playerExperience.CurrentXP, playerExperience.XPToNextLevel);
         }
-
     }
 
     private void UpdateTimerDisplay(float timeRemaining)
@@ -167,6 +163,8 @@ public class UIManager : MonoBehaviour
             timerManager.OnTimerTick -= UpdateTimerDisplay;
             timerManager.OnTimerComplete -= OnTimerComplete;
         }
+        if (playerExperience != null)
+            playerExperience.OnXPChanged -= UpdateExperienceUI;
     }
     //on the onpplayer currency changed there is a player currency changed function 
     ///when that function is invoced the Currency UI should be updated.
@@ -178,11 +176,11 @@ public class UIManager : MonoBehaviour
             playerCoinsText.text = "Gems " +  coins.ToString();
         }
     }
-    public void UpdateExperienceUI()
+    private void UpdateExperienceUI(int currentXP, int xpNeeded)
     {
-        //update the experience progress bar when the player earns experience points
-        experienceSlider.value = playerExperience.GetPlayerLevel();
-        //player level text is the player level
-        playerExperienceText.text = "Level " + playerExperience.GetPlayerLevel().ToString();
+        if (experienceSlider != null)
+            experienceSlider.value = (float)currentXP / xpNeeded;
+        if (playerExperienceText != null)
+            playerExperienceText.text = $"Lv {playerExperience.Level}  {currentXP}/{xpNeeded} XP";
     }
 }

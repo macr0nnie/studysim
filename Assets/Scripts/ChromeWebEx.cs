@@ -1,95 +1,156 @@
+using System;
 using System.Net;
 using System.Text;
 using System.Threading;
 using UnityEngine;
 using TMPro;
 
+[Serializable]
+public class DistractionData
+{
+    public bool isDistracted;
+    public string url;
+    public string site;
+}
+
+/// <summary>
+/// Receives POST requests from the companion Chrome extension on localhost.
+/// The extension sends {"isDistracted":true/false,"url":"...","site":"..."} JSON.
+/// Subscribe to OnDistractionDetected / OnFocusRestored to react in other systems.
+/// </summary>
 public class ChromeWebEx : MonoBehaviour
 {
-    private HttpListener _httpListener;
-    private Thread _listenerThread;
-
-    // Debugging
+    [SerializeField] private int port = 8080;
     [SerializeField] private TMP_Text debugText;
 
-    private string _receivedMessage; // Store the received message
-    private bool _messageReceived;  // Flag to indicate a new message
+    public event Action<DistractionData> OnDistractionDetected;
+    public event Action OnFocusRestored;
 
-    void Start()
+    public bool IsDistracted { get; private set; }
+    public int DistractionCount { get; private set; }
+
+    // Total seconds spent on distracting sites this session
+    public float TotalDistractionTime =>
+        _accumulatedDistractionTime + (IsDistracted ? Time.time - _distractionStartTime : 0f);
+
+    private HttpListener _listener;
+    private Thread _listenerThread;
+    private volatile bool _running;
+
+    private readonly object _lock = new();
+    private DistractionData _pendingData;
+    private bool _hasPendingData;
+
+    private float _distractionStartTime;
+    private float _accumulatedDistractionTime;
+
+    private void Start()
     {
-        _httpListener = new HttpListener();
-        _httpListener.Prefixes.Add("http://localhost:8080/");
-        debugText.text = "Connected to Chrome Extension!";
-
-        _httpListener.Start();
-        Debug.Log("HTTP Server started on http://localhost:8080/");
-        // Start the listener thread
-        _listenerThread = new Thread(HandleRequests);
-        _listenerThread.Start();
+        try
+        {
+            _listener = new HttpListener();
+            _listener.Prefixes.Add($"http://localhost:{port}/");
+            _listener.Start();
+            _running = true;
+            _listenerThread = new Thread(ListenLoop) { IsBackground = true };
+            _listenerThread.Start();
+            SetDebug("Listening for Chrome extension...");
+        }
+        catch (Exception ex)
+        {
+            SetDebug($"Server error: {ex.Message}");
+            Debug.LogError($"ChromeWebEx failed to start: {ex.Message}");
+        }
     }
 
-    private void HandleRequests()
+    private void ListenLoop()
     {
-        while (_httpListener.IsListening)
+        while (_running && _listener.IsListening)
         {
             try
             {
-                // Wait for an incoming request
-                HttpListenerContext context = _httpListener.GetContext();
-                HttpListenerRequest request = context.Request;
+                HttpListenerContext ctx = _listener.GetContext();
+                HandleRequest(ctx);
+            }
+            catch (HttpListenerException) { }
+            catch (Exception ex) when (_running)
+            {
+                Debug.LogWarning($"ChromeWebEx: {ex.Message}");
+            }
+        }
+    }
 
-                // Log the incoming request data
-                if (request.HttpMethod == "POST")
+    private void HandleRequest(HttpListenerContext ctx)
+    {
+        HttpListenerRequest req = ctx.Request;
+
+        if (req.HttpMethod == "POST")
+        {
+            using var reader = new System.IO.StreamReader(req.InputStream, Encoding.UTF8);
+            string body = reader.ReadToEnd();
+
+            DistractionData data = JsonUtility.FromJson<DistractionData>(body);
+            if (data != null)
+            {
+                lock (_lock)
                 {
-                    using (var reader = new System.IO.StreamReader(request.InputStream, request.ContentEncoding))
-                    {
-                        string requestBody = reader.ReadToEnd();
-                        Debug.Log($"Received message: {requestBody}");
-
-                        // Store the message and set the flag
-                        _receivedMessage = requestBody;
-                        _messageReceived = true;
-                    }
+                    _pendingData = data;
+                    _hasPendingData = true;
                 }
+            }
+        }
 
-                // Send a response back to the client
-                HttpListenerResponse response = context.Response;
-                string responseString = "Unity received your request!";
-                byte[] buffer = Encoding.UTF8.GetBytes(responseString);
-                response.ContentLength64 = buffer.Length;
-                response.OutputStream.Write(buffer, 0, buffer.Length);
-                response.OutputStream.Close();
-            }
-            catch (HttpListenerException ex)
-            {
-               // Debug.LogWarning($"HttpListenerException: {ex.Message}");
-            }
-            catch (System.Exception ex)
-            {
-               // Debug.LogError($"Exception: {ex.Message}");
-            }
+        // CORS headers so the extension can reach localhost
+        HttpListenerResponse res = ctx.Response;
+        res.Headers.Add("Access-Control-Allow-Origin", "*");
+        res.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+        res.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
+
+        byte[] buffer = Encoding.UTF8.GetBytes("OK");
+        res.ContentLength64 = buffer.Length;
+        res.OutputStream.Write(buffer, 0, buffer.Length);
+        res.OutputStream.Close();
+    }
+
+    private void Update()
+    {
+        DistractionData data;
+        lock (_lock)
+        {
+            if (!_hasPendingData) return;
+            data = _pendingData;
+            _hasPendingData = false;
+        }
+
+        if (data.isDistracted && !IsDistracted)
+        {
+            IsDistracted = true;
+            DistractionCount++;
+            _distractionStartTime = Time.time;
+            SetDebug($"Distracted: {data.site ?? data.url}");
+            OnDistractionDetected?.Invoke(data);
+        }
+        else if (!data.isDistracted && IsDistracted)
+        {
+            _accumulatedDistractionTime += Time.time - _distractionStartTime;
+            IsDistracted = false;
+            SetDebug("Back on track!");
+            OnFocusRestored?.Invoke();
         }
     }
 
-    void Update()
+    private void SetDebug(string message)
     {
-        // Check if a new message was received
-        if (_messageReceived)
-        {
-            // Update the TMP_Text on the main thread
-            debugText.text = $"Received message: {_receivedMessage}";
-            _messageReceived = false; // Reset the flag
-        }
+        if (debugText != null)
+            debugText.text = message;
     }
 
-    void OnApplicationQuit()
+    private void OnDestroy() => StopServer();
+    private void OnApplicationQuit() => StopServer();
+
+    private void StopServer()
     {
-        // Stop the listener when the application quits
-        if (_httpListener != null)
-        {
-            _httpListener.Stop();
-            _listenerThread.Abort();
-            Debug.Log("HTTP Server stopped.");
-        }
+        _running = false;
+        _listener?.Stop();
     }
 }

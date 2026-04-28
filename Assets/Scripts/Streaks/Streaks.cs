@@ -17,21 +17,29 @@ public class Streaks : MonoBehaviour
     }
     public void OnDailyLogin()
     {
-        //add to a streak of studying daily
-        //great the user with a message 
-        //check if game has been opened today
-    
-        if (PlayerPrefs.HasKey("DailyLoginStreak"))
+        string today = System.DateTime.Now.ToString("yyyy-MM-dd");
+        const string lastLoginKey = "LastLoginDate";
+        const string streakKey = "DailyLoginStreak";
+
+        if (PlayerPrefs.HasKey(lastLoginKey))
         {
-            int streak = PlayerPrefs.GetInt("DailyLoginStreak");
-            streak++;
-            PlayerPrefs.SetInt("DailyLoginStreak", streak);
+            string lastLogin = PlayerPrefs.GetString(lastLoginKey);
+            if (lastLogin == today) return;
+
+            System.DateTime lastDate = System.DateTime.Parse(lastLogin);
+            int daysDiff = (System.DateTime.Now.Date - lastDate.Date).Days;
+
+            int streak = PlayerPrefs.GetInt(streakKey, 0);
+            streak = daysDiff == 1 ? streak + 1 : 1;
+            PlayerPrefs.SetInt(streakKey, streak);
         }
         else
         {
-            PlayerPrefs.SetInt("DailyLoginStreak", 1);
+            PlayerPrefs.SetInt(streakKey, 1);
         }
-        
+
+        PlayerPrefs.SetString(lastLoginKey, today);
+        PlayerPrefs.Save();
     }
     
 

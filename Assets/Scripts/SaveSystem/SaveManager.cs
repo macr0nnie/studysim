@@ -3,28 +3,28 @@ using UnityEngine;
 public class SaveManager : MonoBehaviour
 {
 
-    private saveslots currentSaveSlot;
+    private SaveSlot currentSaveSlot;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         
     }
-    public void SetCurrentSaveSlot(saveslots slot)
+    public void SetCurrentSaveSlot(SaveSlot slot)
     {
         currentSaveSlot = slot;
     }
 
-    public void initialize_save_data()
+    public void InitializeSaveData()
     {
-        
+
     }
 
-    public void Update_Game_Save_Data()
+    public void UpdateGameSaveData()
     {
-        
+
     }
 
-    public enum saveslots
+    public enum SaveSlot
     {
         slot1,
         slot2,

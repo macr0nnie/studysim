@@ -82,14 +82,23 @@ public class HabitTracker : MonoBehaviour
             return;
         }
         habit.completionDates.Sort();
+
+        DateTime lastDate = habit.completionDates[habit.completionDates.Count - 1].Date;
+        int daysSinceLast = (DateTime.Today - lastDate).Days;
+        if (daysSinceLast > 1)
+        {
+            habit.currentStreak = 0;
+            return;
+        }
+
         int streak = 1;
         for (int i = habit.completionDates.Count - 1; i > 0; i--)
         {
-            var today = habit.completionDates[i].Date;
+            var curr = habit.completionDates[i].Date;
             var prev = habit.completionDates[i - 1].Date;
-            if ((today - prev).Days == 1)
+            if ((curr - prev).Days == 1)
                 streak++;
-            else if ((today - prev).Days > 1)
+            else
                 break;
         }
         habit.currentStreak = streak;

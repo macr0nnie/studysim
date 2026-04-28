@@ -26,9 +26,16 @@ public class GameManager : MonoBehaviour
         currentGameState = newState;
         OnGameStateChanged?.Invoke(newState);
     }
+    private int currentSlotIndex = 0;
+
+    public void SetSaveSlot(int slotIndex)
+    {
+        currentSlotIndex = slotIndex;
+    }
+
     public int LoadSaveSlot()
     {
-        return PlayerPrefs.GetInt("SaveSlot" + 0);
+        return PlayerPrefs.GetInt("SaveSlot" + currentSlotIndex);
     }
 }
 public enum GameState

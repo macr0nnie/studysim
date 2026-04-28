@@ -1,107 +1,178 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using System.Collections.Generic;
 
-public class IconGenerator
+public class IconGeneratorWindow : EditorWindow
 {
-    const int ICON_SIZE = 512;
-    const float DEFAULT_ZOOM_FACTOR = 0.4f; // <1 = zoom in, >1 = zoom out
+    private string sourceFolder = "Assets/ItemPrefabs";
+    private string outputFolder = "Assets/Icons";
+    private int iconSize = 512;
+    private Vector3 itemRotation = new Vector3(30f, 45f, 0f);
+    private float zoomFactor = 0.55f;
+    private float lightIntensity = 1.2f;
+    private Vector3 lightRotation = new Vector3(50f, -30f, 0f);
+    private bool skipExisting = true;
+    private bool searchSubfolders = true;
 
-    [MenuItem("Tools/Generate Item Icons")]
-    static void GenerateIcons()
+    private List<string> prefabPaths = new List<string>();
+    private Vector2 scrollPos;
+
+    [MenuItem("Tools/Icon Generator")]
+    static void Open() => GetWindow<IconGeneratorWindow>("Icon Generator");
+
+    void OnGUI()
     {
-        string iconFolder = "Assets/Icons";
-        if (!Directory.Exists(iconFolder))
-            Directory.CreateDirectory(iconFolder);
+        EditorGUILayout.LabelField("Icon Generator", EditorStyles.boldLabel);
+        EditorGUILayout.Space();
 
-        // Create temporary camera
-        GameObject camGO = new GameObject("IconCamera");
+        EditorGUILayout.LabelField("Folders", EditorStyles.boldLabel);
+        sourceFolder = EditorGUILayout.TextField("Source Folder", sourceFolder);
+        outputFolder = EditorGUILayout.TextField("Output Folder", outputFolder);
+        searchSubfolders = EditorGUILayout.Toggle("Search Subfolders", searchSubfolders);
+        skipExisting = EditorGUILayout.Toggle("Skip Existing", skipExisting);
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Render Settings", EditorStyles.boldLabel);
+        iconSize = EditorGUILayout.IntPopup("Icon Size", iconSize,
+            new[] { "128", "256", "512", "1024" },
+            new[] { 128, 256, 512, 1024 });
+        zoomFactor = EditorGUILayout.Slider("Zoom Factor", zoomFactor, 0.1f, 2f);
+        itemRotation = EditorGUILayout.Vector3Field("Item Rotation", itemRotation);
+        lightIntensity = EditorGUILayout.Slider("Light Intensity", lightIntensity, 0f, 3f);
+        lightRotation = EditorGUILayout.Vector3Field("Light Rotation", lightRotation);
+
+        EditorGUILayout.Space();
+
+        if (GUILayout.Button("Scan for Prefabs"))
+            ScanPrefabs();
+
+        if (prefabPaths.Count > 0)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField($"Found {prefabPaths.Count} prefab(s):", EditorStyles.boldLabel);
+            scrollPos = EditorGUILayout.BeginScrollView(scrollPos, GUILayout.MaxHeight(150));
+            foreach (string p in prefabPaths)
+                EditorGUILayout.LabelField(Path.GetFileNameWithoutExtension(p), EditorStyles.miniLabel);
+            EditorGUILayout.EndScrollView();
+
+            EditorGUILayout.Space();
+            if (GUILayout.Button($"Generate {prefabPaths.Count} Icon(s)"))
+                GenerateIcons();
+        }
+    }
+
+    void ScanPrefabs()
+    {
+        prefabPaths.Clear();
+        string[] guids = AssetDatabase.FindAssets("t:Prefab", new[] { sourceFolder });
+        foreach (string guid in guids)
+            prefabPaths.Add(AssetDatabase.GUIDToAssetPath(guid));
+        Repaint();
+    }
+
+    void GenerateIcons()
+    {
+        if (!Directory.Exists(outputFolder))
+            Directory.CreateDirectory(outputFolder);
+
+        // Render items far above the scene so they don't interact with scene lighting/objects
+        Vector3 renderOrigin = new Vector3(0f, 5000f, 0f);
+
+        GameObject camGO = new GameObject("__IconCamera");
         Camera cam = camGO.AddComponent<Camera>();
         cam.orthographic = true;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0, 0, 0, 0); // transparent
+        cam.backgroundColor = new Color(0f, 0f, 0f, 0f);
         cam.nearClipPlane = 0.01f;
-        cam.farClipPlane = 100f;
+        cam.farClipPlane = 500f;
 
-        // Light
-        Light light = new GameObject("IconLight").AddComponent<Light>();
+        GameObject lightGO = new GameObject("__IconLight");
+        Light light = lightGO.AddComponent<Light>();
         light.type = LightType.Directional;
-        light.intensity = 1.2f;
-        light.transform.rotation = Quaternion.Euler(50, -30, 0);
+        light.intensity = lightIntensity;
+        light.transform.rotation = Quaternion.Euler(lightRotation);
+        light.transform.position = renderOrigin;
 
-        RenderTexture rt = new RenderTexture(ICON_SIZE, ICON_SIZE, 0, RenderTextureFormat.ARGB32);
+        RenderTexture rt = new RenderTexture(iconSize, iconSize, 24, RenderTextureFormat.ARGB32);
         cam.targetTexture = rt;
 
-        string[] guids = AssetDatabase.FindAssets("t:Prefab", new[] { "Assets/ItemPrefabs" });
+        int generated = 0;
+        int skipped = 0;
 
-        foreach (string guid in guids)
+        try
         {
-            string path = AssetDatabase.GUIDToAssetPath(guid);
-            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+            for (int i = 0; i < prefabPaths.Count; i++)
+            {
+                string path = prefabPaths[i];
+                string prefabName = Path.GetFileNameWithoutExtension(path);
+                string savePath = Path.Combine(outputFolder, prefabName + "_Icon.png");
 
-            GameObject item = GameObject.Instantiate(prefab);
+                bool cancelled = EditorUtility.DisplayCancelableProgressBar(
+                    "Generating Icons",
+                    $"{prefabName}  ({i + 1} / {prefabPaths.Count})",
+                    (float)i / prefabPaths.Count);
+                if (cancelled) break;
 
-            // Calculate bounds
-            Bounds bounds = GetBounds(item);
+                if (skipExisting && File.Exists(savePath))
+                {
+                    skipped++;
+                    continue;
+                }
 
-            // Center prefab at origin
-            item.transform.position = -bounds.center;
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(path);
+                if (prefab == null) continue;
 
-            // Optional: scale very small objects
-            float maxSize = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
-            if (maxSize < 1f)
-                item.transform.localScale *= 1f / maxSize;
+                GameObject item = Object.Instantiate(prefab);
 
-            // Set rotation (isometric)
-            item.transform.rotation = Quaternion.Euler(30, 45, 0);
+                Bounds bounds = GetRendererBounds(item);
+                float maxSize = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
+                if (maxSize < 0.01f) maxSize = 1f;
 
-            // Orthographic zoom to fit object
-            float zoomFactor = DEFAULT_ZOOM_FACTOR; // tweak this to zoom in/out
-            cam.orthographicSize = maxSize * 0.5f * zoomFactor;
+                item.transform.position = renderOrigin - bounds.center;
+                item.transform.rotation = Quaternion.Euler(itemRotation);
 
-            // Position camera in front
-            cam.transform.position = new Vector3(0, 0, -10);
-            cam.transform.LookAt(Vector3.zero);
+                cam.orthographicSize = maxSize * 0.5f * zoomFactor;
+                cam.transform.position = renderOrigin + new Vector3(0f, 0f, -(maxSize * 5f));
+                cam.transform.LookAt(renderOrigin);
 
-            // Render to texture
-            RenderTexture.active = rt;
-            cam.Render();
+                RenderTexture.active = rt;
+                cam.Render();
 
-            Texture2D tex = new Texture2D(ICON_SIZE, ICON_SIZE, TextureFormat.ARGB32, false);
-            tex.ReadPixels(new Rect(0, 0, ICON_SIZE, ICON_SIZE), 0, 0);
-            tex.Apply();
+                Texture2D tex = new Texture2D(iconSize, iconSize, TextureFormat.ARGB32, false);
+                tex.ReadPixels(new Rect(0, 0, iconSize, iconSize), 0, 0);
+                tex.Apply();
 
-            // Save PNG
-            byte[] png = tex.EncodeToPNG();
-            string fileName = prefab.name + "_Icon.png";
-            string savePath = Path.Combine(iconFolder, fileName);
-            File.WriteAllBytes(savePath, png);
+                File.WriteAllBytes(savePath, tex.EncodeToPNG());
 
-            Object.DestroyImmediate(tex);
-            Object.DestroyImmediate(item);
+                Object.DestroyImmediate(tex);
+                Object.DestroyImmediate(item);
+                generated++;
+            }
+        }
+        finally
+        {
+            EditorUtility.ClearProgressBar();
+            RenderTexture.active = null;
+            cam.targetTexture = null;
+            Object.DestroyImmediate(rt);
+            Object.DestroyImmediate(camGO);
+            Object.DestroyImmediate(lightGO);
         }
 
-        // Cleanup
-        RenderTexture.active = null;
-        cam.targetTexture = null;
-        Object.DestroyImmediate(rt);
-        Object.DestroyImmediate(camGO);
-        Object.DestroyImmediate(light.gameObject);
-
         AssetDatabase.Refresh();
-        Debug.Log("Item icons generated!");
+        Debug.Log($"Icons done — generated: {generated}, skipped: {skipped}, total: {prefabPaths.Count}");
     }
 
-    static Bounds GetBounds(GameObject obj)
+    static Bounds GetRendererBounds(GameObject obj)
     {
         Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
         if (renderers.Length == 0)
-            return new Bounds(obj.transform.position, Vector3.zero);
+            return new Bounds(obj.transform.position, Vector3.one);
 
         Bounds bounds = renderers[0].bounds;
-        foreach (Renderer r in renderers)
-            bounds.Encapsulate(r.bounds);
-
+        for (int i = 1; i < renderers.Length; i++)
+            bounds.Encapsulate(renderers[i].bounds);
         return bounds;
     }
 }

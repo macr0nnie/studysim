@@ -16,6 +16,7 @@ public class TimerManager : MonoBehaviour
     [Header("Rewards")]
     [SerializeField] private int baseMoneyReward = 100;
     [SerializeField] private int baseExperienceReward = 50;
+    [SerializeField] private Experience experience;
 
     public event Action<float> OnTimerTick;
     public event Action OnTimerComplete;
@@ -28,15 +29,15 @@ public class TimerManager : MonoBehaviour
     public float CurrentTime => currentTime;
     public bool IsTimerRunning => isTimerRunning;
     public bool IsStudySession => isStudySession;
-    public PlayerCurrency playerCurrency;
-    public Button plusButton;
-    public Button minusButton;
+    [SerializeField] private PlayerCurrency playerCurrency;
+    [SerializeField] private Button plusButton;
+    [SerializeField] private Button minusButton;
 
     private void Start()
     {
         ResetTimer();
-        plusButton.onClick.AddListener(AddFiveMinutes);
-        minusButton.onClick.AddListener(RemoveFiveMinutes);
+        if (plusButton) plusButton.onClick.AddListener(AddFiveMinutes);
+        if (minusButton) minusButton.onClick.AddListener(RemoveFiveMinutes);
     }
 
     private void Update()
@@ -81,7 +82,10 @@ public class TimerManager : MonoBehaviour
     }
     public void GrantRewards()
     {
-        playerCurrency.AddCoins(baseMoneyReward);
+        if (playerCurrency != null)
+            playerCurrency.AddCoins(baseMoneyReward);
+        if (experience != null)
+            experience.GainExperience(baseExperienceReward);
     }
     public void SetCustomDuration(float minutes)
     {
@@ -93,10 +97,9 @@ public class TimerManager : MonoBehaviour
     }
     public void AddFiveMinutes()
     {
-        if (!isTimerRunning && studyDuration < 7200f) // 2 hours in seconds
+        if (!isTimerRunning && studyDuration < 7200f)
         {
-            studyDuration += 150f; // 5 minutes in seconds
-            if (studyDuration > 7200f) studyDuration = 7200f; // Ensure it does not exceed 2 hours
+            studyDuration = Mathf.Min(studyDuration + 300f, 7200f);
             ResetTimer();
         }
     }
@@ -104,7 +107,7 @@ public class TimerManager : MonoBehaviour
     {
         if (!isTimerRunning && studyDuration > 300f)
         {
-            studyDuration -= 150f; // 5 minutes in seconds
+            studyDuration -= 300f;
             ResetTimer();
         }
     }

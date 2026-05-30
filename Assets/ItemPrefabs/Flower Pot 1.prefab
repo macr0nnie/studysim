@@ -62,6 +62,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2f603e8a9406aed48bd52d44ae328155, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3053817137564776784}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2f603e8a9406aed48bd52d44ae328155, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7147660012670944666}
   m_SourcePrefab: {fileID: 100100000, guid: 2f603e8a9406aed48bd52d44ae328155, type: 3}
 --- !u!1 &9010715921579816112 stripped
 GameObject:
@@ -102,3 +105,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hided: 1
+--- !u!114 &7147660012670944666
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9010715921579816112}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::FurnitureItem
+  furnitureName: Flower Pot 1
+  icon: {fileID: 21300000, guid: edef8acd6f415e7438effc75388e8aa6, type: 3}
+  description: 
+  category: 0
+  gridSize: {x: 1, y: 1}
+  canRotate: 1
+  cost: 100
+  snapToGrid: 1
+  placementHeight: 0
+  requiresFloorSpace: 1

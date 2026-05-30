@@ -62,6 +62,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a26ffc1192309ca438c600bb9ba25ecd, type: 3}
       insertIndex: -1
       addedObject: {fileID: -8394505555572445612}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a26ffc1192309ca438c600bb9ba25ecd, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8962280019563793725}
   m_SourcePrefab: {fileID: 100100000, guid: a26ffc1192309ca438c600bb9ba25ecd, type: 3}
 --- !u!1 &1265771220625328638 stripped
 GameObject:
@@ -102,3 +105,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hided: 1
+--- !u!114 &8962280019563793725
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1265771220625328638}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::FurnitureItem
+  furnitureName: Flower Vase
+  icon: {fileID: 21300000, guid: abbef28135337d3408cd3e0ea0a49e7f, type: 3}
+  description: 
+  category: 0
+  gridSize: {x: 1, y: 1}
+  canRotate: 1
+  cost: 100
+  snapToGrid: 1
+  placementHeight: 0
+  requiresFloorSpace: 1

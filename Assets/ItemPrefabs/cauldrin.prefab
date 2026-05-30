@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 2399118650434287742}
   - component: {fileID: 2830477825177012926}
   - component: {fileID: 1799022839827007317}
+  - component: {fileID: 4332211609942984005}
   m_Layer: 0
   m_Name: cauldrin
   m_TagString: Untagged
@@ -128,6 +129,28 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4227638403203137219, guid: d3b7a79ef1b4dfb459f4edf4c7a814d8, type: 3}
+--- !u!114 &4332211609942984005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1189353988692270695}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::FurnitureItem
+  furnitureName: cauldrin
+  icon: {fileID: 21300000, guid: ded1974081f066e4a98ffd6bb2b37c57, type: 3}
+  description: 
+  category: 0
+  gridSize: {x: 1, y: 1}
+  canRotate: 1
+  cost: 100
+  snapToGrid: 1
+  placementHeight: 0
+  requiresFloorSpace: 1
 --- !u!1 &2769462388994161431
 GameObject:
   m_ObjectHideFlags: 0

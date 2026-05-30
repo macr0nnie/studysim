@@ -1,48 +1,89 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Threading;
 using UnityEngine;
 using TMPro;
 
+// ── Payloads ──────────────────────────────────────────────────────────────────
+
+/// <summary>Sent on /focus when the browser window gains or loses focus.</summary>
 [Serializable]
-public class DistractionData
+public class BrowserFocusData
 {
-    public bool isDistracted;
-    public string url;
-    public string site;
+    public bool focused;
+    public long timestamp;
 }
 
 /// <summary>
-/// Receives POST requests from the companion Chrome extension on localhost.
-/// The extension sends {"isDistracted":true/false,"url":"...","site":"..."} JSON.
-/// Subscribe to OnDistractionDetected / OnFocusRestored to react in other systems.
+/// Sent on /session for every timer lifecycle event.
+/// event values: "start" | "pause" | "resume" | "stop" | "complete"
+/// </summary>
+[Serializable]
+public class SessionData
+{
+    public string @event;    // start | pause | resume | stop | complete
+    public string mode;      // focus | deepWork | shortBreak | longBreak
+    public int    minutes;   // populated on start + complete
+    public int    xpGain;    // populated on complete
+    public int    coinGain;  // populated on complete
+    public int    streak;    // populated on complete
+    public bool   leveledUp; // populated on complete
+    public long   timestamp;
+}
+
+/// <summary>Cumulative stats — read by the Unity stats/UI screen.</summary>
+[Serializable]
+public class ProductivityStats
+{
+    public int totalSessions;
+    public int totalFocusMinutes;
+    public int totalDeepWorkMinutes;
+    public int deepWorkSessions;
+    public int streak;
+    public int level;
+    public int coins;
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Receives POST messages from the Cozy Focus browser extension (optional Unity integration).
+///
+/// Endpoints — all POST to http://localhost:{port}/...
+///   /focus    BrowserFocusData  — browser window focused / unfocused
+///   /session  SessionData       — timer event (start, pause, resume, stop, complete)
+///   /ping     (no body)         — connection test from the options page
 /// </summary>
 public class ChromeWebEx : MonoBehaviour
 {
-    [SerializeField] private int port = 8080;
+    [SerializeField] private int      port      = 8080;
     [SerializeField] private TMP_Text debugText;
 
-    public event Action<DistractionData> OnDistractionDetected;
-    public event Action OnFocusRestored;
+    // ── Events ────────────────────────────────────────────────────────────────
+    public event Action<BrowserFocusData> OnBrowserFocusChanged;
+    public event Action<SessionData>      OnSessionEvent;
 
-    public bool IsDistracted { get; private set; }
-    public int DistractionCount { get; private set; }
+    // ── Properties ────────────────────────────────────────────────────────────
+    public bool             IsBrowserFocused { get; private set; } = true;
+    public bool             IsDeepWorkActive { get; private set; }
+    public bool             IsTimerRunning   { get; private set; }
+    public string           CurrentMode      { get; private set; } = "focus";
+    public ProductivityStats Stats           { get; private set; } = new();
+    public IReadOnlyList<SessionData> SessionHistory => _sessionHistory;
 
-    // Total seconds spent on distracting sites this session
-    public float TotalDistractionTime =>
-        _accumulatedDistractionTime + (IsDistracted ? Time.time - _distractionStartTime : 0f);
-
-    private HttpListener _listener;
-    private Thread _listenerThread;
+    // ── Internals ─────────────────────────────────────────────────────────────
+    private HttpListener  _listener;
+    private Thread        _listenerThread;
     private volatile bool _running;
 
-    private readonly object _lock = new();
-    private DistractionData _pendingData;
-    private bool _hasPendingData;
+    private readonly object                          _lock    = new();
+    private readonly Queue<(string path, string body)> _pending = new();
+    private readonly List<SessionData>               _sessionHistory = new();
+    private const int MaxHistory = 50;
 
-    private float _distractionStartTime;
-    private float _accumulatedDistractionTime;
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     private void Start()
     {
@@ -54,7 +95,7 @@ public class ChromeWebEx : MonoBehaviour
             _running = true;
             _listenerThread = new Thread(ListenLoop) { IsBackground = true };
             _listenerThread.Start();
-            SetDebug("Listening for Chrome extension...");
+            SetDebug("Listening for browser extension...");
         }
         catch (Exception ex)
         {
@@ -62,6 +103,17 @@ public class ChromeWebEx : MonoBehaviour
             Debug.LogError($"ChromeWebEx failed to start: {ex.Message}");
         }
     }
+
+    private void OnDestroy()         => StopServer();
+    private void OnApplicationQuit() => StopServer();
+
+    private void StopServer()
+    {
+        _running = false;
+        _listener?.Stop();
+    }
+
+    // ── Background thread ─────────────────────────────────────────────────────
 
     private void ListenLoop()
     {
@@ -82,75 +134,132 @@ public class ChromeWebEx : MonoBehaviour
 
     private void HandleRequest(HttpListenerContext ctx)
     {
-        HttpListenerRequest req = ctx.Request;
+        string path = ctx.Request.Url.AbsolutePath.ToLowerInvariant().TrimEnd('/');
+        if (string.IsNullOrEmpty(path)) path = "/ping";
 
-        if (req.HttpMethod == "POST")
+        string body = "";
+        if (ctx.Request.HttpMethod == "POST")
         {
-            using var reader = new System.IO.StreamReader(req.InputStream, Encoding.UTF8);
-            string body = reader.ReadToEnd();
-
-            DistractionData data = JsonUtility.FromJson<DistractionData>(body);
-            if (data != null)
-            {
-                lock (_lock)
-                {
-                    _pendingData = data;
-                    _hasPendingData = true;
-                }
-            }
+            using var reader = new System.IO.StreamReader(ctx.Request.InputStream, Encoding.UTF8);
+            body = reader.ReadToEnd();
         }
 
-        // CORS headers so the extension can reach localhost
-        HttpListenerResponse res = ctx.Response;
-        res.Headers.Add("Access-Control-Allow-Origin", "*");
+        if (!string.IsNullOrWhiteSpace(body))
+            lock (_lock) _pending.Enqueue((path, body));
+
+        var res = ctx.Response;
+        res.Headers.Add("Access-Control-Allow-Origin",  "*");
         res.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
         res.Headers.Add("Access-Control-Allow-Headers", "Content-Type");
-
-        byte[] buffer = Encoding.UTF8.GetBytes("OK");
-        res.ContentLength64 = buffer.Length;
-        res.OutputStream.Write(buffer, 0, buffer.Length);
+        byte[] buf = Encoding.UTF8.GetBytes("OK");
+        res.ContentLength64 = buf.Length;
+        res.OutputStream.Write(buf, 0, buf.Length);
         res.OutputStream.Close();
     }
 
+    // ── Main-thread dispatch ──────────────────────────────────────────────────
+
     private void Update()
     {
-        DistractionData data;
-        lock (_lock)
+        while (true)
         {
-            if (!_hasPendingData) return;
-            data = _pendingData;
-            _hasPendingData = false;
-        }
+            (string path, string body) msg;
+            lock (_lock)
+            {
+                if (_pending.Count == 0) break;
+                msg = _pending.Dequeue();
+            }
 
-        if (data.isDistracted && !IsDistracted)
-        {
-            IsDistracted = true;
-            DistractionCount++;
-            _distractionStartTime = Time.time;
-            SetDebug($"Distracted: {data.site ?? data.url}");
-            OnDistractionDetected?.Invoke(data);
-        }
-        else if (!data.isDistracted && IsDistracted)
-        {
-            _accumulatedDistractionTime += Time.time - _distractionStartTime;
-            IsDistracted = false;
-            SetDebug("Back on track!");
-            OnFocusRestored?.Invoke();
+            switch (msg.path)
+            {
+                case "/focus":   HandleFocus(msg.body);   break;
+                case "/session": HandleSession(msg.body); break;
+                case "/ping":                             break; // connection test — no-op
+                default:
+                    Debug.LogWarning($"ChromeWebEx: unknown path '{msg.path}'");
+                    break;
+            }
         }
     }
+
+    // ── Handlers ─────────────────────────────────────────────────────────────
+
+    private void HandleFocus(string body)
+    {
+        BrowserFocusData data = JsonUtility.FromJson<BrowserFocusData>(body);
+        if (data == null) return;
+
+        IsBrowserFocused = data.focused;
+        SetDebug(data.focused ? "Browser focused" : "Browser unfocused");
+        OnBrowserFocusChanged?.Invoke(data);
+    }
+
+    private void HandleSession(string body)
+    {
+        SessionData data = JsonUtility.FromJson<SessionData>(body);
+        if (data == null) return;
+
+        // Update live state
+        switch (data.@event)
+        {
+            case "start":
+                IsTimerRunning   = true;
+                CurrentMode      = data.mode;
+                IsDeepWorkActive = data.mode == "deepWork";
+                SetDebug($"Timer started: {data.mode} {data.minutes}min");
+                break;
+
+            case "pause":
+                SetDebug($"Timer paused ({data.mode})");
+                break;
+
+            case "resume":
+                SetDebug($"Timer resumed ({data.mode})");
+                break;
+
+            case "stop":
+                IsTimerRunning   = false;
+                IsDeepWorkActive = false;
+                SetDebug("Timer stopped");
+                break;
+
+            case "complete":
+                IsTimerRunning   = false;
+                IsDeepWorkActive = false;
+                UpdateStats(data);
+                SetDebug($"Session complete: {data.mode} {data.minutes}min +{data.xpGain}xp");
+                break;
+        }
+
+        _sessionHistory.Insert(0, data);
+        if (_sessionHistory.Count > MaxHistory)
+            _sessionHistory.RemoveAt(_sessionHistory.Count - 1);
+
+        OnSessionEvent?.Invoke(data);
+    }
+
+    private void UpdateStats(SessionData data)
+    {
+        bool isFocus = data.mode == "focus" || data.mode == "deepWork";
+        if (!isFocus) return;
+
+        Stats.totalSessions++;
+        Stats.totalFocusMinutes += data.minutes;
+
+        if (data.mode == "deepWork")
+        {
+            Stats.deepWorkSessions++;
+            Stats.totalDeepWorkMinutes += data.minutes;
+        }
+
+        if (data.streak > Stats.streak) Stats.streak = data.streak;
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void SetDebug(string message)
     {
-        if (debugText != null)
-            debugText.text = message;
-    }
-
-    private void OnDestroy() => StopServer();
-    private void OnApplicationQuit() => StopServer();
-
-    private void StopServer()
-    {
-        _running = false;
-        _listener?.Stop();
+        if (debugText != null) debugText.text = message;
+        Debug.Log($"[ChromeWebEx] {message}");
     }
 }

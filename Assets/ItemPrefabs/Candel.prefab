@@ -502,6 +502,7 @@ GameObject:
   - component: {fileID: 4018333771779904545}
   - component: {fileID: 7569748989260492202}
   - component: {fileID: 6863353712680125580}
+  - component: {fileID: 7600227060454400223}
   m_Layer: 0
   m_Name: Candel
   m_TagString: Untagged
@@ -619,3 +620,25 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 1513170152112877870, guid: d3b7a79ef1b4dfb459f4edf4c7a814d8, type: 3}
+--- !u!114 &7600227060454400223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9025336020420240056}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::FurnitureItem
+  furnitureName: Candel
+  icon: {fileID: 21300000, guid: 9f8d14bd738f8154689a60cfddb3383c, type: 3}
+  description: 
+  category: 0
+  gridSize: {x: 1, y: 1}
+  canRotate: 1
+  cost: 100
+  snapToGrid: 1
+  placementHeight: 0
+  requiresFloorSpace: 1

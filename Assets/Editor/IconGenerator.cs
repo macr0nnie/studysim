@@ -147,6 +147,10 @@ public class IconGeneratorWindow : EditorWindow
 
                 Object.DestroyImmediate(tex);
                 Object.DestroyImmediate(item);
+
+                AssetDatabase.ImportAsset(savePath);
+                ApplyImportSettings(savePath);
+
                 generated++;
             }
         }
@@ -162,6 +166,40 @@ public class IconGeneratorWindow : EditorWindow
 
         AssetDatabase.Refresh();
         Debug.Log($"Icons done — generated: {generated}, skipped: {skipped}, total: {prefabPaths.Count}");
+    }
+
+    static void ApplyImportSettings(string path)
+    {
+        TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (importer == null) return;
+
+        importer.textureType = TextureImporterType.Sprite;
+        importer.spriteImportMode = SpriteImportMode.Single;
+        importer.spritePixelsPerUnit = 100;
+        importer.spritePivot = new Vector2(0.5f, 0.5f);
+
+        importer.sRGBTexture = true;
+        importer.alphaSource = TextureImporterAlphaSource.FromInput;
+        importer.alphaIsTransparency = true;
+        importer.isReadable = false;
+        importer.mipmapEnabled = false;
+        importer.wrapMode = TextureWrapMode.Clamp;
+        importer.filterMode = FilterMode.Bilinear;
+        importer.anisoLevel = 1;
+
+        TextureImporterSettings settings = new();
+        importer.ReadTextureSettings(settings);
+        settings.spriteMeshType = SpriteMeshType.FullRect;
+        settings.spriteExtrude = 1;
+        settings.spriteGenerateFallbackPhysicsShape = false;
+        importer.SetTextureSettings(settings);
+
+        TextureImporterPlatformSettings platform = importer.GetDefaultPlatformTextureSettings();
+        platform.maxTextureSize = 512;
+        platform.format = TextureImporterFormat.Automatic;
+        importer.SetPlatformTextureSettings(platform);
+
+        importer.SaveAndReimport();
     }
 
     static Bounds GetRendererBounds(GameObject obj)

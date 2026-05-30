@@ -65,28 +65,28 @@ public class GlitchEffect : MonoBehaviour
     private void OnEnable()
     {
         if (chromeWebEx == null) return;
-        chromeWebEx.OnDistractionDetected += HandleDistractionStart;
-        chromeWebEx.OnFocusRestored += HandleFocusRestored;
+        chromeWebEx.OnBrowserFocusChanged += HandleBrowserFocusChanged;
     }
 
     private void OnDisable()
     {
         if (chromeWebEx == null) return;
-        chromeWebEx.OnDistractionDetected -= HandleDistractionStart;
-        chromeWebEx.OnFocusRestored -= HandleFocusRestored;
+        chromeWebEx.OnBrowserFocusChanged -= HandleBrowserFocusChanged;
     }
 
-    private void HandleDistractionStart(DistractionData _)
+    private void HandleBrowserFocusChanged(BrowserFocusData data)
     {
-        if (_activeCoroutine != null) StopCoroutine(_activeCoroutine);
-        if (cameraRoot != null) _cameraOrigin = cameraRoot.localPosition;
-        _activeCoroutine = StartCoroutine(GlitchRamp());
-    }
-
-    private void HandleFocusRestored()
-    {
-        if (_activeCoroutine != null) StopCoroutine(_activeCoroutine);
-        _activeCoroutine = StartCoroutine(GlitchFadeOut());
+        if (!data.focused)
+        {
+            if (_activeCoroutine != null) StopCoroutine(_activeCoroutine);
+            if (cameraRoot != null) _cameraOrigin = cameraRoot.localPosition;
+            _activeCoroutine = StartCoroutine(GlitchRamp());
+        }
+        else
+        {
+            if (_activeCoroutine != null) StopCoroutine(_activeCoroutine);
+            _activeCoroutine = StartCoroutine(GlitchFadeOut());
+        }
     }
 
     private IEnumerator GlitchRamp()

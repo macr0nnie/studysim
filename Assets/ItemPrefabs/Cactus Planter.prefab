@@ -62,6 +62,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c48639f7c0166524db1e72be7d9fdb46, type: 3}
       insertIndex: -1
       addedObject: {fileID: -853060557946365120}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c48639f7c0166524db1e72be7d9fdb46, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2679338381494017966}
   m_SourcePrefab: {fileID: 100100000, guid: c48639f7c0166524db1e72be7d9fdb46, type: 3}
 --- !u!1 &4300180800147344411 stripped
 GameObject:
@@ -102,3 +105,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hided: 1
+--- !u!114 &2679338381494017966
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4300180800147344411}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 0}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::FurnitureItem
+  furnitureName: Cactus Planter
+  icon: {fileID: 21300000, guid: 7de5b987249e9204296bd81154400b24, type: 3}
+  description: 
+  category: 0
+  gridSize: {x: 1, y: 1}
+  canRotate: 1
+  cost: 100
+  snapToGrid: 1
+  placementHeight: 0
+  requiresFloorSpace: 1

@@ -56,6 +56,10 @@ public class RoomManager : MonoBehaviour
             enabled = false;
             return;
         }
+
+        // Furniture already in the room at startup can be moved and deleted like bought furniture.
+        foreach (Furniture f in FindObjectsByType<Furniture>(FindObjectsSortMode.None))
+            placedObjects.Add(f.gameObject);
     }
 
     private void Update()
@@ -334,7 +338,7 @@ public class RoomManager : MonoBehaviour
             if (Physics.Raycast(ray, out hit, 100f))
             {
                 GameObject hitObject = hit.collider.gameObject;
-                GameObject rootObject = hitObject.transform.root.gameObject;
+                GameObject rootObject = FurnitureRoot(hitObject);
                 if (placedObjects.Contains(rootObject))
                 {
                     selectedObject = rootObject;
@@ -370,7 +374,7 @@ public class RoomManager : MonoBehaviour
             if (Physics.Raycast(ray, out hit, 100f))
             {
                 GameObject hitObject = hit.collider.gameObject;
-                GameObject rootObject = hitObject.transform.root.gameObject;
+                GameObject rootObject = FurnitureRoot(hitObject);
                 if (placedObjects.Contains(rootObject))
                 {
                     // If double-clicked within threshold, enter edit mode.
@@ -392,7 +396,7 @@ public class RoomManager : MonoBehaviour
             if (Physics.Raycast(ray, out hit, 100f))
             {
                 GameObject hitObject = hit.collider.gameObject;
-                DeleteObject(hitObject.transform.root.gameObject);
+                DeleteObject(FurnitureRoot(hitObject));
             }
         }
     }
@@ -451,6 +455,13 @@ public class RoomManager : MonoBehaviour
     {
         undoStack.Push(obj);
         redoStack.Clear();
+    }
+
+    // The furniture piece a click hit, even when the collider is on one of its children.
+    private static GameObject FurnitureRoot(GameObject hit)
+    {
+        Furniture furniture = hit.GetComponentInParent<Furniture>();
+        return furniture != null ? furniture.gameObject : hit;
     }
 
     private static bool IsPointerOverUI()

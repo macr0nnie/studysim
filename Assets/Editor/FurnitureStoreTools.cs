@@ -6,12 +6,77 @@ using UnityEngine;
 // Assets > Study Sim > Add To Furniture Store: turn selected models/prefabs into store items.
 // Each gets a prefab (with Furniture + collider) and a FurnitureItem in the catalog; fill in the
 // description, category, tags and price in the Inspector. Icons are rendered by the store at runtime.
+//
+// The pieces below only exist inside WITCHYfURNITURE.fbx (their mesh IDs are made by Unity's importer),
+// so they are turned into prefabs + store items automatically the first time the project opens.
+[InitializeOnLoad]
 public static class FurnitureStoreTools
 {
     const string PrefabFolder = "Assets/ART/Models/Furniture";
     const string ItemFolder = "Assets/Data/Furniture";
     const string CatalogPath = "Assets/Data/FurnitureCatalog.asset";
     const int DefaultPrice = 10;
+
+    const string WitchyModelPath = "Assets/ART/Models/WITCHYfURNITURE.fbx";
+
+    // (FBX node, asset key, display name, category, tags, price, description)
+    static readonly (string node, string key, string name, StoreCategory category, string[] tags, int price, string description)[] FromModel =
+    {
+        ("Alter", "Altar", "Witchy Altar", StoreCategory.Decor, new[] { "witchy", "ritual", "new" }, 75,
+            "A little altar for crystals, candles and good-luck charms before a big exam."),
+        ("Books", "Books", "Books", StoreCategory.Decor, new[] { "books", "study", "small", "new" }, 15,
+            "A few well-loved books to scatter across a desk or shelf."),
+        ("LeafPile", "LeafPile", "Leaf Pile", StoreCategory.Plants, new[] { "autumn", "seasonal", "cozy", "new" }, 15,
+            "A crunchy pile of autumn leaves for a seasonal corner."),
+    };
+
+    static FurnitureStoreTools()
+    {
+        // Wait until the asset database is ready; cheap no-op once the items exist.
+        EditorApplication.delayCall += AddModelPieces;
+    }
+
+    [MenuItem("Study Sim/Run Furniture Setup")]
+    static void AddModelPieces()
+    {
+        var missing = FromModel.Where(p => AssetDatabase.LoadAssetAtPath<FurnitureItem>($"{ItemFolder}/{p.key}.asset") == null).ToArray();
+        if (missing.Length == 0) return;
+        GameObject model = AssetDatabase.LoadAssetAtPath<GameObject>(WitchyModelPath);
+        if (model == null) return;
+
+        FurnitureCatalog catalog = LoadOrCreateCatalog();
+        EnsureFolder(PrefabFolder);
+        EnsureFolder(ItemFolder);
+        foreach (var piece in missing)
+        {
+            Transform node = model.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == piece.node);
+            if (node == null)
+            {
+                Debug.LogWarning($"Furniture setup: no '{piece.node}' in {WitchyModelPath}; skipped.");
+                continue;
+            }
+            // Unlinked copy keeps the node's own rotation/scale, matching the other furniture prefabs.
+            GameObject copy = Object.Instantiate(node.gameObject);
+            copy.name = piece.key;
+            copy.transform.position = Vector3.zero;
+            EnsureFurnitureSetup(copy);
+            GameObject prefab = PrefabUtility.SaveAsPrefabAsset(copy, $"{PrefabFolder}/{piece.key}.prefab");
+            Object.DestroyImmediate(copy);
+
+            var item = ScriptableObject.CreateInstance<FurnitureItem>();
+            item.displayName = piece.name;
+            item.description = piece.description;
+            item.category = piece.category;
+            item.tags = piece.tags;
+            item.price = piece.price;
+            item.prefab = prefab;
+            AssetDatabase.CreateAsset(item, $"{ItemFolder}/{piece.key}.asset");
+            catalog.items.Add(item);
+            Debug.Log($"Furniture setup: added {piece.name} to the store.");
+        }
+        EditorUtility.SetDirty(catalog);
+        AssetDatabase.SaveAssets();
+    }
 
     [MenuItem("Assets/Study Sim/Add To Furniture Store", true)]
     static bool CanAddSelection()

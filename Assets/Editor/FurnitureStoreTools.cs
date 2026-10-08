@@ -37,7 +37,7 @@ public static class FurnitureStoreTools
     }
 
     [MenuItem("Study Sim/Run Furniture Setup")]
-    static void AddModelPieces()
+    public static void AddModelPieces()
     {
         var missing = FromModel.Where(p => AssetDatabase.LoadAssetAtPath<FurnitureItem>($"{ItemFolder}/{p.key}.asset") == null).ToArray();
         if (missing.Length == 0) return;

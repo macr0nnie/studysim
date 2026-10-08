@@ -20,9 +20,19 @@ public class ChromeWebEx : MonoBehaviour
         // Initialize the HttpListener and listen on localhost:8080
         _httpListener = new HttpListener();
         _httpListener.Prefixes.Add("http://localhost:8080/");
-        debugText.text = "Connected to Chrome Extension!";
 
-        _httpListener.Start();
+        try
+        {
+            _httpListener.Start();
+        }
+        catch (HttpListenerException ex)
+        {
+            // Port in use or not permitted: run without the extension instead of breaking Start.
+            Debug.LogWarning($"Chrome extension listener disabled: {ex.Message}");
+            _httpListener = null;
+            return;
+        }
+        if (debugText) debugText.text = "Connected to Chrome Extension!";
         Debug.Log("HTTP Server started on http://localhost:8080/");
         // Start the listener thread
         _listenerThread = new Thread(HandleRequests);
@@ -78,7 +88,7 @@ public class ChromeWebEx : MonoBehaviour
         if (_messageReceived)
         {
             // Update the TMP_Text on the main thread
-            debugText.text = $"Received message: {_receivedMessage}";
+            if (debugText) debugText.text = $"Received message: {_receivedMessage}";
             _messageReceived = false; // Reset the flag
         }
     }

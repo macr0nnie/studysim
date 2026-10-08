@@ -20,6 +20,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Transform furnitureButtonContainer;
    
     [SerializeField] private Button editModeButton;
+    [SerializeField] private int defaultFurniturePrice = 10; // used by store buttons that call StartFurniturePlacement directly
     
     [Header("Audio UI")]
     [SerializeField] private GameObject audioPanel;
@@ -51,7 +52,7 @@ public class UIManager : MonoBehaviour
     {
         InitializeManagers();
         SetupUIListeners();
-        //UpdateCurrencyUI(playerCurrency.GetCoins());
+        if (playerCurrency != null) UpdateCurrencyUI(playerCurrency.GetCoins());
     }
     private void Update()
     {
@@ -59,17 +60,21 @@ public class UIManager : MonoBehaviour
         {
             TogglePanel(audioPanel);
         }
-         if (Input.GetKeyDown(KeyCode.I))
+        if (Input.GetKeyDown(KeyCode.I))
         {
             TogglePanel(decorationPanel);
+        }
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            CloseAllPanels();
         }
     }
 
     private void InitializeManagers()
     {
-        timerManager = FindObjectOfType<TimerManager>();
-        roomManager = FindObjectOfType<RoomManager>();
-        audioManager = FindObjectOfType<AudioManager>();
+        timerManager = FindFirstObjectByType<TimerManager>();
+        roomManager = FindFirstObjectByType<RoomManager>();
+        audioManager = FindFirstObjectByType<AudioManager>();
 
         if (timerManager == null || roomManager == null || audioManager == null)
         {
@@ -78,37 +83,30 @@ public class UIManager : MonoBehaviour
     }
     private void SetupUIListeners()
     {
-        // Timer UI
-        if (startTimerButton) startTimerButton.onClick.AddListener(timerManager.StartTimer);
-        if (pauseTimerButton) pauseTimerButton.onClick.AddListener(timerManager.PauseTimer);
-        if (resetTimerButton) resetTimerButton.onClick.AddListener(timerManager.ResetTimer);
-        if (timerManager.plusButton) timerManager.plusButton.onClick.AddListener(timerManager.AddFiveMinutes);
-        if (timerManager.minusButton) timerManager.minusButton.onClick.AddListener(timerManager.RemoveFiveMinutes);
-        
-        // Audio UI
-        if (musicVolumeSlider) 
+        // Timer UI (TimerManager wires its own +/- buttons)
+        if (timerManager != null)
         {
-            musicVolumeSlider.onValueChanged.AddListener(audioManager.SetMusicVolume);
+            if (startTimerButton) startTimerButton.onClick.AddListener(timerManager.StartTimer);
+            if (pauseTimerButton) pauseTimerButton.onClick.AddListener(timerManager.PauseTimer);
+            if (resetTimerButton) resetTimerButton.onClick.AddListener(timerManager.ResetTimer);
+            timerManager.OnTimerTick += UpdateTimerDisplay;
+            timerManager.OnTimerComplete += OnTimerComplete;
+            UpdateTimerDisplay(timerManager.CurrentTime);
         }
-        if (nextTrackButton) nextTrackButton.onClick.AddListener(audioManager.NextTrack);
-        if (previousTrackButton) previousTrackButton.onClick.AddListener(audioManager.PreviousTrack);
-        
-        
-         if (closeColorPickerButton)
+
+        // Audio UI
+        if (audioManager != null)
+        {
+            if (musicVolumeSlider) musicVolumeSlider.onValueChanged.AddListener(audioManager.SetMusicVolume);
+            if (nextTrackButton) nextTrackButton.onClick.AddListener(audioManager.NextTrack);
+            if (previousTrackButton) previousTrackButton.onClick.AddListener(audioManager.PreviousTrack);
+        }
+
+        if (closeColorPickerButton)
         {
             closeColorPickerButton.onClick.AddListener(() => TogglePanel(colorPickerPanel));
         }
         //subscribe to the player currency changed event
-        if (playerCurrency != null)
-        {
-            playerCurrency.OnCoinsChanged.AddListener(UpdateCurrencyUI);
-        }
-
-        // Subscribe to timer events
-        timerManager.OnTimerTick += UpdateTimerDisplay;
-        timerManager.OnTimerComplete += OnTimerComplete;
-
-             //subscribe to the player currency changed event
         if (playerCurrency != null)
         {
             playerCurrency.OnCoinsChanged.AddListener(UpdateCurrencyUI);
@@ -129,10 +127,20 @@ public class UIManager : MonoBehaviour
     {
         
     }
+    // Only one main panel is open at a time so menus never stack on top of each other.
     public void TogglePanel(GameObject panel)
     {
         if (panel == null) return;
-        panel.SetActive(!panel.activeSelf);
+        bool open = !panel.activeSelf;
+        if (open) CloseAllPanels();
+        panel.SetActive(open);
+    }
+
+    public void CloseAllPanels()
+    {
+        if (audioPanel) audioPanel.SetActive(false);
+        if (decorationPanel) decorationPanel.SetActive(false);
+        if (colorPickerPanel) colorPickerPanel.SetActive(false);
     }
     //i need a method that can close the current panel and open the new one
     public void OpenPanel(GameObject panelToOpen, GameObject panelToClose)
@@ -143,22 +151,15 @@ public class UIManager : MonoBehaviour
     }
     public void StartFurniturePlacement(GameObject furniturePrefab)
     {
-        Debug.Log("Starting furniture placement...");
-        //check if the player has enough currency to place the furniture
-        if (playerCurrency.GetCoins() < 10)
+        if (roomManager == null || playerCurrency == null) return;
+        int price = defaultFurniturePrice;
+        if (playerCurrency.GetCoins() < price)
         {
             Debug.Log("Not enough currency to place furniture!");
             return;
         }
-        else
-        {
-             roomManager.StartPlacingFurniture(furniturePrefab);
-            // Deduct coins
-            playerCurrency.SpendCoins(10);
-            // Update UI
-            UpdateCurrencyUI(playerCurrency.GetCoins());
-        }
-       
+        // Charge on placement, not on pick, so cancelling with right-click costs nothing.
+        roomManager.StartPlacingFurniture(furniturePrefab, () => playerCurrency.SpendCoins(price));
     }
     private void OnDestroy()
     {

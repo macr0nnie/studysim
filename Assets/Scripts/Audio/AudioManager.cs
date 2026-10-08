@@ -57,12 +57,14 @@ public class AudioManager : MonoBehaviour
 
     public void NextTrack()
     {
+        if (unlockedSoundscapes.Count == 0) return;
         int nextIndex = (currentTrackIndex + 1) % unlockedSoundscapes.Count;
         PlayTrack(nextIndex);
     }
 
     public void PreviousTrack()
     {
+        if (unlockedSoundscapes.Count == 0) return;
         int prevIndex = currentTrackIndex - 1;
         if (prevIndex < 0) prevIndex = unlockedSoundscapes.Count - 1;
         PlayTrack(prevIndex);
@@ -70,12 +72,12 @@ public class AudioManager : MonoBehaviour
 
     public void SetMusicVolume(float volume)
     {
-        audioMixer.SetFloat("MusicVolume", Mathf.Log10(volume) * 20);
+        audioMixer.SetFloat("MusicVolume", Mathf.Log10(Mathf.Max(volume, 0.0001f)) * 20);
     }
 
     public void SetAmbientVolume(float volume)
     {
-        audioMixer.SetFloat("AmbientVolume", Mathf.Log10(volume) * 20);
+        audioMixer.SetFloat("AmbientVolume", Mathf.Log10(Mathf.Max(volume, 0.0001f)) * 20);
     }
 
     public bool UnlockSoundscape(string soundscapeName)

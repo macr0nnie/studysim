@@ -199,6 +199,7 @@ public class FurnitureStoreUI : MonoBehaviour
         GameObject details = Make("Details", panel.transform, typeof(Image), typeof(VerticalLayoutGroup), typeof(LayoutElement));
         Style(details.GetComponent<Image>(), CardColor);
         details.GetComponent<LayoutElement>().preferredHeight = 210;
+        details.GetComponent<LayoutElement>().flexibleHeight = 0; // the description's flexible height would otherwise grow this box
         var detailsLayout = details.GetComponent<VerticalLayoutGroup>();
         detailsLayout.padding = new RectOffset(16, 16, 12, 12);
         detailsLayout.spacing = 6;

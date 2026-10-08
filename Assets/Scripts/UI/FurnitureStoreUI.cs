@@ -254,7 +254,9 @@ public class FurnitureStoreUI : MonoBehaviour
     private static GameObject Row(string name, Transform parent, float height, float spacing, bool expand)
     {
         GameObject row = Make(name, parent, typeof(HorizontalLayoutGroup), typeof(LayoutElement));
-        row.GetComponent<LayoutElement>().preferredHeight = height;
+        var element = row.GetComponent<LayoutElement>();
+        element.preferredHeight = height;
+        element.flexibleHeight = 0; // otherwise the layout group reports flexible height and steals space from the card grid
         var h = row.GetComponent<HorizontalLayoutGroup>();
         h.spacing = spacing;
         h.childControlWidth = h.childControlHeight = true;

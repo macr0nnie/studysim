@@ -32,6 +32,25 @@ public class MusicPlayer : MonoBehaviour
             
         LoadPlayerData();
         ApplyUnlockStatus();
+        RefreshUnlocks();
+    }
+
+    // Free playlists, and ones whose level the player has reached, unlock themselves. Called when the
+    // library opens so a level gained mid-session counts.
+    public void RefreshUnlocks()
+    {
+        int level = PlayerPrefs.GetInt("PlayerLevel", 1);
+        bool changed = false;
+        foreach (Playlist playlist in playlistLibrary.playlists)
+        {
+            if (playlist.isUnlocked) continue;
+            if (playlist.price <= 0 || (playlist.unlockLevel > 0 && level >= playlist.unlockLevel))
+            {
+                playlist.isUnlocked = true;
+                changed = true;
+            }
+        }
+        if (changed) SavePlayerData();
     }
     
     private float nextProgressUpdate;

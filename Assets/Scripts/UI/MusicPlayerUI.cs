@@ -103,6 +103,7 @@ public class MusicPlayerUI : MonoBehaviour
 
     private void RefreshLibrary()
     {
+        music.RefreshUnlocks();
         for (int i = libraryRows.childCount - 1; i >= 0; i--) Destroy(libraryRows.GetChild(i).gameObject);
         foreach (Playlist playlist in music.GetAllPlaylists()) AddPlaylistRow(playlist);
     }
@@ -124,7 +125,7 @@ public class MusicPlayerUI : MonoBehaviour
 
         string songs = playlist.songs.Count == 1 ? "1 track" : $"{playlist.songs.Count} tracks";
         TMP_Text label = MakeText("Label", row.transform,
-            $"{playlist.title}\n<size=14><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>{(current ? "Playing now" : songs)}</color></size>",
+            $"{playlist.title}\n<size=14><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>{(current ? "Playing now" : playlist.isUnlocked ? songs : playlist.unlockLevel > 0 ? $"{songs}  ·  free at level {playlist.unlockLevel}, or buy" : songs)}</color></size>",
             19, TextColor, TextAlignmentOptions.Left);
         label.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
 

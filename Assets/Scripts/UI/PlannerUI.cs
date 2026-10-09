@@ -9,7 +9,6 @@ using static UIKit;
 // Ticking things off earns XP. Press P to toggle it.
 public class PlannerUI : MonoBehaviour
 {
-    [SerializeField] private KeyCode toggleKey = KeyCode.P;
     const int TaskExperience = 10, HabitExperience = 15;
 
     private TaskList taskList;
@@ -43,7 +42,7 @@ public class PlannerUI : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(toggleKey) && !Typing()) Toggle();
+        if (Controls.Pressed(Controls.Act.Planner) && !Typing()) Toggle();
     }
 
     public void Toggle()
@@ -135,7 +134,7 @@ public class PlannerUI : MonoBehaviour
         Transform canvas = MakeCanvas("PlannerCanvas", transform, 10).transform;
 
         // Sits next to the Shop button in the room-button row.
-        Button open = NavButton(canvas, 3, "Planner", "P");
+        Button open = NavButton(canvas, 3, "Planner", Controls.Act.Planner);
         open.onClick.AddListener(Toggle);
 
         panel = MakeDrawer("PlannerPanel", canvas);

@@ -12,10 +12,13 @@ using TMPro;
 //   set                     set the study length in minutes (5-120), only while the timer is stopped
 //   focus                   "I'm on a study site": +1 XP, at most once a minute (anything on this PC can
 //                           reach localhost, so rewards are rate-limited rather than trusted)
+//   distracted              "I'm on a distracting site", with {"site":"youtube.com"}: during a study session the
+//                           room falls apart and coins drain. Re-send it at least every 20 s while the site
+//                           stays open; it ends on "focus" or when the reports stop.
 //   ping                    connection check, changes nothing
 // A GET returns the game's state as JSON, so the extension can follow the timer and focus mode
 // (e.g. block sites only during a strict study session):
-//   {"running":true,"studying":true,"secondsLeft":1234,"mode":"Pomodoro","strict":false}
+//   {"running":true,"studying":true,"secondsLeft":1234,"mode":"Pomodoro","strict":false,"distracted":false}
 public class ChromeWebEx : MonoBehaviour
 {
     [Serializable]
@@ -23,6 +26,7 @@ public class ChromeWebEx : MonoBehaviour
     {
         public string action;
         public float minutes;
+        public string site;
     }
 
     private readonly ConcurrentQueue<string> _messages = new ConcurrentQueue<string>(); // filled by the listener thread
@@ -36,7 +40,7 @@ public class ChromeWebEx : MonoBehaviour
     [Serializable]
     private class Status
     {
-        public bool running, studying, strict;
+        public bool running, studying, strict, distracted;
         public int secondsLeft;
         public string mode;
     }
@@ -151,6 +155,7 @@ public class ChromeWebEx : MonoBehaviour
                 secondsLeft = timer != null ? Mathf.CeilToInt(timer.CurrentTime) : 0,
                 mode = GameSettings.Modes[(int)GameSettings.Mode].name,
                 strict = GameSettings.StrictFocus,
+                distracted = Distraction.Reported,
             });
         }
     }
@@ -181,7 +186,11 @@ public class ChromeWebEx : MonoBehaviour
                 timer.SetCustomDuration(command.minutes);
                 GameSettings.Mode = GameSettings.FocusMode.Custom; // no longer one of the presets
                 return $"Extension: sessions are now {timer.StudyMinutes:0} minutes";
+            case "distracted":
+                Distraction.Report(command.site);
+                return $"Extension: distracted by {Distraction.Site}";
             case "focus":
+                Distraction.Clear();
                 if (Time.unscaledTime - _lastFocusReward < FocusCooldown) return "Extension: focus noted";
                 _lastFocusReward = Time.unscaledTime;
                 Experience experience = FindFirstObjectByType<Experience>();

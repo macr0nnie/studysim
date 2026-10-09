@@ -101,7 +101,7 @@ public class GameHUD : MonoBehaviour
         if (editPill != null && room != null)
         {
             editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
-            if (room.IsEditMode && !wasEditing) ShowToast("Edit mode: drag a piece to move it.  R rotates, Delete removes, Esc finishes");
+            if (room.IsEditMode && !wasEditing) ShowToast($"Edit mode: drag a piece to move it.  {Controls.KeyName(Controls.Act.Rotate)} rotates, {Controls.KeyName(Controls.Act.Delete)} removes, {Controls.KeyName(Controls.Act.Cancel)} finishes");
             wasEditing = room.IsEditMode;
         }
         if (debugText == null) return;
@@ -223,7 +223,7 @@ public class GameHUD : MonoBehaviour
         Place(coinsLabel.rectTransform, new Vector2(110, -60), new Vector2(200, 24));
 
         // Edit-mode toggle, first in the room-button row (Shop and Planner follow it).
-        Button edit = NavButton(canvas, 0, "Edit", "E"); // E toggles edit mode; Esc only leaves it
+        Button edit = NavButton(canvas, 0, "Edit", Controls.Act.Edit); // Edit toggles edit mode; Cancel only leaves it
         editPill = edit.GetComponent<Image>();
         edit.onClick.AddListener(() => { if (room != null) room.ToggleEditMode(); });
 

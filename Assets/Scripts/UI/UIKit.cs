@@ -81,15 +81,27 @@ public static class UIKit
     // Room-button row (bottom left, under the drawers): one shared slot per button so they line up.
     const float NavWidth = 96, NavGap = 6, NavY = 334;
 
-    public static Button NavButton(Transform canvas, int slot, string label, string key)
+    public static Button NavButton(Transform canvas, int slot, string label, Controls.Act? key)
     {
-        string text = key == null ? label : $"{label}  <size={CaptionSize}><alpha=#99>{key}</size>";
-        Button button = TextButton(label + "Button", canvas, text, TabColor, LabelSize + 1);
+        Button button = TextButton(label + "Button", canvas, label, TabColor, LabelSize + 1);
+        if (key.HasValue) KeyHint(button.GetComponentInChildren<TMP_Text>(), label, key.Value);
         var rect = (RectTransform)button.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
         rect.sizeDelta = new Vector2(NavWidth, 40);
         rect.anchoredPosition = new Vector2(24 + slot * (NavWidth + NavGap), NavY);
         return button;
+    }
+
+    // "Label  KEY", kept up to date when the key is rebound in Settings.
+    public static void KeyHint(TMP_Text text, string label, Controls.Act key)
+    {
+        void Refresh()
+        {
+            if (text == null) { Controls.Rebound -= Refresh; return; } // button destroyed
+            text.text = $"{label}  <size={CaptionSize}><alpha=#99>{Controls.KeyName(key)}</size>";
+        }
+        Controls.Rebound += Refresh;
+        Refresh();
     }
 
     public static readonly Vector2 DrawerOffset = new Vector2(24, (DrawerBottom - DrawerTop) / 2);

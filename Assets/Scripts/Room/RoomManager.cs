@@ -57,6 +57,12 @@ public class RoomManager : MonoBehaviour
     private const string SaveKey = "RoomLayout";
     private bool dragging, grabbed;
     private Vector3 grabOffset;
+    // Smooth following: the preview and dragged pieces glide toward where the cursor puts them instead of
+    // jumping there. The target is what placement, validity and saving use.
+    private Vector3 previewTarget, dragTarget;
+    private bool previewOnSurface;
+    private const float FollowRate = 22f;
+    private static float Follow => 1f - Mathf.Exp(-FollowRate * Time.deltaTime);
     private MaterialPropertyBlock highlight;
     static readonly Color SelectedTint = new Color(1f, 0.9f, 0.6f, 1f);
     private float ceilingY;
@@ -99,6 +105,15 @@ public class RoomManager : MonoBehaviour
 
     private void Update()
     {
+        // While the room is falling apart (distracted), it can't be rearranged.
+        if (Distraction.Busy)
+        {
+            if (currentPreview != null) CancelPlacement();
+            if (isEditMode) EnterEditMode();
+            dragging = false;
+            return;
+        }
+
         // Letters typed into a text field (planner, etc.) must not also fire room shortcuts.
         bool typing = UIKit.Typing();
 
@@ -113,9 +128,9 @@ public class RoomManager : MonoBehaviour
             HandleEditMode();
             if (typing) return;
             HandleRotationAndFlipping();
-            if (selectedObject != null && (Input.GetKeyDown(KeyCode.Delete) || Input.GetKeyDown(KeyCode.Backspace)))
+            if (selectedObject != null && Controls.Pressed(Controls.Act.Delete))
                 DeleteObject(selectedObject);
-            if (Input.GetKeyDown(KeyCode.Escape)) EnterEditMode();
+            if (Controls.Pressed(Controls.Act.Cancel)) EnterEditMode();
         }
 
         else
@@ -126,21 +141,21 @@ public class RoomManager : MonoBehaviour
         if (typing) return;
 
         // Save once a drag or rotation in edit mode is finished, not every frame.
-        if (isEditMode && selectedObject != null && (Input.GetMouseButtonUp(0) || Input.GetKeyUp(KeyCode.R))) SaveRoom();
+        if (isEditMode && selectedObject != null && (Controls.ClickUp || Controls.Released(Controls.Act.Rotate))) SaveRoom();
 
-        if (Input.GetKeyDown(KeyCode.Z))
+        if (Controls.Pressed(Controls.Act.Undo))
         {
             Undo();
         }
-        if (Input.GetKeyDown(KeyCode.Y))
+        if (Controls.Pressed(Controls.Act.Redo))
         {
             Redo();
         }
-        if (Input.GetKeyDown(KeyCode.E))
+        if (Controls.Pressed(Controls.Act.Edit))
         {
             EnterEditMode();
         }
-        if (Input.GetKeyDown(KeyCode.G))
+        if (Controls.Pressed(Controls.Act.Grid))
         {
             ToggleGridPlacement();
         }
@@ -174,6 +189,7 @@ public class RoomManager : MonoBehaviour
         onPreviewPlaced = onPlaced;
         previewRenderers = currentPreview.GetComponentsInChildren<Renderer>();
         previewTintValid = null;
+        previewOnSurface = false;
         // Wall pieces get turned to face out of whichever wall they're on. A piece that is thin along x
         // (its face points along x) needs a quarter turn so its back lies against the wall.
         previewBase = currentPreview.transform.rotation;
@@ -192,19 +208,25 @@ public class RoomManager : MonoBehaviour
     private void UpdatePreviewPosition()
     {
         Furniture.FurnitureType type = TypeOf(currentPreview);
+        Transform preview = currentPreview.transform;
+        Vector3 shown = preview.position;
         if (FindSurface(currentPreview, type, out RaycastHit hit, out previewSupport))
         {
             if (type == Furniture.FurnitureType.Wall)
-                currentPreview.transform.rotation = Quaternion.LookRotation(Flat(hit.normal)) * Quaternion.Euler(0, previewSpin, 0) * previewBase;
+                preview.rotation = Quaternion.LookRotation(Flat(hit.normal)) * Quaternion.Euler(0, previewSpin, 0) * previewBase;
             if (Pose(currentPreview, type, hit, Vector3.zero))
             {
                 isPlacementValid = IsValidPlacement(currentPreview, previewSupport);
                 SetPreviewTint(isPlacementValid);
+                previewTarget = preview.position;
+                if (previewOnSurface) preview.position = Vector3.Lerp(shown, previewTarget, Follow); // snap on arrival, glide after
+                previewOnSurface = true;
                 return;
             }
         }
+        previewOnSurface = false;
         // Not over a surface this piece can go on: follow the cursor, red.
-        currentPreview.transform.position = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f));
+        currentPreview.transform.position = mainCamera.ScreenToWorldPoint(new Vector3(Controls.PointerPosition.x, Controls.PointerPosition.y, 10f));
         isPlacementValid = false;
         SetPreviewTint(false);
     }
@@ -216,7 +238,7 @@ public class RoomManager : MonoBehaviour
     {
         support = null;
         hit = default;
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        Ray ray = mainCamera.ScreenPointToRay(Controls.PointerPosition);
         int count = Physics.RaycastNonAlloc(ray, surfaceHits, 100f);
         Array.Sort(surfaceHits, 0, count, HitDistance);
         bool canStack = type == Furniture.FurnitureType.Floor || type == Furniture.FurnitureType.Shelf;
@@ -370,11 +392,15 @@ public class RoomManager : MonoBehaviour
     private void HandlePlacement()
     {
         if (IsPointerOverUI()) return;
-        if (Input.GetMouseButtonDown(0) && isPlacementValid)
+        if (Controls.ClickDown && isPlacementValid)
         {
             PlaceObject();
         }
-        else if (Input.GetMouseButtonDown(1))
+        else if (Controls.ClickDown)
+        {
+            UISound.Play(UISound.Cue.Denied); // red preview: nowhere to put it here
+        }
+        else if (Controls.RightClickDown)
         {
             CancelPlacement();
         }
@@ -382,8 +408,8 @@ public class RoomManager : MonoBehaviour
     // Handles rotation for the preview or selected object.
     private void HandleRotationAndFlipping()
     {
-        bool alt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
-        if (Input.GetKeyDown(KeyCode.R) && !alt)
+        bool alt = Controls.Alt;
+        if (Controls.Pressed(Controls.Act.Rotate) && !alt)
         {
             // Wall pieces flip to face the other way; a quarter turn would stick them out of the wall.
             if (currentPreview != null)
@@ -398,7 +424,7 @@ public class RoomManager : MonoBehaviour
             }
         }
 
-        if (alt && Input.GetKeyDown(KeyCode.R))
+        if (alt && Controls.Pressed(Controls.Act.Rotate))
         {
             if (selectedObject != null)
             {
@@ -410,8 +436,11 @@ public class RoomManager : MonoBehaviour
     private void PlaceObject()
     {
         if (previewItem != null && previewItem.price > 0 && (currency == null || !currency.SpendCoins(previewItem.price)))
+        {
+            UISound.Play(UISound.Cue.Denied);
             return; // can't afford it (any more): keep the preview so the player can cancel
-        Vector3 position = currentPreview.transform.position;
+        }
+        Vector3 position = previewTarget; // where it was heading, not where the glide has got to
         GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
         placedObject.name = currentPreview.name;
         placedObjects.Add(placedObject);
@@ -419,6 +448,8 @@ public class RoomManager : MonoBehaviour
         previewItem = null;
         RecordAction(placedObject);
         ResetPreviewMaterial(placedObject);
+        if (HasLights(placedObject)) SetLights(placedObject, true, false); // the pack's lamps start switched off
+        UISound.Play(boughtItems.TryGetValue(placedObject, out FurnitureItem paid) && paid.price > 0 ? UISound.Cue.Coin : UISound.Cue.Place);
         StartCoroutine(PopIn(placedObject.transform));
         PlayPlacementEffect(position);
         Destroy(currentPreview);
@@ -479,8 +510,13 @@ public class RoomManager : MonoBehaviour
     // R rotates, Delete removes, Esc leaves. Clicking empty space deselects.
     private void HandleEditMode()
     {
-        if (Input.GetMouseButtonUp(0)) dragging = false;
-        if (Input.GetMouseButtonDown(0))
+        if (Controls.ClickUp)
+        {
+            // Let go: settle exactly where the drag was heading before the room is saved.
+            if (dragging && grabbed && selectedObject != null) selectedObject.transform.position = dragTarget;
+            dragging = false;
+        }
+        if (Controls.ClickDown)
         {
             if (IsPointerOverUI()) return;
             Select(PlacedObjectUnderCursor());
@@ -488,15 +524,24 @@ public class RoomManager : MonoBehaviour
             dragging = selectedObject != null;
             grabbed = false;
         }
-        if (dragging && selectedObject != null && Input.GetMouseButton(0)) DragSelected();
+        if (dragging && selectedObject != null && Controls.ClickHeld) DragSelected();
     }
 
     private void DragSelected()
     {
+        Transform t = selectedObject.transform;
+        Vector3 shown = t.position;
+        if (grabbed) t.position = dragTarget; // work out the move from where the piece is heading
+        MoveSelected(t);
+        dragTarget = t.position;
+        if (grabbed) t.position = Vector3.Lerp(shown, dragTarget, Follow);
+    }
+
+    private void MoveSelected(Transform t)
+    {
         Furniture.FurnitureType type = TypeOf(selectedObject);
         if (!FindSurface(selectedObject, type, out RaycastHit hit, out _)) return;
 
-        Transform t = selectedObject.transform;
         Vector3 before = t.position;
         Quaternion beforeRotation = t.rotation;
         // Dragged onto another wall: turn with it so it still faces into the room.
@@ -537,11 +582,17 @@ public class RoomManager : MonoBehaviour
     private void HandleObjectSelection()
     {
         if (IsPointerOverUI()) return;
-        if (Input.GetMouseButtonDown(0))
+        if (Controls.ClickDown)
         {
             GameObject rootObject = PlacedObjectUnderCursor();
             if (rootObject != null)
             {
+                // Clicking a lamp switches it. A double-click (to edit) switches it twice, so it ends as it was.
+                if (HasLights(rootObject))
+                {
+                    SetLights(rootObject, !LightsOn(rootObject));
+                    SaveRoom();
+                }
                 // If double-clicked within threshold, enter edit mode.
                 if (Time.time - lastClickTime <= doubleClickThreshold)
                 {
@@ -553,7 +604,7 @@ public class RoomManager : MonoBehaviour
             }
         }
         // Right-click to delete an object.
-        else if (Input.GetMouseButtonDown(1))
+        else if (Controls.RightClickDown)
         {
             GameObject rootObject = PlacedObjectUnderCursor();
             if (rootObject != null) DeleteObject(rootObject);
@@ -718,6 +769,7 @@ public class RoomManager : MonoBehaviour
         public Quaternion rotation;
         public bool active;
         public string color; // hex RGB, empty when unpainted
+        public bool lightsOff;
     }
 
     private void SaveRoom()
@@ -734,14 +786,21 @@ public class RoomManager : MonoBehaviour
         PlayerPrefs.Save();
     }
 
-    private SavedPiece Piece(string id, int index, GameObject go) => new SavedPiece
+    private SavedPiece Piece(string id, int index, GameObject go)
     {
-        id = id, index = index, position = go.transform.position, rotation = go.transform.rotation, active = go.activeSelf,
-        color = pieceColors.TryGetValue(go, out Color c) ? ColorUtility.ToHtmlStringRGB(c) : "",
-    };
+        Distraction.RestPose(go.transform, out Vector3 position, out Quaternion rotation); // never save a fallen-over piece
+        return new SavedPiece
+        {
+            id = id, index = index, position = position, rotation = rotation, active = go.activeSelf,
+            color = pieceColors.TryGetValue(go, out Color c) ? ColorUtility.ToHtmlStringRGB(c) : "",
+            lightsOff = HasLights(go) && !LightsOn(go),
+        };
+    }
 
+    // Saved paint colour and lamp switch.
     private void LoadColor(GameObject go, SavedPiece piece)
     {
+        if (HasLights(go)) SetLights(go, !piece.lightsOff, false);
         if (!string.IsNullOrEmpty(piece.color) && ColorUtility.TryParseHtmlString("#" + piece.color, out Color c) && CanPaint(go))
             ApplyPieceColor(go, c);
     }
@@ -787,6 +846,35 @@ public class RoomManager : MonoBehaviour
         return path;
     }
 
+    // ---------- lamps ----------
+
+    public IReadOnlyList<GameObject> PlacedPieces => placedObjects;
+
+    private static bool HasLights(GameObject piece) => piece.GetComponentInChildren<Light>(true) != null;
+
+    private static bool LightsOn(GameObject piece)
+    {
+        foreach (Light light in piece.GetComponentsInChildren<Light>(true))
+            if (light.enabled) return true;
+        return false;
+    }
+
+    // Lights on or off, using the Interior pack's own switch (which also dims the bulb) where a lamp has one.
+    private static void SetLights(GameObject piece, bool on, bool sound = true)
+    {
+        foreach (Light light in piece.GetComponentsInChildren<Light>(true)) light.enabled = on;
+        foreach (Seagull.Interior_I1.SceneProps.GlowLight glow in piece.GetComponentsInChildren<Seagull.Interior_I1.SceneProps.GlowLight>(true))
+        {
+            if (!glow.gameObject.activeInHierarchy) continue; // not awake yet: it has no renderer to light
+            if (on) glow.turnOn();
+            else glow.turnOff();
+        }
+        // Its Start would otherwise switch a loaded lamp back to the prefab's setting.
+        foreach (Seagull.Interior_I1.SceneProps.LightSourceObject source in piece.GetComponentsInChildren<Seagull.Interior_I1.SceneProps.LightSourceObject>(true))
+            source.isOn = on;
+        if (sound) UISound.Play(UISound.Cue.Light);
+    }
+
     private void RecordAction(GameObject obj)
     {
         undoStack.Push(obj);
@@ -798,7 +886,7 @@ public class RoomManager : MonoBehaviour
     // nearest hit that is actually a placed piece rather than the first thing the ray touches.
     private GameObject PlacedObjectUnderCursor()
     {
-        RaycastHit[] hits = Physics.RaycastAll(mainCamera.ScreenPointToRay(Input.mousePosition), 100f);
+        RaycastHit[] hits = Physics.RaycastAll(mainCamera.ScreenPointToRay(Controls.PointerPosition), 100f);
         Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
         foreach (RaycastHit hit in hits)
         {

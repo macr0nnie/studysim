@@ -223,7 +223,6 @@ public class MusicPlayerUI : MonoBehaviour
         GameObject times = Row("Times", info.transform, 16, 0, true);
         elapsed = MakeText("Elapsed", times.transform, "0:00", CaptionSize, MutedText, TextAlignmentOptions.Left);
         total = MakeText("Total", times.transform, "--:--", CaptionSize, MutedText, TextAlignmentOptions.Right);
-
         // Transport, centred.
         GameObject controls = Row("Controls", info.transform, 38, 18, false);
         controls.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;

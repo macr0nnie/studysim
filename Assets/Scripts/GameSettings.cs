@@ -43,6 +43,10 @@ public static class GameSettings
     public static bool LevelUpToasts { get => Get("NotifyLevelUp", true); set => Set("NotifyLevelUp", value); }
     public static bool AutosaveBadge { get => Get("NotifyAutosave", true); set => Set("NotifyAutosave", value); }
 
+    public static bool UISounds { get => Get("UISounds", true); set => Set("UISounds", value); }
+    public static bool DistractionPenalty { get => Get("DistractionPenalty", true); set => Set("DistractionPenalty", value); }
+    public static int DistractionCoinsPerMinute { get => PlayerPrefs.GetInt("DistractionCoins", 6); set => PlayerPrefs.SetInt("DistractionCoins", value); }
+
     private static bool Get(string key, bool fallback) => PlayerPrefs.GetInt(key, fallback ? 1 : 0) == 1;
     private static void Set(string key, bool value) => PlayerPrefs.SetInt(key, value ? 1 : 0);
 

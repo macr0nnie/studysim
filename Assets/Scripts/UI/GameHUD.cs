@@ -104,6 +104,12 @@ public class GameHUD : MonoBehaviour
             if (room.IsEditMode && !wasEditing) ShowToast($"Edit mode: drag a piece to move it.  {Controls.KeyName(Controls.Act.Rotate)} rotates, {Controls.KeyName(Controls.Act.Delete)} removes, {Controls.KeyName(Controls.Act.Edit)} finishes");
             wasEditing = room.IsEditMode;
         }
+        if (fitPanel != null && room != null)
+        {
+            bool show = room.IsEditMode && room.SelectedPiece != null;
+            if (fitPanel.activeSelf != show) fitPanel.SetActive(show);
+            if (show) fitInfo.text = $"Height +{room.SelectedLift:0.00}   Size {room.SelectedSize:0.00}x";
+        }
         if (debugText == null) return;
         if (debugText.text != lastDebug)
         {
@@ -112,6 +118,41 @@ public class GameHUD : MonoBehaviour
         }
         float age = Time.unscaledTime - debugShownAt;
         debugText.alpha = age < 4 ? 1 : Mathf.Clamp01(1 - (age - 4));
+    }
+
+    // Edit mode, bottom centre: raise/lower and grow/shrink the selected piece (the keys do the same).
+    private GameObject fitPanel;
+    private TMP_Text fitInfo;
+
+    private void BuildFitPanel(Transform canvas)
+    {
+        fitPanel = Make("FitPanel", canvas, typeof(Image), typeof(VerticalLayoutGroup));
+        var rect = (RectTransform)fitPanel.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
+        rect.sizeDelta = new Vector2(420, 118);
+        rect.anchoredPosition = new Vector2(0, 24);
+        Style(fitPanel.GetComponent<Image>(), PanelColor);
+        var v = fitPanel.GetComponent<VerticalLayoutGroup>();
+        v.padding = new RectOffset(12, 12, 8, 8);
+        v.spacing = 6;
+        v.childControlWidth = v.childControlHeight = true;
+        v.childForceExpandWidth = true;
+        v.childForceExpandHeight = false;
+        fitInfo = MakeText("Info", fitPanel.transform, "", LabelSize, MutedText, TextAlignmentOptions.Center);
+        fitInfo.gameObject.AddComponent<LayoutElement>().preferredHeight = 22;
+        FitRow("Height", Controls.Act.Raise, Controls.Act.Lower, () => room.NudgeHeight(0.1f), () => room.NudgeHeight(-0.1f), () => room.ResetHeight());
+        FitRow("Size", Controls.Act.Grow, Controls.Act.Shrink, () => room.Resize(1.1f), () => room.Resize(1 / 1.1f), () => room.ResetSize());
+        fitPanel.SetActive(false);
+    }
+
+    private void FitRow(string label, Controls.Act up, Controls.Act down, UnityEngine.Events.UnityAction more, UnityEngine.Events.UnityAction less, UnityEngine.Events.UnityAction reset)
+    {
+        GameObject row = Row(label, fitPanel.transform, 34, 8, false);
+        TMP_Text name = MakeText("Name", row.transform, $"{label}  ({Controls.KeyName(down)} / {Controls.KeyName(up)})", LabelSize, TextColor, TextAlignmentOptions.Left);
+        name.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+        SmallButton(row.transform, "−", TabColor, 44).onClick.AddListener(less);
+        SmallButton(row.transform, "+", TabColor, 44).onClick.AddListener(more);
+        SmallButton(row.transform, "Reset", TabColor, 70).onClick.AddListener(reset);
     }
 
     private void OnCoins(int coins) => coinsLabel.text = coins.ToString("N0");
@@ -228,6 +269,7 @@ public class GameHUD : MonoBehaviour
         edit.onClick.AddListener(() => { if (room != null) room.ToggleEditMode(); });
 
         if (timer != null) BuildTimerBar(canvas);
+        BuildFitPanel(canvas);
 
         // Level-up toast, centred under the clock.
         GameObject toastGO = Make("LevelUpToast", canvas, typeof(Image), typeof(CanvasGroup));

@@ -25,4 +25,6 @@ public class FurnitureItem : ScriptableObject
     public Sprite icon;
     [Tooltip("Untick for pieces whose look comes from their texture (paintings, posters) so the paint tools leave them alone.")]
     public bool colorable = true;
+    [Tooltip("Chairs: yaw in degrees from the prefab's +Z to the way a sitter faces. 0 = work it out from the mesh (the backrest is the tall side).")]
+    public float frontYaw;
 }

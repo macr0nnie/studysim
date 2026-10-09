@@ -144,12 +144,12 @@ public class SavesUI : MonoBehaviour
             newGameLabel.text = "Click again to start over";
         });
 
-        // Bottom-right badge so autosaves are visible without interrupting.
+        // Bottom right, just left of the music card, so autosaves are visible without interrupting.
         badge = MakeText("SavedBadge", canvas, "", 18, MutedText, TextAlignmentOptions.Right);
         var badgeRect = (RectTransform)badge.transform;
         badgeRect.anchorMin = badgeRect.anchorMax = badgeRect.pivot = new Vector2(1, 0);
         badgeRect.sizeDelta = new Vector2(260, 28);
-        badgeRect.anchoredPosition = new Vector2(-24, 16);
+        badgeRect.anchoredPosition = new Vector2(-480, 28);
         badge.gameObject.SetActive(false);
     }
 }

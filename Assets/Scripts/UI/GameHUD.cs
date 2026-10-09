@@ -17,8 +17,7 @@ public class GameHUD : MonoBehaviour
     private TMP_Text debugText;
     private string lastDebug;
     private float debugShownAt;
-    private Image cover, coverNote, editPill;
-    private Sprite coverPlaceholder;
+    private Image editPill;
     private RoomManager room;
     private TimerManager timer;
     private TMP_Text timerText;
@@ -103,12 +102,6 @@ public class GameHUD : MonoBehaviour
             editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
             if (room.IsEditMode && !wasEditing) ShowToast("Edit mode: drag a piece to move it.  R rotates, Delete removes, Esc finishes");
             wasEditing = room.IsEditMode;
-        }
-        if (cover != null)
-        {
-            bool hasArt = cover.sprite != coverPlaceholder;
-            cover.color = hasArt ? Color.white : CardColor;
-            coverNote.enabled = !hasArt;
         }
         if (debugText == null) return;
         if (debugText.text != lastDebug)
@@ -296,44 +289,6 @@ public class GameHUD : MonoBehaviour
             if (go != null) go.SetActive(false);
         }
 
-        if (ipod != null) LayoutNowPlaying(ipod.transform);
-    }
-
-    // Now-playing screen: give the title and artist their own space above the controls,
-    // and show a note on the empty art box until a song with cover art plays.
-    private void LayoutNowPlaying(Transform ipodRoot)
-    {
-        foreach (RectTransform rect in ipodRoot.GetComponentsInChildren<RectTransform>(true))
-        {
-            switch (rect.name)
-            {
-                case "Cover_Image":
-                    rect.anchoredPosition = new Vector2(0, 140);
-                    rect.sizeDelta = new Vector2(220, 220);
-                    cover = rect.GetComponent<Image>();
-                    coverPlaceholder = cover.sprite;
-                    cover.color = CardColor;
-                    GameObject note = Make("Note", rect, typeof(Image));
-                    Anchor(note, new Vector2(0.35f, 0.35f), new Vector2(0.65f, 0.65f));
-                    coverNote = note.GetComponent<Image>();
-                    coverNote.sprite = UIIcons.Named("Icons_5");
-                    coverNote.preserveAspect = true;
-                    coverNote.color = MutedText;
-                    coverNote.raycastTarget = false;
-                    break;
-                case "CurrentSong":
-                    rect.anchoredPosition = new Vector2(0, 8);
-                    if (rect.TryGetComponent(out TMP_Text song)) song.fontSize = 24;
-                    break;
-                case "Artist_Text":
-                    rect.anchoredPosition = new Vector2(0, -20);
-                    if (rect.TryGetComponent(out TMP_Text artist)) { artist.fontSize = 18; artist.color = MutedText; }
-                    break;
-                case "Slider":
-                    if (rect.parent == ipodRoot || rect.parent.name == "IPOD") rect.anchoredPosition = new Vector2(0, -165);
-                    break;
-            }
-        }
     }
 
     public static void Theme(Transform root) => ThemeTree(root);
@@ -343,7 +298,7 @@ public class GameHUD : MonoBehaviour
         foreach (Image image in root.GetComponentsInChildren<Image>(true))
         {
             if (image.GetComponent<Mask>() != null) continue; // masks need their sprite's alpha
-            if (image.name.Contains("Cover")) continue; // album art, coloured by LayoutNowPlaying
+            if (image.name.Contains("Cover")) continue; // album art keeps its colours
             // Song-list rows: keep the cover art as is, theme only the row background and its buttons.
             if (image.GetComponentInParent<PlaylistItemUI>(true) is PlaylistItemUI row && row.gameObject != image.gameObject
                 && image.name != "Play" && image.name != "BuyButton") continue;

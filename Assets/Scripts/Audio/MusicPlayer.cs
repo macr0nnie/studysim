@@ -15,6 +15,11 @@ public class MusicPlayer : MonoBehaviour
     private Playlist currentPlaylist;
     private int currentSongIndex;
     private bool isPlaying;
+
+    public bool IsPlaying => isPlaying;
+    public Playlist CurrentPlaylist => currentPlaylist;
+    public float SongTime => audioSource.clip != null ? audioSource.time : 0;
+    public float SongLength => audioSource.clip != null ? audioSource.clip.length : 0;
     
     // Player state that persists between game sessions
     private PlayerData playerData;

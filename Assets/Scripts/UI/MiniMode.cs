@@ -15,6 +15,10 @@ public class MiniMode : MonoBehaviour
 {
     const int Width = 360, Height = 300;
     const float DoubleClick = 0.3f;
+    const string PosX = "MiniTopX", PosY = "MiniTopY";
+
+    // Fallback if the per-pixel transparency shows black or a solid box: Settings > Focus > "See-through: alpha / color key".
+    public static bool ColorKey { get => PlayerPrefs.GetInt("MiniColorKey", 0) == 1; set => PlayerPrefs.SetInt("MiniColorKey", value ? 1 : 0); }
 
     public static bool Active { get; private set; }
     static MiniMode instance;
@@ -135,14 +139,16 @@ public class MiniMode : MonoBehaviour
         fullWidth = Screen.width; fullHeight = Screen.height; fullMode = Screen.fullScreenMode;
         fullStyle = GetWindowLong(hwnd, GWL_STYLE);
 
-        // See-through background: the camera clears to alpha 0 and DWM blends the window over the desktop.
-        // Needs "Use DXGI flip model swapchain" off (Player settings) and no HDR/post-processing, which drop alpha.
+        // No background at all, two ways. Per-pixel alpha (default): the camera clears to alpha 0 and DWM blends
+        // the window over the desktop; needs the flip-model swapchain off, no HDR/post-processing, and the URP
+        // asset's alpha output on. Colour key (fallback): the camera clears to pure green and Windows makes that
+        // colour transparent and click-through. Pure 0/1 channels survive the sRGB round trip exactly.
         Camera cam = Camera.main;
         if (cam != null)
         {
             clearFlags = cam.clearFlags; background = cam.backgroundColor; hdr = cam.allowHDR;
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(0, 0, 0, 0);
+            cam.backgroundColor = ColorKey ? new Color(0, 1, 0, 1) : new Color(0, 0, 0, 0);
             cam.allowHDR = false;
             var data = cam.GetUniversalAdditionalCameraData();
             post = data.renderPostProcessing;
@@ -152,12 +158,21 @@ public class MiniMode : MonoBehaviour
         Screen.SetResolution(Width, Height, FullScreenMode.Windowed);
         yield return null; // Unity applies the resolution at the end of the frame and resets the window style
         if (!Active) yield break;
-        int x = PlayerPrefs.GetInt("MiniX", Display.main.systemWidth - Width - 24);
-        int y = PlayerPrefs.GetInt("MiniY", Display.main.systemHeight - Height - 72);
+        // Top right corner unless it was dragged somewhere else before.
+        int x = PlayerPrefs.GetInt(PosX, Display.main.systemWidth - Width - 24);
+        int y = PlayerPrefs.GetInt(PosY, 24);
         SetWindowLong(hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
         SetWindowPos(hwnd, HWND_TOPMOST, x, y, Width, Height, SWP_FRAMECHANGED | SWP_SHOWWINDOW);
-        var margins = new MARGINS { left = -1, right = -1, top = -1, bottom = -1 };
-        DwmExtendFrameIntoClientArea(hwnd, ref margins);
+        if (ColorKey)
+        {
+            SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+            SetLayeredWindowAttributes(hwnd, KeyColorRef, 0, LWA_COLORKEY);
+        }
+        else
+        {
+            var margins = new MARGINS { left = -1, right = -1, top = -1, bottom = -1 };
+            DwmExtendFrameIntoClientArea(hwnd, ref margins);
+        }
         placed = true;
     }
 
@@ -167,6 +182,7 @@ public class MiniMode : MonoBehaviour
         placed = dragging = false;
         var margins = new MARGINS();
         DwmExtendFrameIntoClientArea(hwnd, ref margins);
+        SetWindowLong(hwnd, GWL_EXSTYLE, GetWindowLong(hwnd, GWL_EXSTYLE) & ~WS_EX_LAYERED);
         Camera cam = Camera.main;
         if (cam != null)
         {
@@ -181,12 +197,13 @@ public class MiniMode : MonoBehaviour
     private void SavePosition()
     {
         if (!placed || !GetWindowRect(hwnd, out RECT r)) return;
-        PlayerPrefs.SetInt("MiniX", r.left);
-        PlayerPrefs.SetInt("MiniY", r.top);
+        PlayerPrefs.SetInt(PosX, r.left);
+        PlayerPrefs.SetInt(PosY, r.top);
         PlayerPrefs.Save();
     }
 
-    // Click and drag anywhere moves the window. Cursor positions are in screen space,
+    // Click and drag moves the window. With the colour key, clicks on the see-through parts go to the apps behind,
+    // so only room pixels start a drag; with per-pixel alpha the whole 360x300 rectangle takes the click. Cursor positions are in screen space,
     // so they stay valid while the window moves under the mouse.
     private void Drag()
     {
@@ -200,7 +217,8 @@ public class MiniMode : MonoBehaviour
             SetWindowPos(hwnd, HWND_TOPMOST, now.x - grabOffset.x, now.y - grabOffset.y, 0, 0, SWP_NOSIZE);
     }
 
-    const int GWL_STYLE = -16;
+    const int GWL_STYLE = -16, GWL_EXSTYLE = -20, WS_EX_LAYERED = 0x80000;
+    const uint LWA_COLORKEY = 0x1, KeyColorRef = 0x0000FF00; // COLORREF 0x00BBGGRR: pure green
     const int WS_POPUP = unchecked((int)0x80000000), WS_VISIBLE = 0x10000000;
     const uint SWP_NOSIZE = 0x1, SWP_NOMOVE = 0x2, SWP_FRAMECHANGED = 0x20, SWP_SHOWWINDOW = 0x40;
     static readonly IntPtr HWND_TOPMOST = new IntPtr(-1), HWND_NOTOPMOST = new IntPtr(-2);
@@ -213,6 +231,7 @@ public class MiniMode : MonoBehaviour
     [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr hWnd, int index);
     [DllImport("user32.dll")] static extern int SetWindowLong(IntPtr hWnd, int index, int value);
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+    [DllImport("user32.dll")] static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint key, byte alpha, uint flags);
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
     [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT point);
     [DllImport("dwmapi.dll")] static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS margins);

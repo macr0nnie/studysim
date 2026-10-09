@@ -328,6 +328,11 @@ public class SettingsUI : MonoBehaviour
         MakeText("Label", mini.transform, $"Mini mode\n<size={CaptionSize}><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>" +
             $"Just the room in a small window on top. Drag to move; {Controls.KeyName(Controls.Act.MiniMode)}, double-click or right-click to come back.</color></size>",
             BodySize, TextColor, TextAlignmentOptions.Left).gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+        Button key = SmallButton(mini.transform, "", CardColor, 150);
+        TMP_Text keyLabel = key.GetComponentInChildren<TMP_Text>();
+        void ShowKey() => keyLabel.text = MiniMode.ColorKey ? "Mode: color key" : "Mode: alpha";
+        key.onClick.AddListener(() => { MiniMode.ColorKey = !MiniMode.ColorKey; ShowKey(); });
+        ShowKey();
         SmallButton(mini.transform, "Go mini", CardColor, 110).onClick.AddListener(() => { Toggle(); MiniMode.Set(true); });
     }
 

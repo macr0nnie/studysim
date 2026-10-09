@@ -164,7 +164,8 @@ public class CharacterBehaviour : MonoBehaviour
             if (dot > bestDot) { bestDot = dot; face = flat.normalized; }
         }
         if (face == Vector3.zero) face = toDesk.sqrMagnitude > 0f ? toDesk.normalized : Vector3.back;
-        rot = Quaternion.LookRotation(face);
+        FurnitureItem item = room.ItemOf(chair.gameObject);
+        rot = Quaternion.AngleAxis(item != null ? item.sit.yaw : 0f, Vector3.up) * Quaternion.LookRotation(face); // sit.yaw tunes a chair whose front is off
         return true;
     }
 

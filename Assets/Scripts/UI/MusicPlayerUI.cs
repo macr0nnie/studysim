@@ -137,7 +137,7 @@ public class MusicPlayerUI : MonoBehaviour
         }
         bool affordable = currency != null && currency.GetCoins() >= playlist.price;
         Button buy = SmallButton(row.transform, $"{playlist.price:N0}", affordable ? AccentButtonColor : TabColor, 76);
-        Sprite coin = UIIcons.Named("Icons_21");
+        Sprite coin = UIIcons.Coin;
         if (coin != null)
         {
             var labelRect = (RectTransform)buy.GetComponentInChildren<TMP_Text>().transform;

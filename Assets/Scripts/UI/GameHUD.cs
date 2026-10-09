@@ -217,7 +217,7 @@ public class GameHUD : MonoBehaviour
 
         GameObject coin = Make("CoinIcon", card.transform, typeof(Image));
         Place((RectTransform)coin.transform, new Vector2(88, -64), new Vector2(16, 16));
-        coin.GetComponent<Image>().sprite = UIIcons.Named("Icons_21") ?? Circle; // the $ coin from the icon sheet
+        coin.GetComponent<Image>().sprite = UIIcons.Coin ?? Circle;
         coin.GetComponent<Image>().color = AccentColor;
         coinsLabel = MakeText("Coins", card.transform, "0", HeadingSize, AccentColor, TextAlignmentOptions.Left, display: true);
         Place(coinsLabel.rectTransform, new Vector2(110, -60), new Vector2(200, 24));

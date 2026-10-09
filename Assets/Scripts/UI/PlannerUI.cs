@@ -135,7 +135,7 @@ public class PlannerUI : MonoBehaviour
         Transform canvas = MakeCanvas("PlannerCanvas", transform, 10).transform;
 
         // Sits next to the Shop button in the room-button row.
-        Button open = NavButton(canvas, 2, "Planner", "P");
+        Button open = NavButton(canvas, 3, "Planner", "P");
         open.onClick.AddListener(Toggle);
 
         panel = MakeDrawer("PlannerPanel", canvas);

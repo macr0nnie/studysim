@@ -113,8 +113,8 @@ public class SavesUI : MonoBehaviour
     {
         Transform canvas = MakeCanvas("SavesCanvas", transform, 10).transform;
 
-        // Room-button row: Edit, Shop, Planner, Saves, Settings.
-        Button open = NavButton(canvas, 3, "Saves", "F5");
+        // Room-button row: Edit, Shop, Paint, Planner, Saves, Settings.
+        Button open = NavButton(canvas, 4, "Saves", "F5");
         open.onClick.AddListener(Toggle);
 
         panel = MakeDrawer("SavesPanel", canvas);

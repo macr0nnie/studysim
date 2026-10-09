@@ -6,7 +6,8 @@ public enum StoreCategory
     Furniture,
     Decor,
     Lighting,
-    Plants
+    Plants,
+    Ceiling // hanging lights and plants
 }
 
 // One entry in the furniture store. Create via Assets > Study Sim > Add To Furniture Store
@@ -22,4 +23,6 @@ public class FurnitureItem : ScriptableObject
     public GameObject prefab;
     [Tooltip("Optional. Left empty, the store renders an icon from the prefab.")]
     public Sprite icon;
+    [Tooltip("Untick for pieces whose look comes from their texture (paintings, posters) so the paint tools leave them alone.")]
+    public bool colorable = true;
 }

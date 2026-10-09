@@ -6,7 +6,8 @@ public class Furniture : MonoBehaviour
     {
         Floor,
         Wall,
-        Shelf
+        Shelf,
+        Ceiling // hangs from the ceiling: lights, plants
     }
     public FurnitureType Type;
 }

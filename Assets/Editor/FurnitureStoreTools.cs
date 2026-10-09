@@ -41,8 +41,9 @@ public static class FurnitureStoreTools
         ("Mnostva Interiors", new[] { "Assets/Mnostva_Art" }),
         ("Poly Halloween", new[] { "Assets/polyperfect/Poly Halloween" }),
     };
-    // Pack prefabs under these folders are demo scenes, characters or effects, not furniture.
-    static readonly string[] SkipFolders = { "/demo", "/scene", "/render_pipeline", "/character", "/fx", "/particle", "/vfx", "/effect" };
+    // Pack prefabs under these paths are demo scenes, characters, terrain or effects, not furniture.
+    static readonly string[] SkipFolders = { "/demo", "/scene", "/render_pipeline", "/character", "/fx", "/particle", "/vfx", "/effect",
+        "/terrain", "first person" };
 
     static FurnitureStoreTools()
     {
@@ -55,6 +56,8 @@ public static class FurnitureStoreTools
     {
         AddModelPieces();
         foreach (var pack in Packs) AddPack(pack.items, pack.folders);
+        Reclassify();
+        RoomSurfacesTools.BuildIfMissing();
     }
 
     static void AddPack(string packName, string[] packFolders)
@@ -180,8 +183,10 @@ public static class FurnitureStoreTools
     // shortcut: substring match, so e.g. "vegetable" reads as a table; fix such items in the Inspector.
     static readonly (string word, StoreCategory category)[] CategoryWords =
     {
+        ("hanging", StoreCategory.Ceiling), ("chandelier", StoreCategory.Ceiling), ("pendant", StoreCategory.Ceiling),
+        ("ceiling", StoreCategory.Ceiling), ("track light", StoreCategory.Ceiling),
         ("lamp", StoreCategory.Lighting), ("light", StoreCategory.Lighting), ("candle", StoreCategory.Lighting),
-        ("lantern", StoreCategory.Lighting), ("chandelier", StoreCategory.Lighting),
+        ("lantern", StoreCategory.Lighting),
         ("plant", StoreCategory.Plants), ("tree", StoreCategory.Plants), ("flower", StoreCategory.Plants),
         ("cactus", StoreCategory.Plants), ("leaf", StoreCategory.Plants), ("succulent", StoreCategory.Plants),
         ("bed", StoreCategory.Furniture), ("chair", StoreCategory.Furniture), ("sofa", StoreCategory.Furniture),
@@ -191,7 +196,7 @@ public static class FurnitureStoreTools
         ("counter", StoreCategory.Furniture), ("dresser", StoreCategory.Furniture), ("bathtub", StoreCategory.Furniture),
         ("vanity", StoreCategory.Furniture), ("closet", StoreCategory.Furniture),
     };
-    static readonly int[] CategoryPrices = { 40, 15, 25, 20 }; // indexed by StoreCategory
+    static readonly int[] CategoryPrices = { 40, 15, 25, 20, 30 }; // indexed by StoreCategory
 
     // First guess at store details for a new item; the Inspector is where they get polished.
     static void Describe(FurnitureItem item, string assetName, string sourcePath)
@@ -251,18 +256,71 @@ public static class FurnitureStoreTools
         return AssetDatabase.LoadAssetAtPath<GameObject>(path);
     }
 
+    // Hanging pieces go on the ceiling, frames/clocks/posters on walls, everything else on the floor
+    // (change it on the prefab's Furniture component).
+    // shortcut: substring match on the name, so odd names land on the floor; fix those on the prefab.
+    static readonly string[] CeilingWords = { "hanging", "chandelier", "pendant", "ceiling", "track light" };
+    static readonly string[] WallWords = { "wall", "painting", "poster", "mirror", "window", "curtain", "picture",
+        "wreath", "banner", "corkboard", "whiteboard", "notice board", "calendar" }; // not "frame": bed frames stand
+
+    static Furniture.FurnitureType GuessPlacement(string assetName)
+    {
+        string lower = assetName.ToLowerInvariant();
+        if (CeilingWords.Any(lower.Contains)) return Furniture.FurnitureType.Ceiling;
+        // Alarm and table clocks stand on desks; other clocks hang.
+        bool clock = lower.Contains("clock") && !lower.Contains("alarm") && !lower.Contains("table") && !lower.Contains("desk");
+        if (clock || WallWords.Any(lower.Contains)) return Furniture.FurnitureType.Wall;
+        return Furniture.FurnitureType.Floor;
+    }
+
+    // Items added before wall/ceiling detection got better: move them to the right surface once per machine.
+    // Only floor pieces are changed, so a type someone chose on purpose (shelf, wall) is kept.
+    const string ReclassifiedKey = "StudySim.FurniturePlacement.v2";
+
+    [MenuItem("Study Sim/Re-detect Wall And Ceiling Furniture")]
+    static void ReclassifyFromMenu()
+    {
+        EditorPrefs.DeleteKey(ReclassifiedKey);
+        Reclassify();
+    }
+
+    static void Reclassify()
+    {
+        if (EditorPrefs.GetBool(ReclassifiedKey)) return;
+        FurnitureCatalog catalog = LoadOrCreateCatalog();
+        int moved = 0;
+        foreach (FurnitureItem item in catalog.items.Where(i => i != null && i.prefab != null))
+        {
+            Furniture.FurnitureType guess = GuessPlacement(item.prefab.name);
+            if (guess == Furniture.FurnitureType.Floor) continue;
+            string path = AssetDatabase.GetAssetPath(item.prefab);
+            GameObject root = PrefabUtility.LoadPrefabContents(path);
+            Furniture furniture = root.GetComponent<Furniture>();
+            if (furniture != null && furniture.Type == Furniture.FurnitureType.Floor)
+            {
+                furniture.Type = guess;
+                PrefabUtility.SaveAsPrefabAsset(root, path);
+                if (guess == Furniture.FurnitureType.Ceiling && item.category != StoreCategory.Ceiling)
+                {
+                    item.category = StoreCategory.Ceiling;
+                    EditorUtility.SetDirty(item);
+                }
+                moved++;
+            }
+            PrefabUtility.UnloadPrefabContents(root);
+        }
+        AssetDatabase.SaveAssets();
+        EditorPrefs.SetBool(ReclassifiedKey, true);
+        if (moved > 0) Debug.Log($"Furniture setup: moved {moved} item(s) to wall or ceiling placement.");
+    }
+
     // Returns true if anything was added.
     static bool EnsureFurnitureSetup(GameObject root)
     {
         bool changed = false;
         if (root.GetComponent<Furniture>() == null)
         {
-            string lower = root.name.ToLowerInvariant();
-            // Clocks, frames and the like hang on walls; everything else stands on the floor (change it on the prefab).
-            if (lower.Contains("wall") || lower.Contains("picture frame") || lower.Contains("window"))
-                root.AddComponent<Furniture>().Type = Furniture.FurnitureType.Wall;
-            else
-                root.AddComponent<Furniture>();
+            root.AddComponent<Furniture>().Type = GuessPlacement(root.name);
             changed = true;
         }
         if (root.GetComponentInChildren<Collider>() == null)

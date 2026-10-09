@@ -20,6 +20,11 @@ public class RoomManager : MonoBehaviour
 
     [SerializeField] private GameObject placementParticlePrefab;
 
+    [Tooltip("Visible wall meshes. Each gets a wall-layer collider so decor can hang on every wall. Found by name (Room_Walls) when empty.")]
+    [SerializeField] private Renderer[] wallMeshes = new Renderer[0];
+    [Tooltip("Visible floor meshes for the Paint drawer. When empty: floor-layer meshes without their own collider (the collider planes are helpers).")]
+    [SerializeField] private Renderer[] floorMeshes = new Renderer[0];
+
     private List<GameObject> placedObjects = new List<GameObject>();
     private GameObject currentPreview;
     private Action onPreviewPlaced; // e.g. charge the player only once the item is actually placed
@@ -28,7 +33,7 @@ public class RoomManager : MonoBehaviour
     private bool? previewTintValid; // last tint applied, so the block is only rewritten when validity changes
 
     // Reused by GetBounds so placement checks don't allocate every frame.
-    private static readonly Collider[] overlapBuffer = new Collider[1]; // only need to know if anything overlaps
+    private static readonly Collider[] overlapBuffer = new Collider[16];
     private static readonly List<Collider> colliderBuffer = new List<Collider>();
     private static readonly List<Renderer> rendererBuffer = new List<Renderer>();
     static readonly Color ValidTint = new Color(0.55f, 1f, 0.6f, 1f);
@@ -54,6 +59,12 @@ public class RoomManager : MonoBehaviour
     private Vector3 grabOffset;
     private MaterialPropertyBlock highlight;
     static readonly Color SelectedTint = new Color(1f, 0.9f, 0.6f, 1f);
+    private float ceilingY;
+    private Quaternion previewBase;
+    private float previewSpin; // wall pieces: turn about the wall normal (R flips them)
+    private Vector3 dragNormal;
+    private readonly Dictionary<GameObject, Color> pieceColors = new Dictionary<GameObject, Color>();
+    private readonly Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
 
     private void Start()
     {
@@ -70,6 +81,7 @@ public class RoomManager : MonoBehaviour
         if (placementParticlePrefab == null) Debug.LogWarning("RoomManager: no placement particle effect assigned.");
 
         currency = FindFirstObjectByType<PlayerCurrency>();
+        SetUpSurfaces();
         // Furniture already in the room at startup can be moved and deleted like bought furniture.
         foreach (Furniture f in FindObjectsByType<Furniture>(FindObjectsSortMode.None))
         {
@@ -158,6 +170,12 @@ public class RoomManager : MonoBehaviour
         onPreviewPlaced = onPlaced;
         previewRenderers = currentPreview.GetComponentsInChildren<Renderer>();
         previewTintValid = null;
+        // Wall pieces get turned to face out of whichever wall they're on. A piece that is thin along x
+        // (its face points along x) needs a quarter turn so its back lies against the wall.
+        previewBase = currentPreview.transform.rotation;
+        Physics.SyncTransforms();
+        Bounds start = GetBounds(currentPreview);
+        previewSpin = start.extents.x < start.extents.z * 0.8f ? 90f : 0f;
 
         if (currentPreview == null)
         {
@@ -167,106 +185,134 @@ public class RoomManager : MonoBehaviour
         SetPreviewTint(true);
     }
 
-    //update the current 
     private void UpdatePreviewPosition()
     {
+        Furniture.FurnitureType type = TypeOf(currentPreview);
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-        int mask = placementLayer | wallLayer | shelfLayer;
-
-        if (Physics.Raycast(ray, out hit, 100f, mask))
+        if (Physics.Raycast(ray, out RaycastHit hit, 100f, SurfaceMask(type)))
         {
-            Vector3 position = hit.point;
-            Quaternion rotation = currentPreview.transform.rotation;
-            Furniture furniture = currentPreview.GetComponent<Furniture>();
-
-            // Adjust position based on furniture type.
-            if (furniture != null)
+            if (type == Furniture.FurnitureType.Wall)
+                currentPreview.transform.rotation = Quaternion.LookRotation(Flat(hit.normal)) * Quaternion.Euler(0, previewSpin, 0) * previewBase;
+            if (Pose(currentPreview, type, hit, Vector3.zero))
             {
-                switch (furniture.Type)
+                isPlacementValid = IsValidPlacement(currentPreview);
+                SetPreviewTint(isPlacementValid);
+                return;
+            }
+        }
+        // Not over a surface this piece can go on: follow the cursor, red.
+        currentPreview.transform.position = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f));
+        isPlacementValid = false;
+        SetPreviewTint(false);
+    }
+
+    private static Furniture.FurnitureType TypeOf(GameObject obj) =>
+        obj.TryGetComponent(out Furniture furniture) ? furniture.Type : Furniture.FurnitureType.Floor;
+
+    // Which surfaces a piece can be put on. Ceiling pieces aim at the floor and hang above that point.
+    private int SurfaceMask(Furniture.FurnitureType type) => type switch
+    {
+        Furniture.FurnitureType.Wall => wallLayer.value,
+        Furniture.FurnitureType.Shelf => shelfLayer.value | placementLayer.value,
+        _ => placementLayer.value,
+    };
+
+    private static Vector3 Flat(Vector3 v)
+    {
+        v.y = 0;
+        return v.sqrMagnitude > 0.0001f ? v.normalized : Vector3.forward;
+    }
+
+    // Moves a piece onto the surface a ray hit, centred on the hit point plus offset: floor and shelf pieces
+    // rest their bottom on it, wall pieces sit flush with their back on the wall, ceiling pieces hang with
+    // their top at the ceiling. The grid only snaps along the surface, never into or out of a wall.
+    // Returns false where the piece can't go (the top edge of a wall).
+    private bool Pose(GameObject obj, Furniture.FurnitureType type, RaycastHit hit, Vector3 offset)
+    {
+        Transform t = obj.transform;
+        t.position = hit.point;
+        Physics.SyncTransforms(); // collider bounds otherwise lag a frame behind the move (and any rotation)
+        Bounds b = GetBounds(obj);
+        Vector3 target = hit.point + offset;
+        Vector3 position;
+        switch (type)
+        {
+            case Furniture.FurnitureType.Wall:
+                Vector3 n = hit.normal;
+                if (Mathf.Abs(n.y) > 0.3f) return false;
+                float depth = Mathf.Abs(n.x) * b.extents.x + Mathf.Abs(n.y) * b.extents.y + Mathf.Abs(n.z) * b.extents.z;
+                position = t.position + (target + n * depth - b.center);
+                if (useGridPlacement)
                 {
-                    case Furniture.FurnitureType.Wall:
-                        if (((1 << hit.collider.gameObject.layer) & wallLayer) != 0)
-                        {
-                            position = SnapToWall(position, hit.normal);
-                        }
-                        else
-                        {
-                            isPlacementValid = false;
-                            SetPreviewTint(false);
-                            return;
-                        }
-                        break;
-                    case Furniture.FurnitureType.Shelf:
-                        if (((1 << hit.collider.gameObject.layer) & shelfLayer) != 0)
-                        {
-                            position = SnapToShelf(position);
-                        }
-                        else
-                        {
-                            isPlacementValid = false;
-                            SetPreviewTint(false);
-                            return;
-                        }
-                        break;
-                    case Furniture.FurnitureType.Floor:
-                    default:
-                        if (((1 << hit.collider.gameObject.layer) & placementLayer) != 0)
-                        {
-                            position.y += GetBounds(currentPreview).extents.y;
-                        }
-                        else
-                        {
-                            isPlacementValid = false;
-                            SetPreviewTint(false);
-                            return;
-                        }
-                        break;
+                    Vector3 snapped = SnapToGrid(position);
+                    position = snapped - n * Vector3.Dot(snapped - position, n);
                 }
-            }
-
-            if (useGridPlacement)
-            {
-                position = SnapToGrid(position);
-            }
-
-            currentPreview.transform.position = position;
-            currentPreview.transform.rotation = rotation;
-            isPlacementValid = IsValidPlacement(position);
-            SetPreviewTint(isPlacementValid);
+                break;
+            case Furniture.FurnitureType.Ceiling:
+                position = t.position + new Vector3(target.x - b.center.x, ceilingY - b.max.y, target.z - b.center.z);
+                if (useGridPlacement) position = SnapToGrid(position);
+                break;
+            default:
+                position = t.position + new Vector3(target.x - b.center.x, hit.point.y - b.min.y, target.z - b.center.z);
+                if (useGridPlacement) position = SnapToGrid(position);
+                break;
         }
-        else
+        t.position = position;
+        Physics.SyncTransforms();
+        return true;
+    }
+
+    // Decor needs a wall collider on every wall (the scene's WallPlane covers one), and hanging pieces
+    // need to know how high the ceiling is.
+    private void SetUpSurfaces()
+    {
+        if (wallMeshes.Length == 0)
         {
-            Vector3 position = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f));
-            currentPreview.transform.position = position;
-            isPlacementValid = false;
-            SetPreviewTint(false);
+            GameObject walls = GameObject.Find("Room_Walls");
+            if (walls != null && walls.TryGetComponent(out Renderer wallRenderer)) wallMeshes = new[] { wallRenderer };
+        }
+        int layer = LayerIndex(wallLayer);
+        foreach (Renderer wall in wallMeshes)
+        {
+            if (wall == null || !wall.TryGetComponent(out MeshFilter filter) || filter.sharedMesh == null) continue;
+            if (!filter.sharedMesh.isReadable) { Debug.LogWarning($"{wall.name}: enable Read/Write on its model so decor can hang on it"); continue; }
+            var surface = new GameObject("WallSurface") { layer = layer };
+            surface.transform.SetParent(wall.transform, false);
+            surface.AddComponent<MeshCollider>().sharedMesh = filter.sharedMesh;
+        }
+
+        ceilingY = float.MinValue;
+        foreach (Collider c in FindObjectsByType<Collider>(FindObjectsSortMode.None))
+            if (((1 << c.gameObject.layer) & wallLayer) != 0) ceilingY = Mathf.Max(ceilingY, c.bounds.max.y);
+        if (ceilingY == float.MinValue) ceilingY = 3f; // shortcut: no walls found, so assume a 3 m room; assign wallMeshes to fix
+
+        if (floorMeshes.Length == 0)
+        {
+            var floors = new List<Renderer>();
+            foreach (Renderer r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+                if (((1 << r.gameObject.layer) & placementLayer) != 0 && r.GetComponent<Collider>() == null) floors.Add(r);
+            floorMeshes = floors.ToArray();
         }
     }
 
-    private Vector3 SnapToWall(Vector3 position, Vector3 normal)
+    private static int LayerIndex(LayerMask mask)
     {
-        // Shift the object so that it aligns with the wall.
-        position += normal * GetBounds(currentPreview).extents.z;
-        return position;
+        for (int i = 0; i < 32; i++)
+            if ((mask.value & (1 << i)) != 0) return i;
+        return 0;
     }
 
-    private Vector3 SnapToShelf(Vector3 position)
+    // Overlap check on the piece's own bounds, shrunk a little so touching a neighbour or the wall is fine.
+    private bool IsValidPlacement(GameObject piece)
     {
-        // Adjust position to stand straight on a shelf.
-        position.y += GetBounds(currentPreview).extents.y;
-        return position;
-    }
-
-    // Checks placement validity using overlap detection.
-    private bool IsValidPlacement(Vector3 position)
-    {
-        Bounds previewBounds = GetBounds(currentPreview);
-        if (Physics.OverlapBoxNonAlloc(position, previewBounds.extents, overlapBuffer, currentPreview.transform.rotation, furnitureLayer) > 0)
-            return false;
+        Bounds bounds = GetBounds(piece);
+        bounds.Expand(-0.04f);
+        int count = Physics.OverlapBoxNonAlloc(bounds.center, bounds.extents, overlapBuffer, Quaternion.identity, furnitureLayer);
+        for (int i = 0; i < count; i++)
+            if (!overlapBuffer[i].transform.IsChildOf(piece.transform)) return false;
         foreach (GameObject placedObj in placedObjects)
         {
-            if (placedObj.activeInHierarchy && GetBounds(placedObj).Intersects(previewBounds))
+            if (placedObj != piece && placedObj.activeInHierarchy && GetBounds(placedObj).Intersects(bounds))
                 return false;
         }
         return true;
@@ -290,13 +336,16 @@ public class RoomManager : MonoBehaviour
         bool alt = Input.GetKey(KeyCode.LeftAlt) || Input.GetKey(KeyCode.RightAlt);
         if (Input.GetKeyDown(KeyCode.R) && !alt)
         {
+            // Wall pieces flip to face the other way; a quarter turn would stick them out of the wall.
             if (currentPreview != null)
             {
-                currentPreview.transform.Rotate(Vector3.up, -90f);
+                if (TypeOf(currentPreview) == Furniture.FurnitureType.Wall) previewSpin += 180f;
+                else currentPreview.transform.Rotate(Vector3.up, -90f, Space.World);
             }
             else if (selectedObject != null)
             {
-                selectedObject.transform.Rotate(Vector3.up, -90f);
+                bool wall = TypeOf(selectedObject) == Furniture.FurnitureType.Wall;
+                selectedObject.transform.Rotate(Vector3.up, wall ? 180f : -90f, Space.World);
             }
         }
 
@@ -395,30 +444,28 @@ public class RoomManager : MonoBehaviour
 
     private void DragSelected()
     {
-        Furniture furniture = selectedObject.GetComponent<Furniture>();
-        Furniture.FurnitureType type = furniture != null ? furniture.Type : Furniture.FurnitureType.Floor;
-        int mask = type == Furniture.FurnitureType.Wall ? wallLayer
-            : type == Furniture.FurnitureType.Shelf ? shelfLayer | placementLayer
-            : placementLayer;
+        Furniture.FurnitureType type = TypeOf(selectedObject);
         Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        if (!Physics.Raycast(ray, out RaycastHit hit, 100f, mask)) return;
+        if (!Physics.Raycast(ray, out RaycastHit hit, 100f, SurfaceMask(type))) return;
 
-        Vector3 position = hit.point;
-        Bounds bounds = GetBounds(selectedObject);
-        if (type == Furniture.FurnitureType.Wall)
-            position += hit.normal * bounds.extents.z;
-        else
-            position.y += selectedObject.transform.position.y - bounds.min.y; // rest its bottom on the surface
-        // Keep the point you grabbed under the cursor instead of jumping the piece's centre to it.
+        Transform t = selectedObject.transform;
+        Vector3 before = t.position;
+        Quaternion beforeRotation = t.rotation;
+        // Dragged onto another wall: turn with it so it still faces into the room.
+        if (type == Furniture.FurnitureType.Wall && grabbed && Vector3.Angle(dragNormal, hit.normal) > 1f)
+            t.rotation = Quaternion.FromToRotation(Flat(dragNormal), Flat(hit.normal)) * t.rotation;
         if (!grabbed)
         {
-            grabOffset = selectedObject.transform.position - position;
-            grabOffset.y = 0;
+            // Keep the point you grabbed under the cursor instead of jumping the piece's centre to it.
+            if (!Pose(selectedObject, type, hit, Vector3.zero)) { t.SetPositionAndRotation(before, beforeRotation); return; }
+            grabOffset = before - t.position;
             grabbed = true;
         }
-        position += grabOffset;
-        if (useGridPlacement) position = SnapToGrid(position);
-        selectedObject.transform.position = position;
+        Vector3 offset = type == Furniture.FurnitureType.Wall
+            ? grabOffset - hit.normal * Vector3.Dot(grabOffset, hit.normal) // slide along the wall
+            : new Vector3(grabOffset.x, 0, grabOffset.z);
+        if (!Pose(selectedObject, type, hit, offset)) t.SetPositionAndRotation(before, beforeRotation);
+        else dragNormal = hit.normal;
     }
 
     // Warm glow on the selected piece so it's obvious what edit mode will move.
@@ -467,6 +514,85 @@ public class RoomManager : MonoBehaviour
 
     public bool IsEditMode => isEditMode;
     public void ToggleEditMode() => EnterEditMode(); // for the HUD's Edit button
+
+    // ---------- paint (used by the Paint drawer) ----------
+
+    public GameObject SelectedPiece => selectedObject;
+    public Renderer[] WallRenderers => wallMeshes;
+    public Renderer[] FloorRenderers => floorMeshes;
+
+    // Plain-coloured pieces can be painted; textured artwork (paintings, posters) and pieces marked
+    // not colourable in the store can't.
+    public bool CanPaint(GameObject piece)
+    {
+        if (piece == null) return false;
+        if (boughtItems.TryGetValue(piece, out FurnitureItem item) && !item.colorable) return false;
+        return Paintable(piece.GetComponentsInChildren<Renderer>());
+    }
+
+    public static bool Paintable(Renderer[] renderers)
+    {
+        if (renderers.Length == 0) return false;
+        foreach (Renderer r in renderers)
+            foreach (Material m in r.sharedMaterials)
+            {
+                if (m == null || !(m.HasProperty("_BaseColor") || m.HasProperty("_Color"))) return false;
+                Texture texture = m.mainTexture;
+                if (texture != null && texture.width > 256) return false; // detailed artwork, not a small colour palette
+            }
+        return true;
+    }
+
+    public void PaintPiece(GameObject piece, Color? color)
+    {
+        if (!CanPaint(piece)) return;
+        ApplyPieceColor(piece, color);
+        SaveRoom();
+    }
+
+    public bool IsPainted(GameObject piece) => piece != null && pieceColors.ContainsKey(piece);
+
+    private void ApplyPieceColor(GameObject piece, Color? color)
+    {
+        Renderer[] renderers = piece.GetComponentsInChildren<Renderer>();
+        Tint(renderers, color);
+        if (color.HasValue) pieceColors[piece] = color.Value;
+        else pieceColors.Remove(piece);
+        foreach (Renderer r in renderers) r.SetPropertyBlock(null); // drop the selection glow so the new colour shows
+    }
+
+    // Colours instance copies of the materials; null puts the original materials back.
+    public void Tint(Renderer[] renderers, Color? color)
+    {
+        foreach (Renderer r in renderers)
+        {
+            if (r == null) continue;
+            if (!originalMaterials.ContainsKey(r)) originalMaterials[r] = r.sharedMaterials;
+            if (color == null)
+            {
+                r.sharedMaterials = originalMaterials[r];
+                continue;
+            }
+            foreach (Material m in r.materials)
+            {
+                if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", color.Value);
+                if (m.HasProperty("_Color")) m.SetColor("_Color", color.Value);
+            }
+        }
+    }
+
+    // Swaps every material slot for one surface material (floors and walls); Tint(null) undoes it.
+    public void SetSurfaceMaterial(Renderer[] renderers, Material material)
+    {
+        foreach (Renderer r in renderers)
+        {
+            if (r == null || material == null) continue;
+            if (!originalMaterials.ContainsKey(r)) originalMaterials[r] = r.sharedMaterials;
+            var slots = new Material[r.sharedMaterials.Length];
+            for (int i = 0; i < slots.Length; i++) slots[i] = material;
+            r.sharedMaterials = slots;
+        }
+    }
 
     // Attempts to enter edit mode based on a raycast hit from the mouse position.
     private void EnterEditMode()
@@ -543,6 +669,7 @@ public class RoomManager : MonoBehaviour
         public Vector3 position;
         public Quaternion rotation;
         public bool active;
+        public string color; // hex RGB, empty when unpainted
     }
 
     private void SaveRoom()
@@ -559,10 +686,17 @@ public class RoomManager : MonoBehaviour
         PlayerPrefs.Save();
     }
 
-    private static SavedPiece Piece(string id, int index, GameObject go) => new SavedPiece
+    private SavedPiece Piece(string id, int index, GameObject go) => new SavedPiece
     {
         id = id, index = index, position = go.transform.position, rotation = go.transform.rotation, active = go.activeSelf,
+        color = pieceColors.TryGetValue(go, out Color c) ? ColorUtility.ToHtmlStringRGB(c) : "",
     };
+
+    private void LoadColor(GameObject go, SavedPiece piece)
+    {
+        if (!string.IsNullOrEmpty(piece.color) && ColorUtility.TryParseHtmlString("#" + piece.color, out Color c) && CanPaint(go))
+            ApplyPieceColor(go, c);
+    }
 
     private void LoadRoom()
     {
@@ -576,6 +710,7 @@ public class RoomManager : MonoBehaviour
             go.transform.SetPositionAndRotation(piece.position, piece.rotation);
             go.SetActive(piece.active);
             if (!piece.active) placedObjects.Remove(go);
+            LoadColor(go, piece);
         }
 
         FurnitureCatalog catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
@@ -591,6 +726,7 @@ public class RoomManager : MonoBehaviour
             go.name = item.prefab.name;
             placedObjects.Add(go);
             boughtItems[go] = item;
+            LoadColor(go, piece);
         }
     }
 

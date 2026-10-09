@@ -151,7 +151,7 @@ public class FurnitureStoreUI : MonoBehaviour
         var shopRect = (RectTransform)shop.transform;
         shopRect.anchorMin = shopRect.anchorMax = shopRect.pivot = new Vector2(0, 0);
         shopRect.sizeDelta = new Vector2(130, 42);
-        shopRect.anchoredPosition = new Vector2(268, 334);
+        shopRect.anchoredPosition = new Vector2(164, 334);
         shop.onClick.AddListener(Toggle);
 
         panel = MakeDrawer("StorePanel", canvasGO.transform);

@@ -17,6 +17,9 @@ public class GameHUD : MonoBehaviour
     private TMP_Text debugText;
     private string lastDebug;
     private float debugShownAt;
+    private Image cover, coverNote, editPill;
+    private Sprite coverPlaceholder;
+    private RoomManager room;
 
     // The old texts this card replaces.
     static readonly string[] ReplacedObjects = { "money_text", "player_experience", "coinsText" };
@@ -38,6 +41,7 @@ public class GameHUD : MonoBehaviour
     {
         currency = FindFirstObjectByType<PlayerCurrency>();
         experience = FindFirstObjectByType<Experience>();
+        room = FindFirstObjectByType<RoomManager>();
         BuildUI();
     }
 
@@ -79,6 +83,13 @@ public class GameHUD : MonoBehaviour
     // The Chrome extension status line only matters for a moment; fade it once it stops changing.
     private void Update()
     {
+        if (editPill != null && room != null) editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
+        if (cover != null)
+        {
+            bool hasArt = cover.sprite != coverPlaceholder;
+            cover.color = hasArt ? Color.white : CardColor;
+            coverNote.enabled = !hasArt;
+        }
         if (debugText == null) return;
         if (debugText.text != lastDebug)
         {
@@ -150,7 +161,7 @@ public class GameHUD : MonoBehaviour
 
         levelLabel = MakeText("LevelLabel", card.transform, "Level 1", 22, TextColor, TextAlignmentOptions.Left);
         levelLabel.fontStyle = FontStyles.Bold;
-        Place(levelLabel.rectTransform, new Vector2(88, -12), new Vector2(150, 28));
+        Place(levelLabel.rectTransform, new Vector2(88, -6), new Vector2(150, 36)); // Zain has tall line height; a short box hides the text
         xpLabel = MakeText("XP", card.transform, "", 15, MutedText, TextAlignmentOptions.Right);
         Place(xpLabel.rectTransform, new Vector2(240, -14), new Vector2(124, 24));
 
@@ -164,10 +175,19 @@ public class GameHUD : MonoBehaviour
 
         GameObject coin = Make("CoinIcon", card.transform, typeof(Image));
         Place((RectTransform)coin.transform, new Vector2(88, -64), new Vector2(16, 16));
-        coin.GetComponent<Image>().sprite = Circle;
+        coin.GetComponent<Image>().sprite = UIIcons.Named("Icons_21") ?? Circle; // the $ coin from the icon sheet
         coin.GetComponent<Image>().color = AccentColor;
         coinsLabel = MakeText("Coins", card.transform, "0", 22, AccentColor, TextAlignmentOptions.Left, display: true);
         Place(coinsLabel.rectTransform, new Vector2(110, -60), new Vector2(200, 24));
+
+        // Edit-mode toggle, first in the room-button row (Shop and Planner follow it).
+        Button edit = TextButton("EditButton", canvas, "Edit  (Esc)", TabColor, 20);
+        var editRect = (RectTransform)edit.transform;
+        editRect.anchorMin = editRect.anchorMax = editRect.pivot = new Vector2(0, 0);
+        editRect.sizeDelta = new Vector2(130, 42);
+        editRect.anchoredPosition = new Vector2(24, 334);
+        editPill = edit.GetComponent<Image>();
+        edit.onClick.AddListener(() => { if (room != null) room.ToggleEditMode(); });
 
         // Level-up toast, centred under the timer.
         GameObject toastGO = Make("LevelUpToast", canvas, typeof(Image), typeof(CanvasGroup));
@@ -195,7 +215,6 @@ public class GameHUD : MonoBehaviour
 
     // Only plain shapes get recoloured; album covers and other artwork keep their colours.
     static readonly string[] ShapeSprites = { "UISprite", "Background", "Knob", "InputFieldBackground", "Rectangle", "Ipod", "Group" };
-    static readonly string[] IconSprites = { "Play", "Pause", "Skip", "Rewind", "Music", "Circle", "Icons_", "Volume", "Settings", "Bell", "Heart" };
 
     private void ThemeSceneUI()
     {
@@ -210,14 +229,50 @@ public class GameHUD : MonoBehaviour
             Label(timerButtons.transform, "Plus_Button", "+5");
         }
 
-        // Room buttons on the left: round them to match the Shop button, keep their colours (they show the picked colour).
+        // The old room buttons lost their icons (the sheet was re-sliced) and none of them is wired up;
+        // the Edit pill built in BuildUI replaces them.
         foreach (string name in new[] { "Wall_ColorChanger", "Camera_ColorChanger", "EditMode", "Icon (3)" })
         {
             GameObject go = GameObject.Find(name);
-            if (go != null && go.TryGetComponent(out Image image) && IsShape(image.sprite))
+            if (go != null) go.SetActive(false);
+        }
+
+        if (ipod != null) LayoutNowPlaying(ipod.transform);
+    }
+
+    // Now-playing screen: give the title and artist their own space above the controls,
+    // and show a note on the empty art box until a song with cover art plays.
+    private void LayoutNowPlaying(Transform ipodRoot)
+    {
+        foreach (RectTransform rect in ipodRoot.GetComponentsInChildren<RectTransform>(true))
+        {
+            switch (rect.name)
             {
-                image.sprite = Rounded;
-                image.type = Image.Type.Sliced;
+                case "Cover_Image":
+                    rect.anchoredPosition = new Vector2(0, 140);
+                    rect.sizeDelta = new Vector2(220, 220);
+                    cover = rect.GetComponent<Image>();
+                    coverPlaceholder = cover.sprite;
+                    cover.color = CardColor;
+                    GameObject note = Make("Note", rect, typeof(Image));
+                    Anchor(note, new Vector2(0.35f, 0.35f), new Vector2(0.65f, 0.65f));
+                    coverNote = note.GetComponent<Image>();
+                    coverNote.sprite = UIIcons.Named("Icons_5");
+                    coverNote.preserveAspect = true;
+                    coverNote.color = MutedText;
+                    coverNote.raycastTarget = false;
+                    break;
+                case "CurrentSong":
+                    rect.anchoredPosition = new Vector2(0, 8);
+                    if (rect.TryGetComponent(out TMP_Text song)) song.fontSize = 24;
+                    break;
+                case "Artist_Text":
+                    rect.anchoredPosition = new Vector2(0, -20);
+                    if (rect.TryGetComponent(out TMP_Text artist)) { artist.fontSize = 18; artist.color = MutedText; }
+                    break;
+                case "Slider":
+                    if (rect.parent == ipodRoot || rect.parent.name == "IPOD") rect.anchoredPosition = new Vector2(0, -165);
+                    break;
             }
         }
     }
@@ -227,7 +282,9 @@ public class GameHUD : MonoBehaviour
         foreach (Image image in root.GetComponentsInChildren<Image>(true))
         {
             if (image.GetComponent<Mask>() != null) continue; // masks need their sprite's alpha
-            if (IsIcon(image.sprite)) { image.color = TextColor; continue; }
+            if (image.name.Contains("Cover")) continue; // album art, coloured by LayoutNowPlaying
+            Sprite white = UIIcons.Light(image.sprite);
+            if (white != null) { image.sprite = white; image.color = TextColor; continue; } // dark line icons can't be tinted light
             if (!IsShape(image.sprite)) continue;
             float depth = Depth(image.transform, root);
             bool interactive = image.GetComponent<Selectable>() != null || image.name == "Handle" || image.name == "Fill";
@@ -246,7 +303,6 @@ public class GameHUD : MonoBehaviour
     }
 
     private static bool IsShape(Sprite sprite) => sprite == null || StartsWithAny(sprite.name, ShapeSprites);
-    private static bool IsIcon(Sprite sprite) => sprite != null && StartsWithAny(sprite.name, IconSprites);
 
     private static bool StartsWithAny(string value, string[] prefixes)
     {

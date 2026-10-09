@@ -863,6 +863,14 @@ public class RoomManager : MonoBehaviour
 
     public IReadOnlyList<GameObject> PlacedPieces => placedObjects;
 
+    // The store entry behind a placed piece: bought ones directly, scene pieces by matching the prefab's name.
+    public FurnitureItem ItemOf(GameObject piece)
+    {
+        if (boughtItems.TryGetValue(piece, out FurnitureItem item)) return item;
+        FurnitureCatalog catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
+        return catalog == null ? null : catalog.items.Find(i => i != null && i.prefab != null && i.prefab.name == piece.name);
+    }
+
     private static bool HasLights(GameObject piece) => piece.GetComponentInChildren<Light>(true) != null;
 
     private static bool LightsOn(GameObject piece)

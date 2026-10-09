@@ -139,7 +139,7 @@ public class PlannerUI : MonoBehaviour
         var openRect = (RectTransform)open.transform;
         openRect.anchorMin = openRect.anchorMax = openRect.pivot = new Vector2(0, 0);
         openRect.sizeDelta = new Vector2(150, 42);
-        openRect.anchoredPosition = new Vector2(408, 334);
+        openRect.anchoredPosition = new Vector2(304, 334);
         open.onClick.AddListener(Toggle);
 
         panel = MakeDrawer("PlannerPanel", canvas);

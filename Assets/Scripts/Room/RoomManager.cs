@@ -421,6 +421,9 @@ public class RoomManager : MonoBehaviour
         }
     }
 
+    public bool IsEditMode => isEditMode;
+    public void ToggleEditMode() => EnterEditMode(); // for the HUD's Edit button
+
     // Attempts to enter edit mode based on a raycast hit from the mouse position.
     private void EnterEditMode()
     {

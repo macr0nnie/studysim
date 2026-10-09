@@ -15,7 +15,10 @@ public static class PlayerPrefabTools
     {
         EditorApplication.delayCall += () =>
         {
-            if (!EditorApplication.isPlayingOrWillChangePlaymode && AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) == null)
+            if (EditorApplication.isPlayingOrWillChangePlaymode) return;
+            var controller = AssetDatabase.LoadAssetAtPath<AnimatorController>(ControllerPath);
+            // An empty controller means an earlier build never flushed its states to disk.
+            if (AssetDatabase.LoadAssetAtPath<GameObject>(PrefabPath) == null || controller == null || controller.layers.Length == 0)
                 CreatePlayerPrefab();
         };
     }
@@ -61,6 +64,7 @@ public static class PlayerPrefabTools
         player.AddComponent<StudyCharacter>();
         PrefabUtility.SaveAsPrefabAsset(player, PrefabPath);
         Object.DestroyImmediate(player);
+        AssetDatabase.SaveAssets(); // the controller's states and parameters only reach disk on a save
         Debug.Log("Player prefab created at " + PrefabPath);
     }
 

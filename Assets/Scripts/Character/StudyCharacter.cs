@@ -85,6 +85,8 @@ public class StudyCharacter : MonoBehaviour
             Debug.LogWarning("No dialogue events configured.");
         }
         
+        if (GetComponent<CharacterBehaviour>() == null) gameObject.AddComponent<CharacterBehaviour>();
+
         // Start in studying state
         StartStudying();
         timer = FindFirstObjectByType<TimerManager>();
@@ -159,8 +161,7 @@ public class StudyCharacter : MonoBehaviour
             {
                 continue;
             }
-            // TODO: Implement dialogue UI system
-            Debug.Log($"Character says: {line}");
+            if (TryGetComponent(out CharacterBehaviour behaviour)) behaviour.Say(line);
             yield return new WaitForSeconds(2f); // Adjust timing as needed
         }
    

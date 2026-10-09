@@ -22,3 +22,8 @@ MonoBehaviour:
   price: 120
   prefab: {fileID: 4086628288053391543, guid: 0b84c3a7686cf47489d808ad492ec9a7, type: 3}
   icon: {fileID: 0}
+  lie:
+    enabled: 1
+    localPosition: {x: 0, y: 0, z: 0.8}
+    yaw: 180
+  comfort: 1

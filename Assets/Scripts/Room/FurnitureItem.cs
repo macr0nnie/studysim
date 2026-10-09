@@ -10,6 +10,16 @@ public enum StoreCategory
     Ceiling // hanging lights and plants
 }
 
+// Where the character goes to use a piece (sit on a chair, lie on a bed). Local to the placed object, so every prefab
+// defines its own: pivot position (the feet) and a yaw added to the piece's own. Lying, the head points back along the yaw.
+[System.Serializable]
+public struct Interaction
+{
+    public bool enabled;
+    public Vector3 localPosition;
+    public float yaw;
+}
+
 // One entry in the furniture store. Create via Assets > Study Sim > Add To Furniture Store
 // (select a model or prefab first) or Create > Study Sim > Furniture Item.
 [CreateAssetMenu(menuName = "Study Sim/Furniture Item", fileName = "FurnitureItem")]
@@ -25,4 +35,12 @@ public class FurnitureItem : ScriptableObject
     public Sprite icon;
     [Tooltip("Untick for pieces whose look comes from their texture (paintings, posters) so the paint tools leave them alone.")]
     public bool colorable = true;
+
+    [Header("Character")]
+    [Tooltip("Where the character sits when studying. The most recently placed piece with this on wins, so a bought chair beats the desk.")]
+    public Interaction sit;
+    [Tooltip("Where the character lies during breaks.")]
+    public Interaction lie;
+    [Tooltip("What this piece adds to (or, negative, takes from) the character's hidden happiness.")]
+    public int comfort = 1;
 }

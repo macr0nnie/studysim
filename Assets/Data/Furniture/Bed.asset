@@ -24,7 +24,7 @@ MonoBehaviour:
   icon: {fileID: 0}
   lie:
     enabled: 1
-    height: 0.6
+    height: 0
     offset: {x: 0, y: 0}
     yaw: 0
   comfort: 1

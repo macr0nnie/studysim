@@ -17,6 +17,7 @@ public enum StoreCategory
 public struct Interaction
 {
     public bool enabled;
+    [Tooltip("Sit: how far up the piece the feet rest (0 = floor). Lie: extra lift above the mattress top, as a fraction of the bed's height.")]
     [Range(0f, 1f)] public float height;
     public Vector2 offset;
     public float yaw;
@@ -51,10 +52,19 @@ public class FurnitureItem : ScriptableObject
 // (the old scene's furniture). The character and the keep-one-of-each rule both go through here.
 public static class FurnitureRole
 {
+    // Whole words of the name only, so "DefaultBedroom" is not a bed: "Bed", "bed_01", "BedPlane" -> bed + plane.
+    public static bool NameHas(GameObject piece, string word)
+    {
+        if (piece == null) return false;
+        foreach (string token in System.Text.RegularExpressions.Regex.Split(piece.name, @"[^A-Za-z]+|(?<=[a-z])(?=[A-Z])"))
+            if (string.Equals(token, word, System.StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
     public static bool Is(GameObject piece, FurnitureItem item, string role)
     {
         // A store item says what it is through its tags ("Desk Lamp" is not a desk); only scene leftovers go by name.
-        if (item == null) return piece != null && piece.name.IndexOf(role, System.StringComparison.OrdinalIgnoreCase) >= 0;
+        if (item == null) return NameHas(piece, role);
         foreach (string tag in item.tags ?? new string[0])
             if (string.Equals(tag, role, System.StringComparison.OrdinalIgnoreCase)) return true;
         return false;

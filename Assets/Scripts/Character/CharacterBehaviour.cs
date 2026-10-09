@@ -103,7 +103,7 @@ public class CharacterBehaviour : MonoBehaviour
     }
 
     // The old scene's furniture isn't all store items, so names count too.
-    private static bool Named(GameObject g, string part) => g.name.IndexOf(part, System.StringComparison.OrdinalIgnoreCase) >= 0;
+    private static bool Named(GameObject g, string part) => FurnitureRole.NameHas(g, part);
 
     private bool Is(GameObject g, string role) => FurnitureRole.Is(g, room.ItemOf(g), role);
 
@@ -112,7 +112,7 @@ public class CharacterBehaviour : MonoBehaviour
         FurnitureItem item = room.ItemOf(p);
         data = item == null ? default : item.lie;
         if (data.enabled) return true;
-        if (Named(p, "bed") && !Named(p, "plane")) { data.enabled = true; data.height = 0.6f; return true; }
+        if (Named(p, "bed") && !Named(p, "plane")) { data.enabled = true; return true; }
         return false;
     }
 
@@ -189,20 +189,43 @@ public class CharacterBehaviour : MonoBehaviour
         return f;
     }
 
-    // World position and rotation for the character on this piece: from its bounds, never from its local axes.
+    // Lying on a bed: on the mattress top, along the bed's long side, head at the headboard (the tallest end), back flat.
     private bool Spot(GameObject piece, Interaction d, out Vector3 pos, out Quaternion rot)
     {
         pos = default; rot = Quaternion.identity;
         Bounds b = BoundsOf(piece);
         if (b.size == Vector3.zero) return false;
-        pos = new Vector3(b.center.x + d.offset.x * b.extents.x, b.min.y + d.height * b.size.y, b.center.z + d.offset.y * b.extents.z);
-        // Head toward the nearer wall along the bed's long side; the pivot (the feet) is half a body back from the middle.
-        Bounds floor = FloorBounds();
         bool alongX = b.size.x >= b.size.z;
-        float c = alongX ? b.center.x : b.center.z, lo = alongX ? floor.min.x : floor.min.z, hi = alongX ? floor.max.x : floor.max.z;
-        float sign = floor.size == Vector3.zero || Mathf.Abs(c - lo) < Mathf.Abs(hi - c) ? -1f : 1f;
-        Vector3 head = (alongX ? Vector3.right : Vector3.forward) * sign;
-        pos -= head * standingHeight * 0.5f;
+        Vector3 axis = alongX ? Vector3.right : Vector3.forward;
+        float along(Vector3 v) => alongX ? v.x : v.z;
+
+        // Mattress = the tallest of the big flat parts (the frame is as wide but lower); headboard = the highest part overall.
+        float biggest = 0f; Renderer top = null;
+        foreach (Renderer r in piece.GetComponentsInChildren<Renderer>())
+        {
+            if (!(r is MeshRenderer || r is SkinnedMeshRenderer)) continue;
+            biggest = Mathf.Max(biggest, r.bounds.size.x * r.bounds.size.z);
+            if (top == null || r.bounds.max.y > top.bounds.max.y) top = r;
+        }
+        float mattressTop = b.min.y;
+        foreach (Renderer r in piece.GetComponentsInChildren<Renderer>())
+            if ((r is MeshRenderer || r is SkinnedMeshRenderer) && r.bounds.size.x * r.bounds.size.z >= biggest * 0.5f) mattressTop = Mathf.Max(mattressTop, r.bounds.max.y);
+
+        // shortcut: headboard = the end holding the highest part; a flat bed falls back to the end nearer a wall
+        float sign;
+        float lean = top != null ? along(top.bounds.center) - along(b.center) : 0f;
+        if (Mathf.Abs(lean) > 0.2f * (alongX ? b.size.x : b.size.z)) sign = Mathf.Sign(lean);
+        else
+        {
+            Bounds floor = FloorBounds();
+            float c = along(b.center), lo = alongX ? floor.min.x : floor.min.z, hi = alongX ? floor.max.x : floor.max.z;
+            sign = floor.size == Vector3.zero || Mathf.Abs(c - lo) < Mathf.Abs(hi - c) ? -1f : 1f;
+        }
+        Vector3 head = axis * sign;
+        float longSide = alongX ? b.size.x : b.size.z;
+        // The pivot is the feet: half a body back from the middle, then a little toward the pillow.
+        Vector3 mid = new Vector3(b.center.x + d.offset.x * b.extents.x, mattressTop + d.height * b.size.y, b.center.z + d.offset.y * b.extents.z);
+        pos = mid + head * (0.1f * longSide - standingHeight * 0.5f);
         rot = Quaternion.AngleAxis(d.yaw, Vector3.up) * Quaternion.LookRotation(Vector3.up, head);
         return true;
     }

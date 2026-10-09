@@ -49,9 +49,13 @@ public class StudyCharacter : MonoBehaviour
         Vector3 toCam = Camera.main ? Vector3.ProjectOnPlane(Camera.main.transform.position - spot, Vector3.up) : Vector3.back;
         GameObject player = Instantiate(prefab, spot, Quaternion.LookRotation(toCam.sqrMagnitude > 0.0001f ? toCam : Vector3.back));
         player.name = "Player";
-        // shortcut: a person is ~0.4 of the floor's short side; tune here if the room is rescaled
+        // shortcut: a person is ~0.9 of the bed's long side (else 2.3 desk heights, else 0.4 of the floor); tune if the models are rescaled
+        GameObject bed = GameObject.Find("Bed"), desk = GameObject.Find("desk");
+        float height = Mathf.Min(floor.size.x, floor.size.z) * 0.4f;
+        if (bed != null && TryBounds(bed, out Bounds bb)) height = Mathf.Max(bb.size.x, bb.size.z) * 0.9f;
+        else if (desk != null && TryBounds(desk, out Bounds db)) height = db.size.y * 2.3f;
         if (TryBounds(player, out Bounds body) && body.size.y > 0.0001f)
-            player.transform.localScale *= Mathf.Min(floor.size.x, floor.size.z) * 0.4f / body.size.y;
+            player.transform.localScale *= height / body.size.y;
     }
 
     private static bool TryBounds(GameObject go, out Bounds bounds)

@@ -68,6 +68,7 @@ public static class FurnitureRole
     {
         // A store item says what it is through its tags ("Desk Lamp" is not a desk); only scene leftovers go by name.
         if (item == null) return NameHas(piece, role);
+        if (item.category != StoreCategory.Furniture) return false; // a desk lamp is tagged "desk" but isn't one
         foreach (string tag in item.tags ?? new string[0])
             if (string.Equals(tag, role, System.StringComparison.OrdinalIgnoreCase)) return true;
         return false;

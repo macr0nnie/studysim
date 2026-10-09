@@ -171,9 +171,55 @@ public class PlannerUI : MonoBehaviour
             if (d > today) { Dot(cell, 6, new Color(MutedText.r, MutedText.g, MutedText.b, 0.18f)); continue; }
             float share = Share(d);
             if (d == today) Ring(cell, 26);
-            if (share <= 0) Dot(cell, 8, new Color(MutedText.r, MutedText.g, MutedText.b, 0.35f));
-            else Dot(cell, Mathf.Lerp(11, 22, share), Color.Lerp(AccentColor, XpColor, share));
+            if (habits.habits.Count == 0) Dot(cell, 8, new Color(MutedText.r, MutedText.g, MutedText.b, 0.35f));
+            else SegmentRing(cell, 24, d);
         }
+    }
+
+    // One arc per habit in its colour, solid when it was done that day and faint when not: a full day is a full ring.
+    private void SegmentRing(Transform cell, float size, DateTime day)
+    {
+        int n = habits.habits.Count;
+        float gap = n > 1 ? 0.012f : 0f;
+        for (int i = 0; i < n; i++)
+        {
+            StudyHabit habit = habits.habits[i];
+            Color c = habit.Tint;
+            GameObject go = Make("Arc", cell, typeof(Image));
+            var rect = (RectTransform)go.transform;
+            rect.sizeDelta = new Vector2(size, size);
+            rect.localRotation = Quaternion.Euler(0, 0, -360f * i / n);
+            var image = go.GetComponent<Image>();
+            image.sprite = RingSprite;
+            image.type = Image.Type.Filled;
+            image.fillMethod = Image.FillMethod.Radial360;
+            image.fillOrigin = (int)Image.Origin360.Top;
+            image.fillClockwise = true;
+            image.fillAmount = 1f / n - gap;
+            image.color = habit.DoneOn(day) ? c : new Color(c.r, c.g, c.b, 0.22f);
+            image.raycastTarget = false;
+        }
+    }
+
+    private static Sprite ringSprite;
+    private static Sprite RingSprite => ringSprite != null ? ringSprite : ringSprite = MakeRing(64, 0.62f);
+
+    // Round band, outer edge at the sprite's edge and inner edge at innerRatio of it, drawn once.
+    private static Sprite MakeRing(int size, float innerRatio)
+    {
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        var pixels = new Color32[size * size];
+        float outer = size / 2f, inner = outer * innerRatio;
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float r = Mathf.Sqrt((x + 0.5f - outer) * (x + 0.5f - outer) + (y + 0.5f - outer) * (y + 0.5f - outer));
+                float a = Mathf.Clamp01(outer - r + 0.5f) * Mathf.Clamp01(r - inner + 0.5f);
+                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255));
+            }
+        tex.SetPixels32(pixels);
+        tex.Apply(false, true);
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100);
     }
 
     // Share of habits done on a day (0-1).
@@ -194,10 +240,14 @@ public class PlannerUI : MonoBehaviour
         bool doneToday = habit.DoneOn(today);
         bool missedYesterday = !habit.DoneOn(today.AddDays(-1));
         bool slipping = !doneToday && missedYesterday && habit.DoneOn(today.AddDays(-2));
+        Color tint = habit.Tint;
 
         GameObject card = Card("Habit");
         GameObject top = Row("Top", card.transform, 28, 8, false);
         top.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+        Button swatch = SmallButton(top.transform, "", tint, 22); // tap to pick the next colour
+        swatch.GetComponent<Image>().sprite = Circle;
+        swatch.onClick.AddListener(() => { habits.CycleColor(habit); RefreshHabits(); });
         MakeText("Name", top.transform, habit.habitName, BodySize, TextColor, TextAlignmentOptions.Left)
             .gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
         int streak = habit.currentStreak;
@@ -215,14 +265,14 @@ public class PlannerUI : MonoBehaviour
             Transform cell = Make(day.ToString("ddd"), week.transform, typeof(LayoutElement)).transform;
             cell.GetComponent<LayoutElement>().flexibleWidth = 1;
             // Chain links to the neighbouring days that were done too.
-            if (done && i > 0 && habit.DoneOn(day.AddDays(-1))) Link(cell, 0f, 0.5f);
-            if (done && i < 6 && day < today && habit.DoneOn(day.AddDays(1))) Link(cell, 0.5f, 1f);
+            if (done && i > 0 && habit.DoneOn(day.AddDays(-1))) Link(cell, 0f, 0.5f, tint);
+            if (done && i < 6 && day < today && habit.DoneOn(day.AddDays(1))) Link(cell, 0.5f, 1f, tint);
 
             if (day == today)
             {
                 Image ring = Ring(cell, 28, slipping ? AccentColor : TextColor);
                 if (slipping) StartCoroutine(Pulse(ring));
-                RectTransform dot = done ? Dot(cell, 22, XpColor) : null;
+                RectTransform dot = done ? Dot(cell, 22, tint) : null;
                 if (celebrate == habit && dot != null) celebrateTarget = dot;
                 // The whole cell is the button: a big target is quicker to hit.
                 GameObject hit = Make("Tick", cell, typeof(Image), typeof(Button));
@@ -231,7 +281,7 @@ public class PlannerUI : MonoBehaviour
                 hit.GetComponent<Button>().onClick.AddListener(() => ToggleHabit(habit));
             }
             else if (day > today) Dot(cell, 6, new Color(MutedText.r, MutedText.g, MutedText.b, 0.18f));
-            else if (done) Dot(cell, 22, XpColor);
+            else if (done) Dot(cell, 22, tint);
             else Dot(cell, 9, new Color(MutedText.r, MutedText.g, MutedText.b, 0.4f));
 
             MakeText("Letter", letters.transform, DayLetters[i], CaptionSize, day == today ? TextColor : MutedText, TextAlignmentOptions.Center)
@@ -281,7 +331,7 @@ public class PlannerUI : MonoBehaviour
         return ring;
     }
 
-    private static void Link(Transform cell, float from, float to)
+    private static void Link(Transform cell, float from, float to, Color color)
     {
         GameObject bar = Make("Link", cell, typeof(Image));
         var rect = (RectTransform)bar.transform;
@@ -289,7 +339,7 @@ public class PlannerUI : MonoBehaviour
         rect.anchorMax = new Vector2(to, 0.5f);
         rect.sizeDelta = new Vector2(0, 8);
         var image = bar.GetComponent<Image>();
-        image.color = new Color(XpColor.r, XpColor.g, XpColor.b, 0.55f);
+        image.color = new Color(color.r, color.g, color.b, 0.55f);
         image.raycastTarget = false;
     }
 

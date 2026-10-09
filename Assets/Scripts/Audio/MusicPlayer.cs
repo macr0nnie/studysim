@@ -41,8 +41,9 @@ public class MusicPlayer : MonoBehaviour
                 OnPlaybackProgressChanged.Invoke(audioSource.time / audioSource.clip.length);
             }
             
-            // Auto-advance to next song when current one finishes
-            if (!audioSource.isPlaying && audioSource.time >= audioSource.clip.length - 0.1f)
+            // Auto-advance when the song ends. A finished AudioSource rewinds time to 0, so check that it
+            // stopped on its own (we weren't paused) instead of comparing time to the clip length.
+            if (!audioSource.isPlaying)
             {
                 PlayNextSong();
             }

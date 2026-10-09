@@ -25,7 +25,7 @@ public class GameHUD : MonoBehaviour
     private Color timerStudyColor;
     private AudioSource chime;
     private readonly System.Collections.Generic.Queue<string> toasts = new System.Collections.Generic.Queue<string>();
-    private bool toastPlaying;
+    private bool toastPlaying, wasEditing;
     static readonly Color BreakColor = new Color(0.55f, 0.85f, 0.65f, 1f);
 
     // The old texts this card replaces.
@@ -98,7 +98,12 @@ public class GameHUD : MonoBehaviour
     {
         // Green countdown while on a break, so it's clear which phase is running.
         if (timerText != null && timer != null) timerText.color = timer.IsStudySession ? timerStudyColor : BreakColor;
-        if (editPill != null && room != null) editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
+        if (editPill != null && room != null)
+        {
+            editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
+            if (room.IsEditMode && !wasEditing) ShowToast("Edit mode: drag a piece to move it.  R rotates, Delete removes, Esc finishes");
+            wasEditing = room.IsEditMode;
+        }
         if (cover != null)
         {
             bool hasArt = cover.sprite != coverPlaceholder;
@@ -330,6 +335,8 @@ public class GameHUD : MonoBehaviour
             }
         }
     }
+
+    public static void Theme(Transform root) => ThemeTree(root);
 
     private static void ThemeTree(Transform root)
     {

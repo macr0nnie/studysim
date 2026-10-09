@@ -56,6 +56,7 @@ public class UIManager : MonoBehaviour
     }
     private void Update()
     {
+        if (UIKit.Typing()) return; // typing an "m" or "i" in a text field shouldn't open panels
         if (Input.GetKeyDown(KeyCode.M))
         {
             TogglePanel(audioPanel);

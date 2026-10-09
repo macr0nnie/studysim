@@ -92,6 +92,7 @@ public class iPodUIController : MonoBehaviour
             // Update UI
             UpdateCurrencyDisplay();
             LoadPlaylists(); // Refresh to update locked status
+            GameHUD.Theme(playlistContainer); // the rebuilt rows need the HUD colours again
         }
         else
         {

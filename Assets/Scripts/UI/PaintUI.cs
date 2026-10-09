@@ -21,12 +21,14 @@ public class PaintUI : MonoBehaviour
         public string backgroundColor = "";
     }
 
-    // Soft, room-friendly paints.
+    // 60 paints, 12 to a row: neutrals and woods, reds and pinks, warm and green, blues and teals, purples and darks.
     static readonly string[] Swatches =
     {
-        "F4EDE1", "E8D9C4", "D9C2A6", "B89A7A", "8C6A55", "5E4636",
-        "F2D4D7", "D9A5B3", "B9A3D6", "8E7CC3", "5D4E8C", "3B3355",
-        "CFE3D4", "9DC3A5", "6E9C7D", "A9C8E0", "6F95B8", "2F3E52",
+        "FFFFFF", "F4EDE1", "E8D9C4", "D9C2A6", "BFBFBF", "9A9A9A", "7A7A7A", "5A5A5A", "3E3E3E", "1F1F1F", "B89A7A", "5E4636",
+        "F9D5D3", "F2A7A0", "E5736B", "D64545", "A62B2B", "6E1B1B", "F6C1D9", "E88BB4", "C94F86", "FAD7A8", "F5A25D", "E07B39",
+        "FFF2B3", "F7DC6F", "E9B824", "B8860B", "D9E8A8", "A8CC6A", "6FA84A", "3F7D3A", "CFE3D4", "9DC3A5", "6E9C7D", "2F5D46",
+        "D4ECF5", "A9C8E0", "7FB3D5", "4A90C2", "2C6AA0", "1B3F66", "B8E6E0", "6FCFC2", "2FA89A", "1E6F73", "CCE0FF", "8AA9FF",
+        "E6D9F5", "CDB8EB", "B9A3D6", "8E7CC3", "5D4E8C", "3B3355", "F0D9FF", "D49AF0", "A24BC8", "6A2C91", "2F3E52", "1B2433",
     };
 
     private RoomManager room;
@@ -266,7 +268,7 @@ public class PaintUI : MonoBehaviour
         info.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
 
         Label("Colours");
-        swatchGrid = Grid(Make("Swatches", panel.transform), 38, 9, 6).transform;
+        swatchGrid = Grid(Make("Swatches", panel.transform), 30, 12, 4).transform;
         foreach (string hex in Swatches)
         {
             ColorUtility.TryParseHtmlString("#" + hex, out Color color);

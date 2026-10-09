@@ -30,14 +30,19 @@ public static class FurnitureStoreTools
             "A crunchy pile of autumn leaves for a seasonal corner."),
     };
 
-    // Room-item groups of the Ultimate Interior Pack that belong in the store (food, clothes, bathroom etc. stay out).
-    const string InteriorPackPrefabs = "Assets/Fries and Seagull/Ultimate Interior Pack/Prefabs";
-    const string InteriorPackItems = ItemFolder + "/Interior Pack"; // own folder so e.g. its "Bookshelf" can't replace ours
-    static readonly string[] InteriorPackGroups =
+    // Imported asset packs whose prefabs go in the store automatically. Each pack gets its own item folder so
+    // e.g. its "Bookshelf" can't replace ours. To add a pack: import it, then add a line here.
+    const string InteriorPack = "Assets/Fries and Seagull/Ultimate Interior Pack/Prefabs";
+    static readonly (string items, string[] folders)[] Packs =
     {
-        "Bed & Bedding", "Chair-like", "Shelf-like & Table-like", "Light Source", "Office Items",
-        "Plants", "Clock & Alarms", "Picture Frame", "Racks",
+        // Room-item groups only (food, clothes, bathroom etc. stay out).
+        ("Interior Pack", new[] { "Bed & Bedding", "Chair-like", "Shelf-like & Table-like", "Light Source", "Office Items",
+            "Plants", "Clock & Alarms", "Picture Frame", "Racks" }.Select(g => $"{InteriorPack}/{g}").ToArray()),
+        ("Mnostva Interiors", new[] { "Assets/Mnostva_Art" }),
+        ("Poly Halloween", new[] { "Assets/polyperfect/Poly Halloween" }),
     };
+    // Pack prefabs under these folders are demo scenes, characters or effects, not furniture.
+    static readonly string[] SkipFolders = { "/demo", "/scene", "/render_pipeline", "/character", "/fx", "/particle", "/vfx", "/effect" };
 
     static FurnitureStoreTools()
     {
@@ -49,16 +54,18 @@ public static class FurnitureStoreTools
     public static void RunSetup()
     {
         AddModelPieces();
-        AddInteriorPack();
+        foreach (var pack in Packs) AddPack(pack.items, pack.folders);
     }
 
-    static void AddInteriorPack()
+    static void AddPack(string packName, string[] packFolders)
     {
-        string[] folders = InteriorPackGroups.Select(g => $"{InteriorPackPrefabs}/{g}").Where(AssetDatabase.IsValidFolder).ToArray();
-        if (folders.Length == 0) return;
+        string[] folders = packFolders.Where(AssetDatabase.IsValidFolder).ToArray();
+        if (folders.Length == 0) return; // not imported (yet)
+        string itemFolder = $"{ItemFolder}/{packName}";
         // Only prefabs without a store item yet, so reopening the project stays fast.
         var newPaths = AssetDatabase.FindAssets("t:Prefab", folders).Select(AssetDatabase.GUIDToAssetPath)
-            .Where(p => AssetDatabase.LoadAssetAtPath<FurnitureItem>($"{InteriorPackItems}/{Path.GetFileNameWithoutExtension(p)}.asset") == null)
+            .Where(p => !SkipFolders.Any(f => p.ToLowerInvariant().Contains(f)))
+            .Where(p => AssetDatabase.LoadAssetAtPath<FurnitureItem>($"{itemFolder}/{Path.GetFileNameWithoutExtension(p)}.asset") == null)
             .ToArray();
         if (newPaths.Length == 0) return;
 
@@ -69,7 +76,7 @@ public static class FurnitureStoreTools
             for (int i = 0; i < newPaths.Length; i++)
             {
                 EditorUtility.DisplayProgressBar("Furniture setup", Path.GetFileNameWithoutExtension(newPaths[i]), (float)i / newPaths.Length);
-                if (AddToStore(AssetDatabase.LoadAssetAtPath<GameObject>(newPaths[i]), catalog, InteriorPackItems) != null) added++;
+                if (AddToStore(AssetDatabase.LoadAssetAtPath<GameObject>(newPaths[i]), catalog, itemFolder) != null) added++;
             }
         }
         finally
@@ -78,7 +85,7 @@ public static class FurnitureStoreTools
         }
         EditorUtility.SetDirty(catalog);
         AssetDatabase.SaveAssets();
-        Debug.Log($"Furniture setup: added {added} Interior Pack item(s) to the store.");
+        Debug.Log($"Furniture setup: added {added} {packName} item(s) to the store.");
     }
 
     static void AddModelPieces()

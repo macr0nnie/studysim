@@ -197,7 +197,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ee977423c936a1a40b8da5f33554af0b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Furniture
-  Type: 0
+  Type: 1
 --- !u!1 &6786916352824663797 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6350373727104166667, guid: 36b419236ee343840820a511912ed7b0, type: 3}

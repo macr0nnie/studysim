@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Track Light
   description: A track light to keep your study corner warm and bright.
-  category: 2
+  category: 4
   tags:
   - track
   - light
@@ -22,3 +22,4 @@ MonoBehaviour:
   price: 25
   prefab: {fileID: 232115412207967458, guid: 6c05705fc2ac212408a7cac32577c299, type: 3}
   icon: {fileID: 0}
+  colorable: 1

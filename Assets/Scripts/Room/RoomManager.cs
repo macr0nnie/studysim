@@ -407,6 +407,48 @@ public class RoomManager : MonoBehaviour
             else roomFloor.Encapsulate(floor.bounds);
             hasRoomFloor = true;
         }
+        if (hasRoomFloor && !HasVisibleWalls()) BuildFallbackWalls();
+    }
+
+    // False when the scene has no wall renderer that is on and room-sized (deleted, hidden or with its mesh missing).
+    private bool HasVisibleWalls()
+    {
+        foreach (Renderer wall in wallMeshes)
+            if (wall != null && wall.enabled && wall.gameObject.activeInHierarchy && wall.bounds.size.magnitude > 2f) return true;
+        return false;
+    }
+
+    // Two back walls (the sides away from the camera) so the room is never open and decor always has something to hang on.
+    // Painted like any wall; replaced by the scene's own walls whenever it has them.
+    private void BuildFallbackWalls()
+    {
+        Vector3 toCamera = mainCamera != null ? Vector3.ProjectOnPlane(mainCamera.transform.position - roomFloor.center, Vector3.up) : Vector3.back;
+        float sx = toCamera.x > 0 ? -1 : 1, sz = toCamera.z > 0 ? -1 : 1; // the far side along each axis
+        float height = 3f, thick = 0.1f, y = roomFloor.max.y + height / 2;
+        Material material = Resources.Load<RoomSurfaces>("RoomSurfaces") is RoomSurfaces rs && rs.walls.Length > 0 ? rs.walls[0] : null;
+        if (material == null)
+        {
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
+            if (shader == null) return;
+            material = new Material(shader) { color = new Color(0.86f, 0.86f, 0.9f) };
+        }
+        var made = new List<Renderer>();
+        void Wall(string name, Vector3 centre, Vector3 size)
+        {
+            GameObject wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            wall.name = name;
+            wall.layer = LayerIndex(wallLayer);
+            wall.transform.position = centre;
+            wall.transform.localScale = size;
+            Renderer r = wall.GetComponent<Renderer>();
+            r.sharedMaterial = material;
+            made.Add(r);
+        }
+        Vector3 c = roomFloor.center, e = roomFloor.extents;
+        Wall("Wall (back, x)", new Vector3(c.x + sx * (e.x + thick / 2), y, c.z), new Vector3(thick, height, e.z * 2 + thick * 2));
+        Wall("Wall (back, z)", new Vector3(c.x, y, c.z + sz * (e.z + thick / 2)), new Vector3(e.x * 2 + thick * 2, height, thick));
+        wallMeshes = made.ToArray();
+        ceilingY = roomFloor.max.y + height;
     }
 
     private static int LayerIndex(LayerMask mask)

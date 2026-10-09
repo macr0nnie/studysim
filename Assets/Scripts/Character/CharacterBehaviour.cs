@@ -48,7 +48,8 @@ public class CharacterBehaviour : MonoBehaviour
         if (Time.time >= nextCheck) { nextCheck = Time.time + 0.25f; UseFurniture(); }
         if (Time.time >= nextSay && !lying) { Say(CharacterDialogue.Line(Mood, CharacterDialogue.Stage)); nextSay = Time.time + SayEvery * Random.Range(0.8f, 1.6f); }
         if (bubbleBack.gameObject.activeSelf && Time.time >= hideBubble) bubbleBack.gameObject.SetActive(false);
-        if (usedPiece != null) Hold();
+        if (walking) Walk();
+        else if (usedPiece != null) Hold();
     }
 
     private void LateUpdate()
@@ -261,18 +262,174 @@ public class CharacterBehaviour : MonoBehaviour
                 best = c.gameObject; pos = p2; rot = r2; bestDist = dist; bestNear = near; bestStamp = s.time;
             }
         }
-        if (best == null) { if (usedPiece != null) { usedPiece = null; Release(); } return; }
-        if (usedPiece == null || wantLie != lying)
+        if (best == null) { if (usedPiece != null || walking) { usedPiece = null; walking = false; Release(); } return; }
+        if (!wantLie && best != usedPiece)
         {
-            if (wantLie) { animator.SetBool("IsStudying", false); animator.speed = 0f; } // no lying clip yet: freeze the pose
+            // A different chair: walk there instead of snapping (but not while a piece is being dragged).
+            if (room.IsDragging) return;
+            if (walking && best == walkChair) { sitPos = pos; sitRot = rot; return; }
+            BeginWalk(best, pos, rot);
+            return;
+        }
+        if (walking && wantLie) { walking = false; Release(); } // break time: stop walking, go lie down
+        if (walking) { sitPos = pos; sitRot = rot; return; }
+        Assign(best, wantLie, pos, rot);
+    }
+
+    private void Assign(GameObject piece, bool lie, Vector3 pos, Quaternion rot)
+    {
+        if (usedPiece == null || lie != lying)
+        {
+            if (lie) { animator.SetBool("IsStudying", false); animator.speed = 0f; } // no lying clip yet: freeze the pose
             else { animator.speed = 1f; animator.SetBool("IsStudying", true); }
         }
-        usedPiece = best;
-        lying = wantLie;
+        usedPiece = piece;
+        lying = lie;
         // Remembered in the piece's own frame, so the character rides with it instead of drifting.
-        Matrix4x4 rest = Rest(best.transform);
+        Matrix4x4 rest = Rest(piece.transform);
         localPos = rest.inverse.MultiplyPoint3x4(pos);
         localRot = Quaternion.Inverse(rest.rotation) * rot;
+    }
+
+    // ---------- walking to a chair ----------
+
+    private const float WalkSpeed = 1.5f, MaxWalkSeconds = 8f, TurnDegreesPerSecond = 360f;
+    private bool walking;
+    private GameObject walkChair;
+    private Vector3 sitPos;
+    private Quaternion sitRot;
+    private readonly List<Vector3> path = new List<Vector3>();
+    private float walkTime;
+
+    // Stand up, go round the furniture to a free spot beside the chair, then step onto it. No NavMesh: a straight line
+    // with a sidestep round any blocking piece's bounds is enough for a bedroom.
+    private void BeginWalk(GameObject chair, Vector3 pos, Quaternion rot)
+    {
+        Vector3 start = transform.position;
+        GameObject oldPiece = usedPiece;
+        bool wasSeated = oldPiece != null && !lying;
+        usedPiece = null; lying = false;
+        walking = true; walkChair = chair; sitPos = pos; sitRot = rot; walkTime = 0f;
+        transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
+        animator.SetBool("IsStudying", false);
+        animator.speed = 0f; // shortcut: the controller has no walk clip, so the pose just glides; add one and set a Walk bool here
+
+        float step = standingHeight * 0.35f;
+        Vector3 face = rot * Vector3.forward;
+        Vector3 side = Vector3.Cross(Vector3.up, face);
+        Vector3[] candidates = { pos + face * step, pos + side * step, pos - side * step, pos - face * step };
+        System.Array.Sort(candidates, 1, 2, Comparer<Vector3>.Create((a, b) => (a - start).sqrMagnitude.CompareTo((b - start).sqrMagnitude))); // the nearer side first
+        var ignore = new HashSet<GameObject> { chair, oldPiece };
+        Vector3 stand = candidates[0];
+        foreach (Vector3 c in candidates) if (!Blocked(c, ignore)) { stand = c; break; }
+
+        path.Clear();
+        Vector3 from = start;
+        // Out of a seat first: back away from the desk instead of cutting through it.
+        if (wasSeated) { from = start - transform.forward * standingHeight * 0.3f; path.Add(from); }
+        path.AddRange(Detour(from, stand, ignore));
+        path.Add(stand);
+        path.Add(pos);
+    }
+
+    private Bounds Inflated(GameObject p, float r)
+    {
+        Bounds b = BoundsOf(p);
+        b.Expand(new Vector3(r * 2f, 0f, r * 2f));
+        return b;
+    }
+
+    private bool Blocked(Vector3 point, HashSet<GameObject> ignore)
+    {
+        float r = standingHeight * 0.12f, floorY = FloorBounds().max.y;
+        foreach (GameObject p in room.PlacedPieces)
+        {
+            if (p == null || !p.activeInHierarchy || ignore.Contains(p)) continue;
+            Bounds b = Inflated(p, r);
+            if (b.max.y - floorY < standingHeight * 0.15f) continue; // rugs and the like are walked over
+            if (point.x > b.min.x && point.x < b.max.x && point.z > b.min.z && point.z < b.max.z) return true;
+        }
+        return false;
+    }
+
+    // Waypoints round whatever blocks the straight line from a to b (pieces that already contain a or b don't count).
+    private List<Vector3> Detour(Vector3 a, Vector3 b, HashSet<GameObject> ignore)
+    {
+        var points = new List<Vector3>();
+        float r = standingHeight * 0.12f, floorY = FloorBounds().max.y;
+        Vector3 cur = a;
+        for (int pass = 0; pass < 4; pass++)
+        {
+            Bounds hit = default; bool found = false;
+            foreach (GameObject p in room.PlacedPieces)
+            {
+                if (p == null || !p.activeInHierarchy || ignore.Contains(p)) continue;
+                Bounds o = Inflated(p, r);
+                if (o.max.y - floorY < standingHeight * 0.15f) continue;
+                if (Inside(o, cur) || Inside(o, b) || !Crosses(o, cur, b)) continue;
+                hit = o; found = true; break;
+            }
+            if (!found) break;
+            Vector3 best = default; float bestLen = float.MaxValue;
+            foreach (Vector3 c in new[] { new Vector3(hit.min.x, cur.y, hit.min.z), new Vector3(hit.min.x, cur.y, hit.max.z), new Vector3(hit.max.x, cur.y, hit.min.z), new Vector3(hit.max.x, cur.y, hit.max.z) })
+            {
+                float len = (c - cur).magnitude + (b - c).magnitude;
+                if (len < bestLen) { bestLen = len; best = c; }
+            }
+            points.Add(best);
+            cur = best;
+        }
+        return points;
+    }
+
+    private static bool Inside(Bounds o, Vector3 p) => p.x > o.min.x && p.x < o.max.x && p.z > o.min.z && p.z < o.max.z;
+
+    // Does the segment a-b cross the box on the floor plane (slab test)?
+    private static bool Crosses(Bounds o, Vector3 a, Vector3 b)
+    {
+        float t0 = 0f, t1 = 1f;
+        float[] da = { b.x - a.x, b.z - a.z }, lo = { o.min.x - a.x, o.min.z - a.z }, hi = { o.max.x - a.x, o.max.z - a.z };
+        for (int i = 0; i < 2; i++)
+        {
+            if (Mathf.Abs(da[i]) < 1e-6f) { if (lo[i] > 0f || hi[i] < 0f) return false; continue; }
+            float u = lo[i] / da[i], v = hi[i] / da[i];
+            if (u > v) { float s = u; u = v; v = s; }
+            t0 = Mathf.Max(t0, u); t1 = Mathf.Min(t1, v);
+            if (t0 > t1) return false;
+        }
+        return true;
+    }
+
+    private void Walk()
+    {
+        if (room != null && room.IsDragging) return; // hold still while the player drags furniture around
+        if (walkChair == null || !walkChair.activeInHierarchy) { walking = false; Release(); return; } // chair gone: the next check picks another
+        walkTime += Time.deltaTime;
+        if (walkTime > MaxWalkSeconds) { Finish(); return; } // blocked or too slow: just sit
+
+        if (path.Count > 0)
+        {
+            Vector3 target = path[0], to = target - transform.position;
+            to.y = 0f;
+            float step = WalkSpeed * Time.deltaTime;
+            if (to.magnitude <= step) { transform.position = new Vector3(target.x, target.y, target.z); path.RemoveAt(0); }
+            else
+            {
+                transform.position += to.normalized * step;
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.LookRotation(to.normalized), TurnDegreesPerSecond * Time.deltaTime);
+            }
+            return;
+        }
+        // At the seat: turn to match the chair, then sit.
+        transform.position = sitPos;
+        transform.rotation = Quaternion.RotateTowards(transform.rotation, sitRot, TurnDegreesPerSecond * Time.deltaTime);
+        if (Quaternion.Angle(transform.rotation, sitRot) < 2f) Finish();
+    }
+
+    private void Finish()
+    {
+        walking = false;
+        Assign(walkChair, false, sitPos, sitRot);
     }
 
     private readonly Dictionary<Transform, Vector3> localFronts = new Dictionary<Transform, Vector3>();

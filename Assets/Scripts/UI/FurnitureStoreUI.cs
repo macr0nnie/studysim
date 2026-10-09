@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 // The furniture store. Builds its own screen-space UI from a FurnitureCatalog at startup, so it only needs
-// a catalog assigned: a "Shop" button opens a right-docked panel with category tabs, a grid of icon cards,
+// a catalog assigned: a "Shop" button opens a left-docked panel with category tabs, a grid of icon cards,
 // and a details area (description, tags, price) with a Buy button. Press B to toggle it.
 public class FurnitureStoreUI : MonoBehaviour
 {
@@ -39,6 +39,8 @@ public class FurnitureStoreUI : MonoBehaviour
     private Button buyButton;
     private Card selected;
     private CanvasGroup panelGroup;
+    private readonly Queue<(Image image, FurnitureItem item)> pendingIcons = new Queue<(Image, FurnitureItem)>();
+    private Coroutine sliding;
     private static Sprite generatedRounded;
 
     // Left side, above the room's colour/edit buttons and clear of the timer and music player on the right.
@@ -73,6 +75,7 @@ public class FurnitureStoreUI : MonoBehaviour
         }
         BuildUI();
         panel.SetActive(false);
+        StartCoroutine(RenderIcons()); // in the background, so they are ready by the time the store opens
     }
 
     private void OnEnable()
@@ -95,8 +98,23 @@ public class FurnitureStoreUI : MonoBehaviour
         panel.SetActive(!panel.activeSelf);
         if (!panel.activeSelf) return;
         Refresh(Coins);
-        StopAllCoroutines();
-        StartCoroutine(SlideIn());
+        if (sliding != null) StopCoroutine(sliding);
+        sliding = StartCoroutine(SlideIn());
+    }
+
+    // Hundreds of items would stall the first open if every icon rendered at once, so do a few per frame.
+    private IEnumerator RenderIcons()
+    {
+        while (pendingIcons.Count > 0)
+        {
+            for (int i = 0; i < 4 && pendingIcons.Count > 0; i++)
+            {
+                var (image, item) = pendingIcons.Dequeue();
+                image.sprite = FurnitureIconRenderer.Render(item.prefab, 128); // cards are ~124px, so 128 is plenty
+                image.enabled = image.sprite != null;
+            }
+            yield return null;
+        }
     }
 
     // Short slide + fade from the left edge; unscaled so it still plays if the game is paused.
@@ -279,10 +297,11 @@ public class FurnitureStoreUI : MonoBehaviour
         root.GetComponent<Button>().onClick.AddListener(() => Select(card));
 
         var icon = Make("Icon", root.transform, typeof(Image)).GetComponent<Image>();
-        icon.sprite = item.icon != null ? item.icon : FurnitureIconRenderer.Render(item.prefab);
+        icon.sprite = item.icon;
         icon.preserveAspect = true;
         icon.raycastTarget = false;
         icon.enabled = icon.sprite != null;
+        if (icon.sprite == null) pendingIcons.Enqueue((icon, item));
         Anchor(icon.gameObject, new Vector2(0.08f, 0.32f), new Vector2(0.92f, 0.96f));
         Anchor(Text("Name", root.transform, item.displayName, 15, TextColor, TextAlignmentOptions.Center).gameObject,
             new Vector2(0.04f, 0.16f), new Vector2(0.96f, 0.32f));

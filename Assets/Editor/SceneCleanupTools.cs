@@ -10,7 +10,7 @@ public static class SceneCleanupTools
     static readonly string[] Replaced =
     {
         "IPOD", "MusicStore", "HomeButton", "money_text", "player_experience", "coinsText",
-        "Wall_ColorChanger", "Camera_ColorChanger", "EditMode", "Icon (3)",
+        "Wall_ColorChanger", "Camera_ColorChanger", "EditMode", "Icon (3)", "Button_Panel",
     };
 
     [MenuItem("Study Sim/Hide Replaced Scene UI")]

@@ -260,12 +260,14 @@ public static class FurnitureStoreTools
     // (change it on the prefab's Furniture component).
     // shortcut: substring match on the name, so odd names land on the floor; fix those on the prefab.
     static readonly string[] CeilingWords = { "hanging", "chandelier", "pendant", "ceiling", "track light" };
-    static readonly string[] WallWords = { "wall", "painting", "poster", "mirror", "window", "curtain", "picture",
+    // Bare "wall" or "fence" would catch graveyard walls and fences, which stand on the floor.
+    static readonly string[] WallWords = { "wall clock", "wall light", "wall lamp", "wall shelf", "wall art", "wall decor",
+        "wall hanging", "wall sign", "wall mirror", "painting", "poster", "mirror", "window", "curtain", "picture",
         "wreath", "banner", "corkboard", "whiteboard", "notice board", "calendar" }; // not "frame": bed frames stand
 
     static Furniture.FurnitureType GuessPlacement(string assetName)
     {
-        string lower = assetName.ToLowerInvariant();
+        string lower = assetName.ToLowerInvariant().Replace('_', ' ').Replace('-', ' ');
         if (CeilingWords.Any(lower.Contains)) return Furniture.FurnitureType.Ceiling;
         // Alarm and table clocks stand on desks; other clocks hang.
         bool clock = lower.Contains("clock") && !lower.Contains("alarm") && !lower.Contains("table") && !lower.Contains("desk");
@@ -275,7 +277,7 @@ public static class FurnitureStoreTools
 
     // Items added before wall/ceiling detection got better: move them to the right surface once per machine.
     // Only floor pieces are changed, so a type someone chose on purpose (shelf, wall) is kept.
-    const string ReclassifiedKey = "StudySim.FurniturePlacement.v2";
+    const string ReclassifiedKey = "StudySim.FurniturePlacement.v3";
 
     [MenuItem("Study Sim/Re-detect Wall And Ceiling Furniture")]
     static void ReclassifyFromMenu()
@@ -292,11 +294,16 @@ public static class FurnitureStoreTools
         foreach (FurnitureItem item in catalog.items.Where(i => i != null && i.prefab != null))
         {
             Furniture.FurnitureType guess = GuessPlacement(item.prefab.name);
-            if (guess == Furniture.FurnitureType.Floor) continue;
+            Furniture current = item.prefab.GetComponent<Furniture>();
+            if (current == null) continue;
+            // v2 hung anything named "wall" (graveyard walls, fences) on the walls: put those back on the floor.
+            bool looseWallMatch = current.Type == Furniture.FurnitureType.Wall && guess == Furniture.FurnitureType.Floor
+                && item.prefab.name.ToLowerInvariant().Contains("wall");
+            if (!looseWallMatch && (guess == Furniture.FurnitureType.Floor || current.Type != Furniture.FurnitureType.Floor)) continue;
             string path = AssetDatabase.GetAssetPath(item.prefab);
             GameObject root = PrefabUtility.LoadPrefabContents(path);
             Furniture furniture = root.GetComponent<Furniture>();
-            if (furniture != null && furniture.Type == Furniture.FurnitureType.Floor)
+            if (furniture != null)
             {
                 furniture.Type = guess;
                 PrefabUtility.SaveAsPrefabAsset(root, path);
@@ -311,7 +318,7 @@ public static class FurnitureStoreTools
         }
         AssetDatabase.SaveAssets();
         EditorPrefs.SetBool(ReclassifiedKey, true);
-        if (moved > 0) Debug.Log($"Furniture setup: moved {moved} item(s) to wall or ceiling placement.");
+        if (moved > 0) Debug.Log($"Furniture setup: changed placement (floor, wall or ceiling) for {moved} item(s).");
     }
 
     // Returns true if anything was added.

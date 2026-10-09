@@ -55,7 +55,7 @@ public class UIManager : MonoBehaviour
         if (playerCurrency != null) UpdateCurrencyUI(playerCurrency.GetCoins());
     }
     // No panel hotkeys any more: M and Esc toggled ALL_THE_MUSIC_STUFF (stopping the music) and I the
-    // old store; their replacements (music card, Shop B, E/Esc for edit mode) handle their own keys.
+    // old store; their replacements (music card, Shop B, Tab for edit mode, Esc for settings) handle their own keys.
 
     private void InitializeManagers()
     {

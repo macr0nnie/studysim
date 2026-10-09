@@ -6,17 +6,17 @@ using UnityEngine.InputSystem;
 // the overrides are saved in PlayerPrefs.
 public static class Controls
 {
-    public enum Act { Edit, Store, Planner, Saves, Settings, Undo, Redo, Rotate, Delete, Grid, Cancel }
+    public enum Act { Edit, Store, Planner, Saves, Settings, Undo, Redo, Rotate, Delete, Grid }
 
     public static readonly string[] Labels =
     {
-        "Edit mode", "Shop", "Planner", "Saves", "Settings", "Undo", "Redo", "Rotate / flip", "Delete piece", "Grid snap", "Cancel / leave edit mode",
+        "Edit mode", "Shop", "Planner", "Saves", "Settings", "Undo", "Redo", "Rotate / flip", "Delete piece", "Grid snap",
     };
 
     private static readonly string[] Defaults =
     {
-        "<Keyboard>/e", "<Keyboard>/b", "<Keyboard>/p", "<Keyboard>/f5", "<Keyboard>/f10", "<Keyboard>/z", "<Keyboard>/y",
-        "<Keyboard>/r", "<Keyboard>/delete", "<Keyboard>/g", "<Keyboard>/escape",
+        "<Keyboard>/tab", "<Keyboard>/b", "<Keyboard>/p", "<Keyboard>/f5", "<Keyboard>/escape", "<Keyboard>/z", "<Keyboard>/y",
+        "<Keyboard>/r", "<Keyboard>/delete", "<Keyboard>/g",
     };
 
     private const string SaveKey = "ControlBindings";

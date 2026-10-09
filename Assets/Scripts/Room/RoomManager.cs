@@ -130,7 +130,6 @@ public class RoomManager : MonoBehaviour
             HandleRotationAndFlipping();
             if (selectedObject != null && Controls.Pressed(Controls.Act.Delete))
                 DeleteObject(selectedObject);
-            if (Controls.Pressed(Controls.Act.Cancel)) EnterEditMode();
         }
 
         else
@@ -507,7 +506,7 @@ public class RoomManager : MonoBehaviour
     }
 
     // Edit mode: click a piece to select it (it glows), drag it to move it along its surface,
-    // R rotates, Delete removes, Esc leaves. Clicking empty space deselects.
+    // R rotates, Delete removes, Tab leaves. Clicking empty space deselects.
     private void HandleEditMode()
     {
         if (Controls.ClickUp)

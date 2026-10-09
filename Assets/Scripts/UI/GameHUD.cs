@@ -101,7 +101,7 @@ public class GameHUD : MonoBehaviour
         if (editPill != null && room != null)
         {
             editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
-            if (room.IsEditMode && !wasEditing) ShowToast($"Edit mode: drag a piece to move it.  {Controls.KeyName(Controls.Act.Rotate)} rotates, {Controls.KeyName(Controls.Act.Delete)} removes, {Controls.KeyName(Controls.Act.Cancel)} finishes");
+            if (room.IsEditMode && !wasEditing) ShowToast($"Edit mode: drag a piece to move it.  {Controls.KeyName(Controls.Act.Rotate)} rotates, {Controls.KeyName(Controls.Act.Delete)} removes, {Controls.KeyName(Controls.Act.Edit)} finishes");
             wasEditing = room.IsEditMode;
         }
         if (debugText == null) return;

@@ -368,6 +368,33 @@ public static class UIKit
         rect.offsetMin = rect.offsetMax = Vector2.zero;
     }
 
+    private static Sprite gearSprite;
+
+    // Eight-toothed gear with a hole, anti-aliased, built once.
+    public static Sprite Gear
+    {
+        get
+        {
+            if (gearSprite != null) return gearSprite;
+            const int n = 64;
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+            var pixels = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float dx = x + 0.5f - n / 2f, dy = y + 0.5f - n / 2f;
+                    float r = Mathf.Sqrt(dx * dx + dy * dy);
+                    float tooth = Mathf.Clamp01(Mathf.Sin(8 * Mathf.Atan2(dy, dx)) * 2.5f + 0.5f); // 0 between teeth, 1 on them
+                    float outer = Mathf.Lerp(22f, 30f, tooth);
+                    float a = Mathf.Clamp01(outer - r + 0.5f) * Mathf.Clamp01(r - 9f + 0.5f); // body minus the centre hole
+                    pixels[y * n + x] = new Color32(255, 255, 255, (byte)(a * 255));
+                }
+            tex.SetPixels32(pixels);
+            tex.Apply();
+            return gearSprite = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100);
+        }
+    }
+
     // Right-pointing anti-aliased triangle, built once.
     public static Sprite Triangle
     {

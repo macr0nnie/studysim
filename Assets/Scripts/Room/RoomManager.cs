@@ -73,6 +73,8 @@ public class RoomManager : MonoBehaviour
     private Bounds roomFloor;
     private bool hasRoomFloor;
     private static readonly RaycastHit[] surfaceHits = new RaycastHit[16];
+    // The desk and chair a new game starts with: they can be moved and rotated but not deleted.
+    private readonly HashSet<GameObject> starterPieces = new HashSet<GameObject>();
     private readonly Dictionary<GameObject, Color> pieceColors = new Dictionary<GameObject, Color>();
     private readonly Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
 
@@ -704,6 +706,11 @@ public class RoomManager : MonoBehaviour
 
     private void DeleteObject(GameObject obj)
     {
+        if (starterPieces.Contains(obj))
+        {
+            FindFirstObjectByType<GameHUD>()?.ShowToast("Every room keeps its desk and chair. You can still move and turn them.");
+            return;
+        }
         if (placedObjects.Contains(obj))
         {
             obj.SetActive(false);
@@ -769,6 +776,7 @@ public class RoomManager : MonoBehaviour
         public bool active;
         public string color; // hex RGB, empty when unpainted
         public bool lightsOff;
+        public bool starter; // desk or chair a new game starts with: can't be deleted
     }
 
     private void SaveRoom()
@@ -793,6 +801,7 @@ public class RoomManager : MonoBehaviour
             id = id, index = index, position = position, rotation = rotation, active = go.activeSelf,
             color = pieceColors.TryGetValue(go, out Color c) ? ColorUtility.ToHtmlStringRGB(c) : "",
             lightsOff = HasLights(go) && !LightsOn(go),
+            starter = starterPieces.Contains(go),
         };
     }
 
@@ -806,12 +815,33 @@ public class RoomManager : MonoBehaviour
 
     private void EmptyRoom()
     {
+        GameObject desk = null;
         foreach (GameObject go in sceneFurniture.Values)
         {
+            if (go.name == "desk") { desk = go; starterPieces.Add(go); continue; }
             go.SetActive(false);
             placedObjects.Remove(go);
         }
-        SaveRoom(); // writes the layout, so the room stays empty and later saves carry it
+        SpawnStarterChair(desk);
+        SaveRoom(); // writes the layout, so the room stays as it is and later saves carry it
+    }
+
+    // A chair on the camera side of the desk, facing it. The player can move and turn it, not delete it.
+    private void SpawnStarterChair(GameObject desk)
+    {
+        if (desk == null) { Debug.LogWarning("RoomManager: no desk in the scene to put a starter chair at."); return; }
+        FurnitureCatalog catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
+        FurnitureItem item = catalog != null ? catalog.items.Find(i => i != null && i.prefab != null && i.name == "Chair 1") : null;
+        if (item == null) { Debug.LogWarning("RoomManager: no 'Chair 1' in the furniture catalog; no starter chair."); return; }
+        Physics.SyncTransforms();
+        Bounds b = GetBounds(desk);
+        Vector3 toCamera = Vector3.ProjectOnPlane(mainCamera.transform.position - b.center, Vector3.up).normalized;
+        Vector3 position = new Vector3(b.center.x, b.min.y, b.center.z) + toCamera * (Mathf.Max(b.extents.x, b.extents.z) + 0.6f);
+        GameObject chair = Instantiate(item.prefab, position, Quaternion.LookRotation(-toCamera));
+        chair.name = item.prefab.name;
+        placedObjects.Add(chair);
+        boughtItems[chair] = item;
+        starterPieces.Add(chair);
     }
 
     private void LoadRoom()
@@ -830,6 +860,7 @@ public class RoomManager : MonoBehaviour
             go.transform.SetPositionAndRotation(piece.position, piece.rotation);
             go.SetActive(piece.active);
             if (!piece.active) placedObjects.Remove(go);
+            if (piece.starter) starterPieces.Add(go);
             LoadColor(go, piece);
         }
 
@@ -846,6 +877,7 @@ public class RoomManager : MonoBehaviour
             go.name = item.prefab.name;
             placedObjects.Add(go);
             boughtItems[go] = item;
+            if (piece.starter) starterPieces.Add(go);
             LoadColor(go, piece);
         }
     }

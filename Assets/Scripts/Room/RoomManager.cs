@@ -61,8 +61,6 @@ public class RoomManager : MonoBehaviour
     private Color shownTint;
     static readonly Color HoverTint = new Color(0.85f, 0.95f, 1f, 1f);
 
-    private float lastClickTime;
-    private const float doubleClickThreshold = 0.3f;
 
     // Bought pieces and what was paid, so removing one refunds it and the room can be saved and rebuilt.
     private readonly Dictionary<GameObject, FurnitureItem> boughtItems = new Dictionary<GameObject, FurnitureItem>();
@@ -885,7 +883,7 @@ public class RoomManager : MonoBehaviour
         }
     }
 
-    // Handle normal object selection (supports double-click to trigger edit mode).
+    // Handle normal object selection: click a lamp to switch it, right-click a piece to delete it.
     private void HandleObjectSelection()
     {
         if (IsPointerOverUI()) return;
@@ -894,20 +892,12 @@ public class RoomManager : MonoBehaviour
             GameObject rootObject = PlacedObjectUnderCursor();
             if (rootObject != null)
             {
-                // Clicking a lamp switches it. A double-click (to edit) switches it twice, so it ends as it was.
+                // Clicking a lamp switches it. Edit mode is entered only with Tab or the Edit button.
                 if (HasLights(rootObject))
                 {
                     SetLights(rootObject, !LightsOn(rootObject));
                     SaveRoom();
                 }
-                // If double-clicked within threshold, enter edit mode.
-                if (Time.time - lastClickTime <= doubleClickThreshold)
-                {
-                    isEditMode = true;
-                    Select(rootObject);
-                    Debug.Log("Entering Edit Mode on object: " + rootObject.name);
-                }
-                lastClickTime = Time.time;
             }
         }
         // Right-click to delete an object.

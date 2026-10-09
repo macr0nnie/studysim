@@ -9,34 +9,47 @@ using UnityEngine.UI;
 // uses the same palette, fonts, rounded corners and motion.
 public static class UIKit
 {
-    // Menu colours are a theme: every shade below comes from one menu colour the player can pick
-    // (Paint > Menus), saved under MenuColor. Text, gold accent, XP green and danger red stay fixed.
+    // The default theme is light: white panels, dark text, one blue accent. Picking a menu colour (Paint > Menus)
+    // switches to a dark theme built from that colour (saved under MenuColor); Reset goes back to light.
+    // Gold accent, XP green and danger red are darker on the light theme so they stay readable on white.
     public static Color PanelColor, CardColor, SelectedColor, TabColor, MutedText, AccentButtonColor;
-    public static readonly Color TextColor = new Color(0.96f, 0.93f, 0.88f, 1f);
-    public static readonly Color AccentColor = new Color(1f, 0.82f, 0.40f, 1f);
-    public static readonly Color XpColor = new Color(0.55f, 0.85f, 0.65f, 1f);
-    public static readonly Color DangerColor = new Color(0.85f, 0.42f, 0.48f, 1f);
+    public static Color TextColor, AccentColor, XpColor, DangerColor;
 
-    public static readonly Color DefaultMenuColor = new Color(0.45f, 0.34f, 0.60f, 1f); // the original purple
+    // Shown on the Paint > Menus swatch while no colour is picked.
+    public static readonly Color DefaultMenuColor = new Color(0.97f, 0.97f, 0.98f, 1f);
     private const string MenuColorKey = "MenuColor";
     public static bool MenuColorChanged => PlayerPrefs.HasKey(MenuColorKey);
+    private const float DarkBase = 0.43f; // saturation of the original purple the dark shades are scaled from
 
     static UIKit() => LoadSavedTheme();
 
     // Also called before a save slot reloads the room, since that slot may carry another menu colour.
     public static void LoadSavedTheme()
     {
-        Color menu = DefaultMenuColor;
-        if (PlayerPrefs.HasKey(MenuColorKey) && !ColorUtility.TryParseHtmlString("#" + PlayerPrefs.GetString(MenuColorKey), out menu))
-            menu = DefaultMenuColor;
-        SetPalette(menu);
+        Color menu = default;
+        bool custom = PlayerPrefs.HasKey(MenuColorKey) && ColorUtility.TryParseHtmlString("#" + PlayerPrefs.GetString(MenuColorKey), out menu);
+        SetPalette(custom ? menu : (Color?)null);
     }
 
-    // Shades keep the purple theme's saturation and brightness steps, on the picked colour's hue.
-    private static void SetPalette(Color menu)
+    private static void SetPalette(Color? menu)
     {
-        Color.RGBToHSV(menu, out float h, out float s, out _);
-        float k = s / 0.43f; // the default purple's saturation
+        if (!menu.HasValue)
+        {
+            PanelColor = new Color(0.98f, 0.98f, 0.99f, 0.97f);
+            CardColor = new Color(0.91f, 0.92f, 0.94f, 1f);
+            SelectedColor = new Color(0.74f, 0.80f, 0.92f, 1f);
+            TabColor = new Color(0.87f, 0.89f, 0.93f, 1f);
+            AccentButtonColor = new Color(0.66f, 0.78f, 0.96f, 1f);
+            MutedText = new Color(0.36f, 0.39f, 0.45f, 1f);
+            TextColor = new Color(0.10f, 0.12f, 0.16f, 1f);
+            AccentColor = new Color(0.76f, 0.48f, 0.04f, 1f);
+            XpColor = new Color(0.18f, 0.60f, 0.36f, 1f);
+            DangerColor = new Color(0.78f, 0.24f, 0.30f, 1f);
+            return;
+        }
+        // Dark shades keep the original theme's saturation and brightness steps, on the picked colour's hue.
+        Color.RGBToHSV(menu.Value, out float h, out float s, out _);
+        float k = s / DarkBase;
         Color Shade(float sat, float value, float alpha = 1f)
         {
             Color c = Color.HSVToRGB(h, Mathf.Clamp01(sat * k), value);
@@ -49,16 +62,23 @@ public static class UIKit
         TabColor = Shade(0.42f, 0.52f);
         AccentButtonColor = Shade(0.46f, 0.78f);
         MutedText = Shade(0.14f, 0.84f);
+        TextColor = new Color(0.96f, 0.93f, 0.88f, 1f);
+        AccentColor = new Color(1f, 0.82f, 0.40f, 1f);
+        XpColor = new Color(0.55f, 0.85f, 0.65f, 1f);
+        DangerColor = new Color(0.85f, 0.42f, 0.48f, 1f);
     }
 
-    private static Color[] Palette() => new[] { PanelColor, CardColor, SelectedColor, TabColor, AccentButtonColor, MutedText };
+    // True on the default light theme: for the few places that darken or lighten against the panel colour.
+    public static bool LightTheme => !MenuColorChanged;
 
-    // New menu colour (null = default purple): recolours everything already built, which was coloured
+    private static Color[] Palette() => new[] { PanelColor, CardColor, SelectedColor, TabColor, MutedText, AccentButtonColor, TextColor, AccentColor, XpColor, DangerColor };
+
+    // New menu colour (null = back to the light default): recolours everything already built, which was coloured
     // from the old palette; panels built later read the new one.
     public static void ApplyMenuColor(Color? menu)
     {
         Color[] before = Palette();
-        SetPalette(menu ?? DefaultMenuColor);
+        SetPalette(menu);
         if (menu.HasValue) PlayerPrefs.SetString(MenuColorKey, ColorUtility.ToHtmlStringRGB(menu.Value));
         else PlayerPrefs.DeleteKey(MenuColorKey);
         PlayerPrefs.Save();

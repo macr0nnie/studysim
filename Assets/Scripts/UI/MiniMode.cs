@@ -22,6 +22,10 @@ public class MiniMode : MonoBehaviour
     private readonly List<Canvas> hidden = new List<Canvas>();
     private RoomManager room;
     private float lastClick = -1;
+    // Full-mode settings, restored on the way back.
+    private int frameRate, vSync;
+    private bool shadows;
+    private AntialiasingMode antialiasing;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void AddToRoomScenes()
@@ -78,17 +82,39 @@ public class MiniMode : MonoBehaviour
         {
             hidden.Clear();
             foreach (Canvas c in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
-                if (c.isRootCanvas && c.enabled) { c.enabled = false; hidden.Add(c); }
+                if (c.isRootCanvas && c.enabled) { Show(c, false); hidden.Add(c); }
         }
         else
         {
-            foreach (Canvas c in hidden) if (c != null) c.enabled = true;
+            foreach (Canvas c in hidden) if (c != null) Show(c, true);
             hidden.Clear();
         }
+        Economy(Active);
 
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
         if (Active) StartCoroutine(EnterWindow()); else ExitWindow();
 #endif
+    }
+
+    private static void Show(Canvas c, bool on)
+    {
+        c.enabled = on;
+        if (c.TryGetComponent(out UnityEngine.UI.GraphicRaycaster raycaster)) raycaster.enabled = on;
+    }
+
+    // Low power while mini: 15 fps, no vsync, no shadows or anti-aliasing (post-processing is off for transparency).
+    private void Economy(bool on)
+    {
+        if (on) { frameRate = Application.targetFrameRate; vSync = QualitySettings.vSyncCount; }
+        Application.targetFrameRate = on ? 15 : frameRate;
+        QualitySettings.vSyncCount = on ? 0 : vSync;
+
+        Camera cam = Camera.main;
+        if (cam == null) return;
+        var data = cam.GetUniversalAdditionalCameraData();
+        if (on) { shadows = data.renderShadows; antialiasing = data.antialiasing; }
+        data.renderShadows = !on && shadows;
+        data.antialiasing = on ? AntialiasingMode.None : antialiasing;
     }
 
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR

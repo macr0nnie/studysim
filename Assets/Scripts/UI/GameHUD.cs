@@ -283,6 +283,9 @@ public class GameHUD : MonoBehaviour
         {
             if (image.GetComponent<Mask>() != null) continue; // masks need their sprite's alpha
             if (image.name.Contains("Cover")) continue; // album art, coloured by LayoutNowPlaying
+            // Song-list rows: keep the cover art as is, theme only the row background and its buttons.
+            if (image.GetComponentInParent<PlaylistItemUI>(true) is PlaylistItemUI row && row.gameObject != image.gameObject
+                && image.name != "Play" && image.name != "BuyButton") continue;
             Sprite white = UIIcons.Light(image.sprite);
             if (white != null) { image.sprite = white; image.color = TextColor; continue; } // dark line icons can't be tinted light
             if (!IsShape(image.sprite)) continue;

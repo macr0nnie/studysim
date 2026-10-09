@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class StudyCharacter : MonoBehaviour
 {
@@ -21,6 +22,32 @@ public class StudyCharacter : MonoBehaviour
     private bool isStudying;
     private static readonly int StudyingParam = Animator.StringToHash("IsStudying");
     private static readonly int InteractingParam = Animator.StringToHash("IsInteracting");
+    private static readonly int CelebrateParam = Animator.StringToHash("Celebrate");
+    private TimerManager timer;
+
+    // Rooms without a placed character get the Player prefab (Resources/Player, built by Study Sim > Create Player Prefab).
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void AddToRoomScenes()
+    {
+        SceneManager.sceneLoaded += (scene, mode) => EnsurePlayer();
+        EnsurePlayer();
+    }
+
+    private static void EnsurePlayer()
+    {
+        if (FindFirstObjectByType<RoomManager>() == null || FindFirstObjectByType<StudyCharacter>() != null) return;
+        GameObject prefab = Resources.Load<GameObject>("Player");
+        GameObject desk = GameObject.Find("desk");
+        if (prefab == null || desk == null || !desk.TryGetComponent(out Renderer deskRenderer)) return;
+
+        // shortcut: seat guessed from the desk bounds (camera side, sized to the desk); drag Player into the scene to place it exactly
+        Bounds b = deskRenderer.bounds;
+        Vector3 toCamera = Camera.main ? Vector3.ProjectOnPlane(Camera.main.transform.position - b.center, Vector3.up).normalized : Vector3.back;
+        Vector3 seat = new Vector3(b.center.x, b.min.y, b.center.z) + toCamera * Mathf.Max(b.extents.x, b.extents.z);
+        GameObject player = Instantiate(prefab, seat, Quaternion.LookRotation(-toCamera));
+        player.name = "Player";
+        player.transform.localScale *= b.size.y * 2.3f / 1.8f; // desks are ~0.75 m, a Mixamo character ~1.8 m tall
+    }
 
     private void Start()
     {
@@ -42,6 +69,19 @@ public class StudyCharacter : MonoBehaviour
         
         // Start in studying state
         StartStudying();
+        timer = FindFirstObjectByType<TimerManager>();
+        if (timer != null) timer.OnTimerComplete += OnTimerComplete;
+    }
+
+    private void OnDestroy()
+    {
+        if (timer != null) timer.OnTimerComplete -= OnTimerComplete;
+    }
+
+    // A cheer when a study session finishes (the timer has already flipped to the break).
+    private void OnTimerComplete()
+    {
+        if (!timer.IsStudySession && enabled) animator.SetTrigger(CelebrateParam);
     }
 
     public void StartStudying()

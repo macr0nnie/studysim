@@ -159,7 +159,8 @@ public class ChromeWebEx : MonoBehaviour
         return body.Length > 0 && body.Length <= 32 ? new Command { action = body.ToLowerInvariant() } : null;
     }
 
-    void OnApplicationQuit()
+    // OnDestroy also covers scene reloads (loading a save), which would otherwise leave port 8080 held
+    void OnDestroy()
     {
         // Stop the listener when the application quits
         if (_httpListener != null)

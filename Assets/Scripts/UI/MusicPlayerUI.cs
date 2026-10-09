@@ -223,14 +223,6 @@ public class MusicPlayerUI : MonoBehaviour
         GameObject times = Row("Times", info.transform, 16, 0, true);
         elapsed = MakeText("Elapsed", times.transform, "0:00", CaptionSize, MutedText, TextAlignmentOptions.Left);
         total = MakeText("Total", times.transform, "--:--", CaptionSize, MutedText, TextAlignmentOptions.Right);
-        // TMP hides a line taller than its box, and these rows are a few px shorter than the font's line height.
-        foreach (TMP_Text t in new[] { title, artist, elapsed, total })
-        {
-            t.fontSizeMax = t.fontSize;
-            t.fontSizeMin = 8;
-            t.enableAutoSizing = true;
-        }
-
         // Transport, centred.
         GameObject controls = Row("Controls", info.transform, 38, 18, false);
         controls.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;

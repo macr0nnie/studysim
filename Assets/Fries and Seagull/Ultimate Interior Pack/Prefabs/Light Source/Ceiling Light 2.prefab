@@ -267,7 +267,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ee977423c936a1a40b8da5f33554af0b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Furniture
-  Type: 0
+  Type: 3
 --- !u!4 &7553319078945400398 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4195465301901452350, guid: 6dba84cc41b84dd4a9caa11343e43a93, type: 3}

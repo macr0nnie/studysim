@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Ceiling Light 2
   description: A ceiling light 2 to keep your study corner warm and bright.
-  category: 2
+  category: 4
   tags:
   - ceiling
   - light
@@ -22,3 +22,4 @@ MonoBehaviour:
   price: 25
   prefab: {fileID: 6785489816858771233, guid: 6ca90d26614ac324399ad3e8d9be687d, type: 3}
   icon: {fileID: 0}
+  colorable: 1

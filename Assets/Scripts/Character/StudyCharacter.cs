@@ -35,7 +35,10 @@ public class StudyCharacter : MonoBehaviour
 
     private static void EnsurePlayer()
     {
-        if (FindFirstObjectByType<RoomManager>() == null || FindFirstObjectByType<StudyCharacter>() != null) return;
+        // Protoype_2 has a leftover StudyCharacter on GameManager with no model, so only a rigged one counts as placed.
+        if (FindFirstObjectByType<RoomManager>() == null) return;
+        foreach (StudyCharacter c in FindObjectsByType<StudyCharacter>(FindObjectsSortMode.None))
+            if (c.GetComponent<Animator>() != null) return;
         GameObject prefab = Resources.Load<GameObject>("Player");
         GameObject desk = GameObject.Find("desk");
         if (prefab == null) { Debug.LogWarning("No Resources/Player prefab: run Study Sim > Create Player Prefab"); return; }

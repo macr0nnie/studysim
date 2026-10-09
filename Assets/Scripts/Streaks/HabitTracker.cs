@@ -14,9 +14,12 @@ public class StudyHabit
     public static string Today => DateTime.Now.ToString(Day, CultureInfo.InvariantCulture);
     public List<string> completionDays = new List<string>();
     public List<DateTime> completionDates => completionDays.ConvertAll(d => DateTime.ParseExact(d, Day, CultureInfo.InvariantCulture));
-    public int currentStreak;
+    public int currentStreak; // unbroken run ending today, or yesterday while today isn't ticked yet
     public int bestStreak;
     public bool isCompletedToday;
+    public string lastRewardDay = ""; // XP once a day, even if today is unticked and ticked again
+
+    public bool DoneOn(DateTime day) => completionDays.Contains(day.ToString(Day, CultureInfo.InvariantCulture));
 }
 
 public class HabitTracker : MonoBehaviour
@@ -46,16 +49,22 @@ public class HabitTracker : MonoBehaviour
         SaveHabits();
     }
 
-    public void CompleteHabit(string name)
+    // Ticks or unticks today. True the first time today it's ticked, so XP is given once a day.
+    public bool ToggleToday(StudyHabit habit)
     {
-        var habit = habits.Find(h => h.habitName == name);
-        if (habit != null && !habit.isCompletedToday)
+        string today = StudyHabit.Today;
+        bool reward = false;
+        if (habit.completionDays.Remove(today)) habit.isCompletedToday = false;
+        else
         {
+            habit.completionDays.Add(today);
             habit.isCompletedToday = true;
-            habit.completionDays.Add(StudyHabit.Today);
-            UpdateStreak(habit);
-            SaveHabits();
+            reward = habit.lastRewardDay != today;
+            habit.lastRewardDay = today;
         }
+        UpdateStreak(habit);
+        SaveHabits();
+        return reward;
     }
 
     public void RemoveHabit(string name)
@@ -72,28 +81,24 @@ public class HabitTracker : MonoBehaviour
         }
     }
 
-    private void UpdateStreak(StudyHabit habit)
+    // The old version counted back from the last tick, so a streak never broke however many days were missed.
+    private static void UpdateStreak(StudyHabit habit)
     {
-        if (habit.completionDays.Count == 0)
-        {
-            habit.currentStreak = 0;
-            return;
-        }
         habit.completionDays.Sort(); // ISO dates sort by text
-        List<DateTime> dates = habit.completionDates;
-        int streak = 1;
-        for (int i = dates.Count - 1; i > 0; i--)
-        {
-            var today = dates[i].Date;
-            var prev = dates[i - 1].Date;
-            if ((today - prev).Days == 1)
-                streak++;
-            else if ((today - prev).Days > 1)
-                break;
-        }
+        DateTime day = DateTime.Now.Date;
+        if (!habit.DoneOn(day)) day = day.AddDays(-1); // not ticked yet today: still alive from yesterday
+        int streak = 0;
+        while (habit.DoneOn(day)) { streak++; day = day.AddDays(-1); }
         habit.currentStreak = streak;
-        if (habit.currentStreak > habit.bestStreak)
-            habit.bestStreak = habit.currentStreak;
+
+        int run = 0, best = 0;
+        List<DateTime> dates = habit.completionDates;
+        for (int i = 0; i < dates.Count; i++)
+        {
+            run = i > 0 && (dates[i] - dates[i - 1]).Days == 1 ? run + 1 : i > 0 && dates[i] == dates[i - 1] ? run : 1;
+            best = Math.Max(best, run);
+        }
+        habit.bestStreak = Math.Max(habit.bestStreak, best);
     }
 
     private void ResetDailyCompletion()

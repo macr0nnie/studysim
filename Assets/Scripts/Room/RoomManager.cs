@@ -385,10 +385,7 @@ public class RoomManager : MonoBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             if (IsPointerOverUI()) return;
-            GameObject hitRoot = null;
-            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            if (Physics.Raycast(ray, out RaycastHit hit, 100f)) hitRoot = FurnitureRoot(hit.collider.gameObject);
-            Select(hitRoot != null && placedObjects.Contains(hitRoot) ? hitRoot : null);
+            Select(PlacedObjectUnderCursor());
             // Only a press that starts on the piece drags it, so clicking elsewhere can't teleport it.
             dragging = selectedObject != null;
             grabbed = false;
@@ -447,35 +444,24 @@ public class RoomManager : MonoBehaviour
         if (IsPointerOverUI()) return;
         if (Input.GetMouseButtonDown(0))
         {
-            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, 100f))
+            GameObject rootObject = PlacedObjectUnderCursor();
+            if (rootObject != null)
             {
-                GameObject hitObject = hit.collider.gameObject;
-                GameObject rootObject = FurnitureRoot(hitObject);
-                if (placedObjects.Contains(rootObject))
+                // If double-clicked within threshold, enter edit mode.
+                if (Time.time - lastClickTime <= doubleClickThreshold)
                 {
-                    // If double-clicked within threshold, enter edit mode.
-                    if (Time.time - lastClickTime <= doubleClickThreshold)
-                    {
-                        isEditMode = true;
-                        Select(rootObject);
-                        Debug.Log("Entering Edit Mode on object: " + rootObject.name);
-                    }
-                    lastClickTime = Time.time;
+                    isEditMode = true;
+                    Select(rootObject);
+                    Debug.Log("Entering Edit Mode on object: " + rootObject.name);
                 }
+                lastClickTime = Time.time;
             }
         }
         // Right-click to delete an object.
         else if (Input.GetMouseButtonDown(1))
         {
-            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, 100f))
-            {
-                GameObject hitObject = hit.collider.gameObject;
-                DeleteObject(FurnitureRoot(hitObject));
-            }
+            GameObject rootObject = PlacedObjectUnderCursor();
+            if (rootObject != null) DeleteObject(rootObject);
         }
     }
 
@@ -624,6 +610,20 @@ public class RoomManager : MonoBehaviour
     }
 
     // The furniture piece a click hit, even when the collider is on one of its children.
+    // The room's wall collider sits in front of the furniture from the camera's view, so take the
+    // nearest hit that is actually a placed piece rather than the first thing the ray touches.
+    private GameObject PlacedObjectUnderCursor()
+    {
+        RaycastHit[] hits = Physics.RaycastAll(mainCamera.ScreenPointToRay(Input.mousePosition), 100f);
+        Array.Sort(hits, (x, y) => x.distance.CompareTo(y.distance));
+        foreach (RaycastHit hit in hits)
+        {
+            GameObject root = FurnitureRoot(hit.collider.gameObject);
+            if (placedObjects.Contains(root)) return root;
+        }
+        return null;
+    }
+
     private static GameObject FurnitureRoot(GameObject hit)
     {
         Furniture furniture = hit.GetComponentInParent<Furniture>();

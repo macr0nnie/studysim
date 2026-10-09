@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -23,6 +24,7 @@ public class FurnitureStoreUI : MonoBehaviour
     static readonly Color TextColor = new Color(0.96f, 0.93f, 0.88f, 1f);
     static readonly Color MutedText = new Color(0.78f, 0.72f, 0.84f, 1f);
     static readonly Color AccentColor = new Color(1f, 0.82f, 0.40f, 1f);
+    static readonly Color AccentButtonColor = new Color(0.62f, 0.42f, 0.78f, 1f);
 
     private class Card
     {
@@ -36,6 +38,12 @@ public class FurnitureStoreUI : MonoBehaviour
     private TMP_Text coinsText, detailName, detailDescription, detailTags, buyLabel;
     private Button buyButton;
     private Card selected;
+    private CanvasGroup panelGroup;
+    private static Sprite generatedRounded;
+
+    // Left side, above the room's colour/edit buttons and clear of the timer and music player on the right.
+    private const float PanelWidth = 440, PanelBottom = 410, PanelTop = 24;
+    private static readonly Vector2 PanelOffset = new Vector2(24, (PanelBottom - PanelTop) / 2);
     private int shownCategory = -1;
 
     // Any scene with a RoomManager gets a store, even if nobody added one to the scene.
@@ -85,7 +93,26 @@ public class FurnitureStoreUI : MonoBehaviour
     public void Toggle()
     {
         panel.SetActive(!panel.activeSelf);
-        if (panel.activeSelf) Refresh(Coins);
+        if (!panel.activeSelf) return;
+        Refresh(Coins);
+        StopAllCoroutines();
+        StartCoroutine(SlideIn());
+    }
+
+    // Short slide + fade from the left edge; unscaled so it still plays if the game is paused.
+    private IEnumerator SlideIn()
+    {
+        var rect = (RectTransform)panel.transform;
+        Vector2 target = PanelOffset;
+        for (float t = 0; t < 1; t += Time.unscaledDeltaTime / 0.18f)
+        {
+            float e = 1 - (1 - t) * (1 - t) * (1 - t); // ease-out cubic
+            rect.anchoredPosition = Vector2.LerpUnclamped(target + new Vector2(-60, 0), target, e);
+            panelGroup.alpha = e;
+            yield return null;
+        }
+        rect.anchoredPosition = target;
+        panelGroup.alpha = 1;
     }
 
     // Values match StoreCategory; -1 shows everything.
@@ -142,45 +169,49 @@ public class FurnitureStoreUI : MonoBehaviour
         var scaler = canvasGO.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
+        scaler.matchWidthOrHeight = 0; // same as the game's other canvases, so positions line up with their buttons
+        if (roundedSprite == null) roundedSprite = RoundedSprite();
 
-        // Always-visible shop button, bottom right.
-        Button shop = TextButton("ShopButton", canvasGO.transform, "Shop", TabColor, 26);
+        // Shop button sits in the row with the existing colour/edit-mode buttons on the left.
+        Button shop = TextButton("ShopButton", canvasGO.transform, "Shop  (B)", TabColor, 20);
         var shopRect = (RectTransform)shop.transform;
-        shopRect.anchorMin = shopRect.anchorMax = shopRect.pivot = new Vector2(1, 0);
-        shopRect.sizeDelta = new Vector2(150, 60);
-        shopRect.anchoredPosition = new Vector2(-24, 24);
+        shopRect.anchorMin = shopRect.anchorMax = shopRect.pivot = new Vector2(0, 0);
+        shopRect.sizeDelta = new Vector2(130, 42);
+        shopRect.anchoredPosition = new Vector2(268, 334);
         shop.onClick.AddListener(Toggle);
 
-        // Panel docked to the right so the room stays visible while browsing.
-        panel = Make("StorePanel", canvasGO.transform, typeof(Image), typeof(VerticalLayoutGroup));
+        panel = Make("StorePanel", canvasGO.transform, typeof(Image), typeof(VerticalLayoutGroup), typeof(CanvasGroup), typeof(Shadow));
+        panelGroup = panel.GetComponent<CanvasGroup>();
         var panelRect = (RectTransform)panel.transform;
-        panelRect.anchorMin = new Vector2(1, 0);
-        panelRect.anchorMax = new Vector2(1, 1);
-        panelRect.pivot = new Vector2(1, 0.5f);
-        panelRect.sizeDelta = new Vector2(500, -48);
-        panelRect.anchoredPosition = new Vector2(-24, 0);
+        panelRect.anchorMin = new Vector2(0, 0);
+        panelRect.anchorMax = new Vector2(0, 1);
+        panelRect.pivot = new Vector2(0, 0.5f);
+        panelRect.sizeDelta = new Vector2(PanelWidth, -(PanelBottom + PanelTop));
+        panelRect.anchoredPosition = PanelOffset;
         Style(panel.GetComponent<Image>(), PanelColor);
+        var shadow = panel.GetComponent<Shadow>();
+        shadow.effectColor = new Color(0, 0, 0, 0.35f);
+        shadow.effectDistance = new Vector2(0, -6);
         var layout = panel.GetComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(20, 20, 20, 20);
-        layout.spacing = 14;
+        layout.padding = new RectOffset(18, 18, 16, 16);
+        layout.spacing = 10;
         layout.childControlWidth = layout.childControlHeight = true;
         layout.childForceExpandWidth = true;
         layout.childForceExpandHeight = false;
 
         // Header: title, coins, close.
-        GameObject header = Row("Header", panel.transform, 48, 12, false);
-        TMP_Text title = Text("Title", header.transform, "Furniture Store", 32, TextColor, TextAlignmentOptions.Left);
+        GameObject header = Row("Header", panel.transform, 40, 10, false);
+        TMP_Text title = Text("Title", header.transform, "Furniture Store", 28, TextColor, TextAlignmentOptions.Left);
         title.fontStyle = FontStyles.Bold;
         title.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
-        coinsText = Text("Coins", header.transform, "0", 26, AccentColor, TextAlignmentOptions.Right);
+        coinsText = Text("Coins", header.transform, "0", 24, AccentColor, TextAlignmentOptions.Right);
         coinsText.gameObject.AddComponent<LayoutElement>().preferredWidth = 110;
         Button close = TextButton("Close", header.transform, "X", TabColor, 22);
-        close.gameObject.AddComponent<LayoutElement>().preferredWidth = 48;
+        close.gameObject.AddComponent<LayoutElement>().preferredWidth = 40;
         close.onClick.AddListener(Toggle);
 
         // Category tabs.
-        GameObject tabs = Row("Tabs", panel.transform, 40, 8, true);
+        GameObject tabs = Row("Tabs", panel.transform, 34, 6, true);
         AddTab(tabs.transform, "All", -1);
         foreach (StoreCategory c in Enum.GetValues(typeof(StoreCategory)))
             AddTab(tabs.transform, c.ToString(), (int)c);
@@ -197,8 +228,8 @@ public class FurnitureStoreUI : MonoBehaviour
         contentRect.pivot = new Vector2(0.5f, 1);
         contentRect.sizeDelta = Vector2.zero;
         var grid = content.GetComponent<GridLayoutGroup>();
-        grid.cellSize = new Vector2(140, 170);
-        grid.spacing = new Vector2(12, 12);
+        grid.cellSize = new Vector2(124, 150); // three per row
+        grid.spacing = new Vector2(10, 10);
         grid.childAlignment = TextAnchor.UpperCenter;
         content.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
         var scrollRect = scroll.GetComponent<ScrollRect>();
@@ -214,21 +245,21 @@ public class FurnitureStoreUI : MonoBehaviour
         // Details of the selected item and the Buy button.
         GameObject details = Make("Details", panel.transform, typeof(Image), typeof(VerticalLayoutGroup), typeof(LayoutElement));
         Style(details.GetComponent<Image>(), CardColor);
-        details.GetComponent<LayoutElement>().preferredHeight = 210;
+        details.GetComponent<LayoutElement>().preferredHeight = 170;
         details.GetComponent<LayoutElement>().flexibleHeight = 0; // the description's flexible height would otherwise grow this box
         var detailsLayout = details.GetComponent<VerticalLayoutGroup>();
-        detailsLayout.padding = new RectOffset(16, 16, 12, 12);
-        detailsLayout.spacing = 6;
+        detailsLayout.padding = new RectOffset(14, 14, 10, 10);
+        detailsLayout.spacing = 4;
         detailsLayout.childControlWidth = detailsLayout.childControlHeight = true;
         detailsLayout.childForceExpandWidth = true;
         detailsLayout.childForceExpandHeight = false;
-        detailName = Text("Name", details.transform, "", 24, TextColor, TextAlignmentOptions.Left);
+        detailName = Text("Name", details.transform, "", 21, TextColor, TextAlignmentOptions.Left);
         detailName.fontStyle = FontStyles.Bold;
-        detailDescription = Text("Description", details.transform, "Select something to see what it is.", 18, MutedText, TextAlignmentOptions.TopLeft);
+        detailDescription = Text("Description", details.transform, "Select something to see what it is.", 16, MutedText, TextAlignmentOptions.TopLeft);
         detailDescription.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
-        detailTags = Text("Tags", details.transform, "", 16, AccentColor, TextAlignmentOptions.Left);
-        buyButton = TextButton("Buy", details.transform, "", TabColor, 22);
-        buyButton.gameObject.AddComponent<LayoutElement>().preferredHeight = 48;
+        detailTags = Text("Tags", details.transform, "", 14, AccentColor, TextAlignmentOptions.Left);
+        buyButton = TextButton("Buy", details.transform, "", AccentButtonColor, 20);
+        buyButton.gameObject.AddComponent<LayoutElement>().preferredHeight = 42;
         buyLabel = buyButton.GetComponentInChildren<TMP_Text>();
         buyButton.onClick.AddListener(Buy);
 
@@ -237,7 +268,7 @@ public class FurnitureStoreUI : MonoBehaviour
 
     private void AddTab(Transform parent, string label, int category)
     {
-        TextButton(label, parent, label, TabColor, 18).onClick.AddListener(() => ShowCategory(category));
+        TextButton(label, parent, label, TabColor, 15).onClick.AddListener(() => ShowCategory(category));
     }
 
     private void AddCard(Transform parent, FurnitureItem item)
@@ -253,11 +284,34 @@ public class FurnitureStoreUI : MonoBehaviour
         icon.raycastTarget = false;
         icon.enabled = icon.sprite != null;
         Anchor(icon.gameObject, new Vector2(0.08f, 0.32f), new Vector2(0.92f, 0.96f));
-        Anchor(Text("Name", root.transform, item.displayName, 17, TextColor, TextAlignmentOptions.Center).gameObject,
+        Anchor(Text("Name", root.transform, item.displayName, 15, TextColor, TextAlignmentOptions.Center).gameObject,
             new Vector2(0.04f, 0.16f), new Vector2(0.96f, 0.32f));
-        Anchor(Text("Price", root.transform, item.price.ToString(), 19, AccentColor, TextAlignmentOptions.Center).gameObject,
+        Anchor(Text("Price", root.transform, item.price.ToString(), 17, AccentColor, TextAlignmentOptions.Center).gameObject,
             new Vector2(0, 0.02f), new Vector2(1, 0.17f));
         cards.Add(card);
+    }
+
+    // 9-sliced rounded rectangle drawn once at startup, so panels and cards get soft corners without an art asset.
+    private static Sprite RoundedSprite()
+    {
+        if (generatedRounded != null) return generatedRounded;
+        const int size = 64, radius = 16;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        var pixels = new Color32[size * size];
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                // distance outside the inner rectangle, anti-aliased over one pixel
+                float dx = Mathf.Max(radius - x - 0.5f, x + 0.5f - (size - radius), 0);
+                float dy = Mathf.Max(radius - y - 0.5f, y + 0.5f - (size - radius), 0);
+                float a = Mathf.Clamp01(radius - Mathf.Sqrt(dx * dx + dy * dy) + 0.5f);
+                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255));
+            }
+        tex.SetPixels32(pixels);
+        tex.Apply(false, true);
+        generatedRounded = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100, 0,
+            SpriteMeshType.FullRect, new Vector4(radius, radius, radius, radius));
+        return generatedRounded;
     }
 
     private static GameObject Make(string name, Transform parent, params Type[] components)

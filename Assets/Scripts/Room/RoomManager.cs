@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 
 public class RoomManager : MonoBehaviour
@@ -22,6 +23,16 @@ public class RoomManager : MonoBehaviour
     private List<GameObject> placedObjects = new List<GameObject>();
     private GameObject currentPreview;
     private Action onPreviewPlaced; // e.g. charge the player only once the item is actually placed
+    private Renderer[] previewRenderers = new Renderer[0];
+    private MaterialPropertyBlock previewTint;
+    private bool? previewTintValid; // last tint applied, so the block is only rewritten when validity changes
+
+    // Reused by GetBounds so placement checks don't allocate every frame.
+    private static readonly Collider[] overlapBuffer = new Collider[1]; // only need to know if anything overlaps
+    private static readonly List<Collider> colliderBuffer = new List<Collider>();
+    private static readonly List<Renderer> rendererBuffer = new List<Renderer>();
+    static readonly Color ValidTint = new Color(0.55f, 1f, 0.6f, 1f);
+    static readonly Color InvalidTint = new Color(1f, 0.45f, 0.45f, 1f);
     private GameObject selectedObject;
     private bool isPlacementValid;
     private Camera mainCamera;
@@ -119,13 +130,15 @@ public class RoomManager : MonoBehaviour
         currentPreview = Instantiate(furniturePrefab);
         currentPreview.name = furniturePrefab.name;
         onPreviewPlaced = onPlaced;
+        previewRenderers = currentPreview.GetComponentsInChildren<Renderer>();
+        previewTintValid = null;
 
         if (currentPreview == null)
         {
             Debug.LogError("Failed to instantiate furniture preview!");
             return;
         }
-        SetPreviewMaterial(validPlacementMaterial);
+        SetPreviewTint(true);
     }
 
     //update the current 
@@ -154,7 +167,7 @@ public class RoomManager : MonoBehaviour
                         else
                         {
                             isPlacementValid = false;
-                            SetPreviewMaterial(invalidPlacementMaterial);
+                            SetPreviewTint(false);
                             return;
                         }
                         break;
@@ -166,7 +179,7 @@ public class RoomManager : MonoBehaviour
                         else
                         {
                             isPlacementValid = false;
-                            SetPreviewMaterial(invalidPlacementMaterial);
+                            SetPreviewTint(false);
                             return;
                         }
                         break;
@@ -179,7 +192,7 @@ public class RoomManager : MonoBehaviour
                         else
                         {
                             isPlacementValid = false;
-                            SetPreviewMaterial(invalidPlacementMaterial);
+                            SetPreviewTint(false);
                             return;
                         }
                         break;
@@ -194,14 +207,14 @@ public class RoomManager : MonoBehaviour
             currentPreview.transform.position = position;
             currentPreview.transform.rotation = rotation;
             isPlacementValid = IsValidPlacement(position);
-            //SetPreviewMaterial(isPlacementValid ? validPlacementMaterial : invalidPlacementMaterial);
+            SetPreviewTint(isPlacementValid);
         }
         else
         {
             Vector3 position = mainCamera.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, 10f));
             currentPreview.transform.position = position;
             isPlacementValid = false;
-            SetPreviewMaterial(invalidPlacementMaterial);
+            SetPreviewTint(false);
         }
     }
 
@@ -222,23 +235,15 @@ public class RoomManager : MonoBehaviour
     // Checks placement validity using overlap detection.
     private bool IsValidPlacement(Vector3 position)
     {
-        Collider[] colliders = Physics.OverlapBox(
-            position,
-            GetBounds(currentPreview).extents,
-            currentPreview.transform.rotation,
-            furnitureLayer
-        );
-
-        bool isValid = colliders.Length == 0;
+        Bounds previewBounds = GetBounds(currentPreview);
+        if (Physics.OverlapBoxNonAlloc(position, previewBounds.extents, overlapBuffer, currentPreview.transform.rotation, furnitureLayer) > 0)
+            return false;
         foreach (GameObject placedObj in placedObjects)
         {
-            if (GetBounds(placedObj).Intersects(GetBounds(currentPreview)))
-            {
-                isValid = false;
-                break;
-            }
+            if (placedObj.activeInHierarchy && GetBounds(placedObj).Intersects(previewBounds))
+                return false;
         }
-        return isValid;
+        return true;
     }
     // Handles placement input.
     private void HandlePlacement()
@@ -286,6 +291,7 @@ public class RoomManager : MonoBehaviour
         placedObjects.Add(placedObject);
         RecordAction(placedObject);
         ResetPreviewMaterial(placedObject);
+        StartCoroutine(PopIn(placedObject.transform));
         PlayPlacementEffect(position);
         Destroy(currentPreview);
         currentPreview = null;
@@ -306,23 +312,37 @@ public class RoomManager : MonoBehaviour
         }
     }
 
-    private void SetPreviewMaterial(Material material)
+    // Tints the preview green/red with a property block, so the furniture keeps its own materials and textures.
+    private void SetPreviewTint(bool valid)
     {
-        Renderer[] renderers = currentPreview.GetComponentsInChildren<Renderer>();
-        foreach (Renderer renderer in renderers)
-        {
-            //renderer.material = material;
-        }
+        if (previewTintValid == valid) return;
+        previewTintValid = valid;
+        if (previewTint == null) previewTint = new MaterialPropertyBlock();
+        Color tint = valid ? ValidTint : InvalidTint;
+        previewTint.SetColor("_BaseColor", tint); // URP Lit
+        previewTint.SetColor("_Color", tint);     // built-in/legacy shaders
+        foreach (Renderer renderer in previewRenderers)
+            if (renderer != null) renderer.SetPropertyBlock(previewTint);
     }
 
-    // Resets the material of a placed object (after placement).
+    // Clears the preview tint from a placed object.
     private void ResetPreviewMaterial(GameObject obj)
     {
-        Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
-        foreach (Renderer renderer in renderers)
+        foreach (Renderer renderer in obj.GetComponentsInChildren<Renderer>())
+            renderer.SetPropertyBlock(null);
+    }
+
+    // Small squash-and-settle so a placed piece feels like it lands.
+    private static IEnumerator PopIn(Transform target)
+    {
+        Vector3 scale = target.localScale;
+        for (float t = 0; t < 1 && target != null; t += Time.deltaTime / 0.22f)
         {
-            //renderer.material = validPlacementMaterial;
+            float s = 1 + Mathf.Sin(t * Mathf.PI) * 0.12f * (1 - t); // up to ~6% overshoot, back to 1
+            target.localScale = new Vector3(scale.x * (2 - s), scale.y * s, scale.z * (2 - s));
+            yield return null;
         }
+        if (target != null) target.localScale = scale;
     }
 
     // Handle edit mode input: selection and dragging.
@@ -472,18 +492,18 @@ public class RoomManager : MonoBehaviour
     // World bounds from colliders (falling back to renderers) anywhere in the object's hierarchy.
     private static Bounds GetBounds(GameObject obj)
     {
-        Collider[] colliders = obj.GetComponentsInChildren<Collider>();
-        if (colliders.Length > 0)
+        obj.GetComponentsInChildren(colliderBuffer);
+        if (colliderBuffer.Count > 0)
         {
-            Bounds b = colliders[0].bounds;
-            foreach (Collider c in colliders) b.Encapsulate(c.bounds);
+            Bounds b = colliderBuffer[0].bounds;
+            foreach (Collider c in colliderBuffer) b.Encapsulate(c.bounds);
             return b;
         }
-        Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
-        if (renderers.Length > 0)
+        obj.GetComponentsInChildren(rendererBuffer);
+        if (rendererBuffer.Count > 0)
         {
-            Bounds b = renderers[0].bounds;
-            foreach (Renderer r in renderers) b.Encapsulate(r.bounds);
+            Bounds b = rendererBuffer[0].bounds;
+            foreach (Renderer r in rendererBuffer) b.Encapsulate(r.bounds);
             return b;
         }
         return new Bounds(obj.transform.position, Vector3.zero);

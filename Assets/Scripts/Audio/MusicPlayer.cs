@@ -28,13 +28,18 @@ public class MusicPlayer : MonoBehaviour
         ApplyUnlockStatus();
     }
     
+    private float nextProgressUpdate;
+
     private void Update()
     {
         if (isPlaying && audioSource.clip != null)
         {
-            // Update playback progress
-            float progress = audioSource.time / audioSource.clip.length;
-            OnPlaybackProgressChanged.Invoke(progress);
+            // Progress bar only needs a few updates a second; every frame rebuilds the UI canvas for nothing.
+            if (Time.unscaledTime >= nextProgressUpdate)
+            {
+                nextProgressUpdate = Time.unscaledTime + 0.25f;
+                OnPlaybackProgressChanged.Invoke(audioSource.time / audioSource.clip.length);
+            }
             
             // Auto-advance to next song when current one finishes
             if (!audioSource.isPlaying && audioSource.time >= audioSource.clip.length - 0.1f)

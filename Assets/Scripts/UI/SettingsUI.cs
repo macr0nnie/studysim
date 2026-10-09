@@ -234,6 +234,14 @@ public class SettingsUI : MonoBehaviour
             tabs[i] = tab.GetComponent<Image>();
         }
         Make("Spacer", side.transform, typeof(LayoutElement)).GetComponent<LayoutElement>().flexibleHeight = 1;
+        Button menu = TextButton("MainMenu", side.transform, "Main menu", TabColor, BodySize);
+        menu.gameObject.AddComponent<LayoutElement>().preferredHeight = 44;
+        menu.onClick.AddListener(() =>
+        {
+            if (!Application.CanStreamedLevelBeLoaded(SaveSystem.MenuScene)) return; // not in the build yet
+            SaveSystem.Save(0);
+            SceneManager.LoadScene(SaveSystem.MenuScene);
+        });
         Button quit = TextButton("Quit", side.transform, "Save and quit", DangerColor, BodySize);
         quit.gameObject.AddComponent<LayoutElement>().preferredHeight = 44;
         quit.onClick.AddListener(Quit);

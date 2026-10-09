@@ -13,8 +13,9 @@ using TMPro;
 //   focus                   "I'm on a study site": +1 XP, at most once a minute (anything on this PC can
 //                           reach localhost, so rewards are rate-limited rather than trusted)
 //   distracted              "I'm on a distracting site", with {"site":"youtube.com"}: during a study session the
-//                           room falls apart and coins drain. Re-send it at least every 20 s while the site
-//                           stays open; it ends on "focus" or when the reports stop.
+//                           room falls apart and coins drain. Re-send it at least every 45 s while the site
+//                           stays open; it ends on "focus", "back" or when the reports stop.
+//   back                    left the distracting site (no XP, unlike focus)
 //   ping                    connection check, changes nothing
 // A GET returns the game's state as JSON, so the extension can follow the timer and focus mode
 // (e.g. block sites only during a strict study session):
@@ -189,6 +190,9 @@ public class ChromeWebEx : MonoBehaviour
             case "distracted":
                 Distraction.Report(command.site);
                 return $"Extension: distracted by {Distraction.Site}";
+            case "back":
+                Distraction.Clear();
+                return "Extension: back on task";
             case "focus":
                 Distraction.Clear();
                 if (Time.unscaledTime - _lastFocusReward < FocusCooldown) return "Extension: focus noted";

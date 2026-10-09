@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <span id="dot" class="dot"></span>
+    <div>
+      <strong>Study Sim</strong>
+      <div id="status" class="muted">Checking the game...</div>
+    </div>
+  </header>
+
+  <section id="timer" hidden>
+    <div id="clock" class="clock">--:--</div>
+    <div id="mode" class="muted"></div>
+    <div class="buttons">
+      <button id="start">Start</button>
+      <button id="pause">Pause</button>
+      <button id="reset">Reset</button>
+    </div>
+  </section>
+
+  <section>
+    <label for="block">Block distracting sites</label>
+    <select id="block">
+      <option value="off">Never</option>
+      <option value="strict">During strict focus sessions</option>
+      <option value="always">During every study session</option>
+    </select>
+    <label for="distracting">Distracting sites (one per line)</label>
+    <textarea id="distracting" rows="5"></textarea>
+    <label for="study">Study sites, which earn focus XP (one per line)</label>
+    <textarea id="study" rows="4"></textarea>
+    <button id="save" class="wide">Save</button>
+    <div id="saved" class="muted"></div>
+  </section>
+  <script src="shared.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -232,7 +232,12 @@ public class GameHUD : MonoBehaviour
         toast.blocksRaycasts = false;
         toastText = MakeText("Text", toastGO.transform, "", 24, TextColor, TextAlignmentOptions.Center);
         toastText.fontStyle = FontStyles.Bold;
+        // Long hints (edit mode, session complete) were clipped at 24pt, so shrink them to fit.
+        toastText.enableAutoSizing = true;
+        toastText.fontSizeMin = 14;
+        toastText.fontSizeMax = 24;
         Stretch((RectTransform)toastText.transform);
+        toastText.margin = new Vector4(16, 0, 16, 0);
     }
 
     // Soft two-note chime made in code, so there's an audible cue without adding an audio asset.

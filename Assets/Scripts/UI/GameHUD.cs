@@ -50,6 +50,11 @@ public class GameHUD : MonoBehaviour
         room = FindFirstObjectByType<RoomManager>();
         timer = FindFirstObjectByType<TimerManager>();
         BuildUI();
+        if (PlayerPrefs.GetInt("SeenWelcome", 0) == 0)
+        {
+            PlayerPrefs.SetInt("SeenWelcome", 1);
+            ShowToast($"Welcome! {Controls.KeyName(Controls.Act.Store)} opens the shop, {Controls.KeyName(Controls.Act.Edit)} lets you move furniture, {Controls.KeyName(Controls.Act.Planner)} is your planner.");
+        }
         chime = MakeChime();
     }
 

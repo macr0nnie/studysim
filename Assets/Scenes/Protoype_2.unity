@@ -394,7 +394,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0a99ce26099a58140a717ab235bf9684, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  startingCoins: 10000
+  startingCoins: 300
   OnCoinsChanged:
     m_PersistentCalls:
       m_Calls: []

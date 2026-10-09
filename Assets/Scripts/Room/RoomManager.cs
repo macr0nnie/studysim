@@ -600,8 +600,6 @@ public class RoomManager : MonoBehaviour
         onPreviewPlaced = null;
         placed?.Invoke();
         SaveRoom();
-
-        Debug.Log("Placed object: " + placedObject.name + "; total placed: " + placedObjects.Count);
     }
     
     private void CancelPlacement()
@@ -1022,7 +1020,6 @@ public class RoomManager : MonoBehaviour
             if (hovered != null) Glow(hovered, null);
             hovered = null;
         }
-        Debug.Log("Edit Mode: " + (isEditMode ? "Enabled" : "Disabled"));
 
 
     }
@@ -1391,6 +1388,5 @@ public class RoomManager : MonoBehaviour
     private void ToggleGridPlacement()
     {
         useGridPlacement = !useGridPlacement;
-        Debug.Log("Grid placement " + (useGridPlacement ? "enabled" : "disabled"));
     }
 }

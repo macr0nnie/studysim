@@ -46,6 +46,13 @@ public static class Controls
     public static bool Released(Act act) => actions[(int)act].WasReleasedThisFrame();
     public static bool Held(Act act) => actions[(int)act].IsPressed();
 
+    // Mini mode is display only: every key but its own is switched off while it's on.
+    public static void MiniOnly(bool on)
+    {
+        for (int i = 0; i < actions.Length; i++)
+            if (i != (int)Act.MiniMode) { if (on) actions[i].Disable(); else actions[i].Enable(); }
+    }
+
     // The key shown on buttons and in Settings, e.g. "B" or "F10".
     public static string KeyName(Act act) => actions[(int)act].GetBindingDisplayString(0);
 

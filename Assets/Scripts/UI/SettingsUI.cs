@@ -326,7 +326,7 @@ public class SettingsUI : MonoBehaviour
         GameObject mini = Row("Mini mode", page, 48, 12, false);
         mini.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
         MakeText("Label", mini.transform, $"Mini mode\n<size={CaptionSize}><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>" +
-            $"Just the room in a small window that stays on top. {Controls.KeyName(Controls.Act.MiniMode)} or Full switches back.</color></size>",
+            $"Just the room in a small window on top. Drag to move; {Controls.KeyName(Controls.Act.MiniMode)}, double-click or right-click to come back.</color></size>",
             BodySize, TextColor, TextAlignmentOptions.Left).gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
         SmallButton(mini.transform, "Go mini", CardColor, 110).onClick.AddListener(() => { Toggle(); MiniMode.Set(true); });
     }

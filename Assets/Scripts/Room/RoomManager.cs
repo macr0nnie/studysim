@@ -74,6 +74,11 @@ public class RoomManager : MonoBehaviour
     private bool hasRoomFloor;
     private static readonly RaycastHit[] surfaceHits = new RaycastHit[16];
     // The desk and chair a new game starts with: they can be moved and rotated but not deleted.
+    // Per piece: extra height above where it rests, and size relative to its original scale.
+    private readonly Dictionary<GameObject, float> lifts = new Dictionary<GameObject, float>();
+    private readonly Dictionary<GameObject, float> sizes = new Dictionary<GameObject, float>();
+    private readonly Dictionary<GameObject, Vector3> baseScales = new Dictionary<GameObject, Vector3>();
+    private const float MaxLift = 3f, MinSize = 0.5f, MaxSize = 2f;
     private readonly HashSet<GameObject> starterPieces = new HashSet<GameObject>();
     private readonly Dictionary<GameObject, Color> pieceColors = new Dictionary<GameObject, Color>();
     private readonly Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
@@ -130,6 +135,7 @@ public class RoomManager : MonoBehaviour
             HandleEditMode();
             if (typing) return;
             HandleRotationAndFlipping();
+            HandleHeightAndSize();
             if (selectedObject != null && Controls.Pressed(Controls.Act.Delete))
                 DeleteObject(selectedObject);
         }
@@ -142,7 +148,8 @@ public class RoomManager : MonoBehaviour
         if (typing) return;
 
         // Save once a drag or rotation in edit mode is finished, not every frame.
-        if (isEditMode && selectedObject != null && (Controls.ClickUp || Controls.Released(Controls.Act.Rotate))) SaveRoom();
+        if (isEditMode && selectedObject != null && (Controls.ClickUp || Controls.Released(Controls.Act.Rotate) || Controls.Released(Controls.Act.Raise)
+            || Controls.Released(Controls.Act.Lower) || Controls.Released(Controls.Act.Grow) || Controls.Released(Controls.Act.Shrink))) SaveRoom();
 
         if (Controls.Pressed(Controls.Act.Undo))
         {
@@ -316,6 +323,7 @@ public class RoomManager : MonoBehaviour
                 if (useGridPlacement) position = SnapToGrid(position);
                 break;
         }
+        if (lifts.TryGetValue(obj, out float lift)) position.y += lift;
         t.position = position;
         Physics.SyncTransforms();
         return true;
@@ -433,6 +441,68 @@ public class RoomManager : MonoBehaviour
             }
         }
     }
+    // Hold the keys to raise/lower or grow/shrink the selected piece; the buttons in the HUD step it.
+    private void HandleHeightAndSize()
+    {
+        if (selectedObject == null) return;
+        float dt = Time.deltaTime;
+        if (Controls.Held(Controls.Act.Raise)) NudgeHeight(0.6f * dt, false);
+        if (Controls.Held(Controls.Act.Lower)) NudgeHeight(-0.6f * dt, false);
+        if (Controls.Held(Controls.Act.Grow)) Resize(Mathf.Pow(1.8f, dt), false);
+        if (Controls.Held(Controls.Act.Shrink)) Resize(Mathf.Pow(1.8f, -dt), false);
+    }
+
+    public float SelectedLift => selectedObject != null && lifts.TryGetValue(selectedObject, out float l) ? l : 0f;
+    public float SelectedSize => selectedObject != null && sizes.TryGetValue(selectedObject, out float z) ? z : 1f;
+
+    public void NudgeHeight(float delta, bool save = true)
+    {
+        if (selectedObject == null) return;
+        bool wall = TypeOf(selectedObject) == Furniture.FurnitureType.Wall;
+        float now = SelectedLift;
+        float next = Mathf.Clamp(now + delta, wall ? -MaxLift : 0f, MaxLift);
+        if (Mathf.Approximately(next, now)) return;
+        lifts[selectedObject] = next;
+        selectedObject.transform.position += Vector3.up * (next - now);
+        if (save) SaveRoom();
+    }
+
+    public void ResetHeight() => NudgeHeight(-SelectedLift);
+
+    // Uniform scale about the piece's footing: floor and shelf pieces keep resting where they were, the rest keep their centre.
+    public void Resize(float factor, bool save = true)
+    {
+        if (selectedObject == null) return;
+        SetSize(selectedObject, SelectedSize * factor);
+        if (save) SaveRoom();
+    }
+
+    public void ResetSize()
+    {
+        if (selectedObject == null) return;
+        SetSize(selectedObject, 1f);
+        SaveRoom();
+    }
+
+    private void SetSize(GameObject go, float size, bool keepFooting = true)
+    {
+        size = Mathf.Clamp(size, MinSize, MaxSize);
+        if (!baseScales.ContainsKey(go)) baseScales[go] = go.transform.localScale;
+        Physics.SyncTransforms();
+        Bounds before = GetBounds(go);
+        sizes[go] = size;
+        go.transform.localScale = baseScales[go] * size;
+        if (!keepFooting) return;
+        Physics.SyncTransforms();
+        Bounds after = GetBounds(go);
+        Furniture.FurnitureType type = TypeOf(go);
+        Vector3 shift = before.center - after.center;
+        if (type == Furniture.FurnitureType.Floor || type == Furniture.FurnitureType.Shelf) shift.y = before.min.y - after.min.y;
+        else if (type == Furniture.FurnitureType.Ceiling) shift.y = before.max.y - after.max.y;
+        go.transform.position += shift;
+        Physics.SyncTransforms();
+    }
+
     // Instantiates the preview as a placed object.
     private void PlaceObject()
     {
@@ -796,6 +866,8 @@ public class RoomManager : MonoBehaviour
         public bool active;
         public string color; // hex RGB, empty when unpainted
         public bool lightsOff;
+        public float lift;   // extra height from edit mode (0 in older saves)
+        public float size;   // scale relative to the original (0 in older saves means 1)
         public bool starter; // desk or chair a new game starts with: can't be deleted
     }
 
@@ -822,12 +894,16 @@ public class RoomManager : MonoBehaviour
             color = pieceColors.TryGetValue(go, out Color c) ? ColorUtility.ToHtmlStringRGB(c) : "",
             lightsOff = HasLights(go) && !LightsOn(go),
             starter = starterPieces.Contains(go),
+            lift = lifts.TryGetValue(go, out float l) ? l : 0f,
+            size = sizes.TryGetValue(go, out float z) ? z : 1f,
         };
     }
 
     // Saved paint colour and lamp switch.
     private void LoadColor(GameObject go, SavedPiece piece)
     {
+        if (piece.lift != 0f) lifts[go] = piece.lift;
+        if (piece.size > 0f && !Mathf.Approximately(piece.size, 1f)) SetSize(go, piece.size, false);
         if (HasLights(go)) SetLights(go, !piece.lightsOff, false);
         if (!string.IsNullOrEmpty(piece.color) && ColorUtility.TryParseHtmlString("#" + piece.color, out Color c) && CanPaint(go))
             ApplyPieceColor(go, c);

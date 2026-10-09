@@ -30,14 +30,58 @@ public static class FurnitureStoreTools
             "A crunchy pile of autumn leaves for a seasonal corner."),
     };
 
+    // Room-item groups of the Ultimate Interior Pack that belong in the store (food, clothes, bathroom etc. stay out).
+    const string InteriorPackPrefabs = "Assets/Fries and Seagull/Ultimate Interior Pack/Prefabs";
+    const string InteriorPackItems = ItemFolder + "/Interior Pack"; // own folder so e.g. its "Bookshelf" can't replace ours
+    static readonly string[] InteriorPackGroups =
+    {
+        "Bed & Bedding", "Chair-like", "Shelf-like & Table-like", "Light Source", "Office Items",
+        "Plants", "Clock & Alarms", "Picture Frame", "Racks",
+    };
+
     static FurnitureStoreTools()
     {
         // Wait until the asset database is ready; cheap no-op once the items exist.
-        EditorApplication.delayCall += AddModelPieces;
+        EditorApplication.delayCall += RunSetup;
     }
 
     [MenuItem("Study Sim/Run Furniture Setup")]
-    public static void AddModelPieces()
+    public static void RunSetup()
+    {
+        AddModelPieces();
+        AddInteriorPack();
+    }
+
+    static void AddInteriorPack()
+    {
+        string[] folders = InteriorPackGroups.Select(g => $"{InteriorPackPrefabs}/{g}").Where(AssetDatabase.IsValidFolder).ToArray();
+        if (folders.Length == 0) return;
+        // Only prefabs without a store item yet, so reopening the project stays fast.
+        var newPaths = AssetDatabase.FindAssets("t:Prefab", folders).Select(AssetDatabase.GUIDToAssetPath)
+            .Where(p => AssetDatabase.LoadAssetAtPath<FurnitureItem>($"{InteriorPackItems}/{Path.GetFileNameWithoutExtension(p)}.asset") == null)
+            .ToArray();
+        if (newPaths.Length == 0) return;
+
+        FurnitureCatalog catalog = LoadOrCreateCatalog();
+        int added = 0;
+        try
+        {
+            for (int i = 0; i < newPaths.Length; i++)
+            {
+                EditorUtility.DisplayProgressBar("Furniture setup", Path.GetFileNameWithoutExtension(newPaths[i]), (float)i / newPaths.Length);
+                if (AddToStore(AssetDatabase.LoadAssetAtPath<GameObject>(newPaths[i]), catalog, InteriorPackItems) != null) added++;
+            }
+        }
+        finally
+        {
+            EditorUtility.ClearProgressBar();
+        }
+        EditorUtility.SetDirty(catalog);
+        AssetDatabase.SaveAssets();
+        Debug.Log($"Furniture setup: added {added} Interior Pack item(s) to the store.");
+    }
+
+    static void AddModelPieces()
     {
         var missing = FromModel.Where(p => AssetDatabase.LoadAssetAtPath<FurnitureItem>($"{ItemFolder}/{p.key}.asset") == null).ToArray();
         if (missing.Length == 0) return;
@@ -93,7 +137,7 @@ public static class FurnitureStoreTools
         var prefabNames = all.Where(g => PrefabUtility.GetPrefabAssetType(g) != PrefabAssetType.Model).Select(g => g.name).ToHashSet();
         GameObject[] sources = all.Where(g => PrefabUtility.GetPrefabAssetType(g) != PrefabAssetType.Model || !prefabNames.Contains(g.name)).ToArray();
         FurnitureCatalog catalog = LoadOrCreateCatalog();
-        var created = sources.Select(src => AddToStore(src, catalog)).Where(i => i != null).ToArray();
+        var created = sources.Select(src => AddToStore(src, catalog, ItemFolder)).Where(i => i != null).ToArray();
 
         EditorUtility.SetDirty(catalog);
         AssetDatabase.SaveAssets();
@@ -101,7 +145,7 @@ public static class FurnitureStoreTools
         Debug.Log($"Added {created.Length} item(s) to {AssetDatabase.GetAssetPath(catalog)}. Check the guessed description, category, tags and price in the Inspector.");
     }
 
-    static FurnitureItem AddToStore(GameObject source, FurnitureCatalog catalog)
+    static FurnitureItem AddToStore(GameObject source, FurnitureCatalog catalog, string itemFolder)
     {
         string sourcePath = AssetDatabase.GetAssetPath(source);
         if (string.IsNullOrEmpty(sourcePath)) return null;
@@ -109,8 +153,8 @@ public static class FurnitureStoreTools
         GameObject prefab = PrepareFurniturePrefab(source, sourcePath);
         if (prefab == null) return null;
 
-        EnsureFolder(ItemFolder);
-        string itemPath = $"{ItemFolder}/{prefab.name}.asset";
+        EnsureFolder(itemFolder);
+        string itemPath = $"{itemFolder}/{prefab.name}.asset";
         FurnitureItem item = AssetDatabase.LoadAssetAtPath<FurnitureItem>(itemPath);
         if (item == null)
         {
@@ -153,7 +197,7 @@ public static class FurnitureStoreTools
         item.category = match.word != null ? match.category : StoreCategory.Decor;
 
         // Tags: words from the name and the asset's own folder (e.g. "Bed & Bedding"), minus numbers and filler.
-        string[] skip = { "assets", "models", "prefabs", "and", "the" };
+        string[] skip = { "assets", "models", "prefabs", "and", "the", "like" };
         item.tags = (name + " " + Path.GetFileName(folders)).ToLowerInvariant()
             .Split(' ', '&', '-', '_', ',', '(', ')')
             .Where(w => w.Length > 1 && !w.All(char.IsDigit) && !skip.Contains(w))
@@ -206,7 +250,12 @@ public static class FurnitureStoreTools
         bool changed = false;
         if (root.GetComponent<Furniture>() == null)
         {
-            root.AddComponent<Furniture>();
+            string lower = root.name.ToLowerInvariant();
+            // Clocks, frames and the like hang on walls; everything else stands on the floor (change it on the prefab).
+            if (lower.Contains("wall") || lower.Contains("picture frame") || lower.Contains("window"))
+                root.AddComponent<Furniture>().Type = Furniture.FurnitureType.Wall;
+            else
+                root.AddComponent<Furniture>();
             changed = true;
         }
         if (root.GetComponentInChildren<Collider>() == null)

@@ -95,6 +95,7 @@ public class GameHUD : MonoBehaviour
     // The Chrome extension status line only matters for a moment; fade it once it stops changing.
     private void Update()
     {
+        if (timer != null) UpdateTimerBar();
         // Green countdown while on a break, so it's clear which phase is running.
         if (timerText != null && timer != null) timerText.color = timer.IsStudySession ? timerStudyColor : BreakColor;
         if (editPill != null && room != null)
@@ -222,16 +223,18 @@ public class GameHUD : MonoBehaviour
         Place(coinsLabel.rectTransform, new Vector2(110, -60), new Vector2(200, 24));
 
         // Edit-mode toggle, first in the room-button row (Shop and Planner follow it).
-        Button edit = NavButton(canvas, 0, "Edit", "Esc");
+        Button edit = NavButton(canvas, 0, "Edit", "E"); // E toggles edit mode; Esc only leaves it
         editPill = edit.GetComponent<Image>();
         edit.onClick.AddListener(() => { if (room != null) room.ToggleEditMode(); });
+
+        if (timer != null) BuildTimerBar(canvas);
 
         // Level-up toast, centred under the timer.
         GameObject toastGO = Make("LevelUpToast", canvas, typeof(Image), typeof(CanvasGroup));
         var toastRect = (RectTransform)toastGO.transform;
         toastRect.anchorMin = toastRect.anchorMax = toastRect.pivot = new Vector2(0.5f, 1);
         toastRect.sizeDelta = new Vector2(660, 56);
-        toastRect.anchoredPosition = new Vector2(0, -130);
+        toastRect.anchoredPosition = new Vector2(0, -172); // under the timer controls
         Style(toastGO.GetComponent<Image>(), AccentButtonColor);
         toast = toastGO.GetComponent<CanvasGroup>();
         toast.alpha = 0;
@@ -274,6 +277,85 @@ public class GameHUD : MonoBehaviour
         rect.sizeDelta = size;
     }
 
+    // ---------- timer controls ----------
+
+    private Image timerPlayGlyph, timerPauseLeft, timerPauseRight;
+    private Button timerMinus, timerPlus;
+    private TMP_Text timerPhase;
+
+    // Under the countdown: -5 | play/pause | stop | +5, and which phase is running. Lengths only
+    // change while the timer is stopped, so -5/+5 grey out while it runs.
+    private void BuildTimerBar(Transform canvas)
+    {
+        GameObject bar = Make("TimerControls", canvas, typeof(Image), typeof(HorizontalLayoutGroup));
+        var rect = (RectTransform)bar.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1);
+        rect.sizeDelta = new Vector2(330, 52);
+        rect.anchoredPosition = new Vector2(0, -106);
+        Style(bar.GetComponent<Image>(), PanelColor);
+        var layout = bar.GetComponent<HorizontalLayoutGroup>();
+        layout.padding = new RectOffset(10, 10, 6, 6);
+        layout.spacing = 10;
+        layout.childAlignment = TextAnchor.MiddleCenter;
+        layout.childControlWidth = layout.childControlHeight = false;
+
+        timerMinus = TimerButton(bar.transform, "Minus", 56, 36, TabColor, timer.RemoveFiveMinutes);
+        Stretch((RectTransform)MakeText("Label", timerMinus.transform, "-5", BodySize, TextColor, TextAlignmentOptions.Center).transform);
+
+        Button play = TimerButton(bar.transform, "PlayPause", 40, 40, AccentButtonColor, () =>
+        {
+            if (timer.IsTimerRunning) timer.PauseTimer();
+            else timer.StartTimer();
+        });
+        play.GetComponent<Image>().sprite = Circle;
+        timerPlayGlyph = Glyph(play.transform, Triangle, new Vector2(16, 16), new Vector2(2, 0));
+        timerPauseLeft = Glyph(play.transform, null, new Vector2(4, 15), new Vector2(-4, 0));
+        timerPauseRight = Glyph(play.transform, null, new Vector2(4, 15), new Vector2(4, 0));
+
+        Button stop = TimerButton(bar.transform, "Stop", 40, 40, TabColor, timer.ResetTimer);
+        stop.GetComponent<Image>().sprite = Circle;
+        Glyph(stop.transform, Rounded, new Vector2(13, 13), Vector2.zero);
+
+        timerPlus = TimerButton(bar.transform, "Plus", 56, 36, TabColor, timer.AddFiveMinutes);
+        Stretch((RectTransform)MakeText("Label", timerPlus.transform, "+5", BodySize, TextColor, TextAlignmentOptions.Center).transform);
+
+        timerPhase = MakeText("Phase", bar.transform, "Focus", CaptionSize, MutedText, TextAlignmentOptions.Center);
+        ((RectTransform)timerPhase.transform).sizeDelta = new Vector2(52, 36);
+    }
+
+    private static Button TimerButton(Transform parent, string name, float width, float height, Color color, UnityEngine.Events.UnityAction onClick)
+    {
+        GameObject go = Make(name, parent, typeof(Image), typeof(Button));
+        ((RectTransform)go.transform).sizeDelta = new Vector2(width, height);
+        Style(go.GetComponent<Image>(), color);
+        Button button = go.GetComponent<Button>();
+        button.onClick.AddListener(onClick);
+        return button;
+    }
+
+    private static Image Glyph(Transform parent, Sprite sprite, Vector2 size, Vector2 offset)
+    {
+        GameObject go = Make("Glyph", parent, typeof(Image));
+        var rect = (RectTransform)go.transform;
+        rect.sizeDelta = size;
+        rect.anchoredPosition = offset;
+        Image image = go.GetComponent<Image>();
+        image.sprite = sprite;
+        image.color = TextColor;
+        image.raycastTarget = false;
+        return image;
+    }
+
+    private void UpdateTimerBar()
+    {
+        if (timerPlayGlyph == null) return;
+        bool running = timer.IsTimerRunning;
+        timerPlayGlyph.enabled = !running;
+        timerPauseLeft.enabled = timerPauseRight.enabled = running;
+        timerMinus.interactable = timerPlus.interactable = !running;
+        timerPhase.text = timer.IsStudySession ? "Focus" : "Break";
+    }
+
     // ---------- theme pass over the scene's own UI ----------
 
     // Only plain shapes get recoloured; album covers and other artwork keep their colours.
@@ -287,13 +369,9 @@ public class GameHUD : MonoBehaviour
         var ipod = FindFirstObjectByType<iPodUIController>();
         if (ipod != null) ThemeTree(ipod.transform.root);
 
+        // The scene's timer buttons are replaced by the control bar built in BuildTimerBar.
         GameObject timerButtons = GameObject.Find("Button_Panel");
-        if (timerButtons != null)
-        {
-            ThemeTree(timerButtons.transform);
-            Label(timerButtons.transform, "MinusButton", "-5");
-            Label(timerButtons.transform, "Plus_Button", "+5");
-        }
+        if (timerButtons != null) timerButtons.SetActive(false);
 
         // The old room buttons lost their icons (the sheet was re-sliced) and none of them is wired up;
         // the Edit pill built in BuildUI replaces them.
@@ -351,13 +429,4 @@ public class GameHUD : MonoBehaviour
         return d;
     }
 
-    // Gives a plain colour-square button a readable label.
-    private static void Label(Transform root, string buttonName, string label)
-    {
-        foreach (Button b in root.GetComponentsInChildren<Button>(true))
-        {
-            if (b.name != buttonName || b.GetComponentInChildren<TMP_Text>() != null) continue;
-            Stretch((RectTransform)MakeText("Label", b.transform, label, HeadingSize, TextColor, TextAlignmentOptions.Center).transform);
-        }
-    }
 }

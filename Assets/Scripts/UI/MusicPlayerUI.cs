@@ -19,7 +19,6 @@ public class MusicPlayerUI : MonoBehaviour
     private RectTransform[] eqBars;
     private GameObject library;
     private Transform libraryRows;
-    private static Sprite triangle;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void AddToRoomScenes()
@@ -68,6 +67,15 @@ public class MusicPlayerUI : MonoBehaviour
             float h = playing ? 0.35f + 0.65f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * (5.1f + i * 1.7f) + i)) : 0.25f;
             eqBars[i].anchorMax = new Vector2(eqBars[i].anchorMax.x, h);
         }
+    }
+
+    // Play with nothing loaded starts the first playlist you own instead of doing nothing.
+    private void PlayOrPause()
+    {
+        if (music.CurrentPlaylist != null) { music.TogglePlayPause(); return; }
+        Playlist first = music.GetUnlockedPlaylists().Find(p => p.songs.Count > 0);
+        if (first != null) music.PlayPlaylist(first);
+        else ToggleLibrary(); // nothing owned yet: show where to get some
     }
 
     private static string Clock(float seconds) => $"{(int)seconds / 60}:{(int)seconds % 60:00}";
@@ -227,7 +235,7 @@ public class MusicPlayerUI : MonoBehaviour
         GameObject controls = Row("Controls", info.transform, 38, 18, false);
         controls.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
         Transport(controls.transform, "Previous", 30, TabColor, music.PlayPreviousSong, flip: true);
-        Button play = Transport(controls.transform, "PlayPause", 38, AccentButtonColor, music.TogglePlayPause, flip: false);
+        Button play = Transport(controls.transform, "PlayPause", 38, AccentButtonColor, PlayOrPause, flip: false);
         playIcon = play.transform.Find("Glyph").GetComponent<Image>();
         pauseLeft = Bar(play.transform, -5);
         pauseRight = Bar(play.transform, 5);
@@ -325,30 +333,5 @@ public class MusicPlayerUI : MonoBehaviour
         image.color = TextColor;
         image.raycastTarget = false;
         return image;
-    }
-
-    // Right-pointing anti-aliased triangle, built once.
-    private static Sprite Triangle
-    {
-        get
-        {
-            if (triangle != null) return triangle;
-            const int n = 64;
-            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
-            var pixels = new Color32[n * n];
-            for (int y = 0; y < n; y++)
-                for (int x = 0; x < n; x++)
-                {
-                    // Signed distance to the left edge and to the two slanted edges, 1px soft.
-                    float px = x + 0.5f, py = y + 0.5f, half = n / 2f;
-                    float slant = (n - px) - Mathf.Abs(py - half) * 2f;
-                    float d = Mathf.Min(px - 2, slant * 0.447f); // 0.447 = 1/(2*sqrt(1.25)) normalises the slant
-                    byte a = (byte)(Mathf.Clamp01(d) * 255);
-                    pixels[y * n + x] = new Color32(255, 255, 255, a);
-                }
-            tex.SetPixels32(pixels);
-            tex.Apply();
-            return triangle = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100);
-        }
     }
 }

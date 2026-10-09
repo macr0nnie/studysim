@@ -63,6 +63,10 @@ public class RoomManager : MonoBehaviour
     private Quaternion previewBase;
     private float previewSpin; // wall pieces: turn about the wall normal (R flips them)
     private Vector3 dragNormal;
+    private GameObject previewSupport; // the desk, counter or shelf the preview stands on, if any
+    private Bounds roomFloor;
+    private bool hasRoomFloor;
+    private static readonly RaycastHit[] surfaceHits = new RaycastHit[16];
     private readonly Dictionary<GameObject, Color> pieceColors = new Dictionary<GameObject, Color>();
     private readonly Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
 
@@ -188,14 +192,13 @@ public class RoomManager : MonoBehaviour
     private void UpdatePreviewPosition()
     {
         Furniture.FurnitureType type = TypeOf(currentPreview);
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        if (Physics.Raycast(ray, out RaycastHit hit, 100f, SurfaceMask(type)))
+        if (FindSurface(currentPreview, type, out RaycastHit hit, out previewSupport))
         {
             if (type == Furniture.FurnitureType.Wall)
                 currentPreview.transform.rotation = Quaternion.LookRotation(Flat(hit.normal)) * Quaternion.Euler(0, previewSpin, 0) * previewBase;
             if (Pose(currentPreview, type, hit, Vector3.zero))
             {
-                isPlacementValid = IsValidPlacement(currentPreview);
+                isPlacementValid = IsValidPlacement(currentPreview, previewSupport);
                 SetPreviewTint(isPlacementValid);
                 return;
             }
@@ -205,6 +208,39 @@ public class RoomManager : MonoBehaviour
         isPlacementValid = false;
         SetPreviewTint(false);
     }
+
+    // The surface under the cursor for this piece. Floor and shelf pieces can also stand on top of another
+    // placed piece (desk, counter, shelf) when they fit on it. Hits on the piece itself, walls in front
+    // and anything else are skipped. support is the piece it stands on, or null.
+    private bool FindSurface(GameObject piece, Furniture.FurnitureType type, out RaycastHit hit, out GameObject support)
+    {
+        support = null;
+        hit = default;
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        int count = Physics.RaycastNonAlloc(ray, surfaceHits, 100f);
+        Array.Sort(surfaceHits, 0, count, HitDistance);
+        bool canStack = type == Furniture.FurnitureType.Floor || type == Furniture.FurnitureType.Shelf;
+        Bounds own = canStack ? GetBounds(piece) : default;
+        int mask = SurfaceMask(type);
+        for (int i = 0; i < count; i++)
+        {
+            RaycastHit h = surfaceHits[i];
+            if (h.collider.transform.IsChildOf(piece.transform)) continue;
+            if (((1 << h.collider.gameObject.layer) & mask) != 0) { hit = h; return true; }
+            if (!canStack || h.normal.y < 0.7f) continue;
+            GameObject other = FurnitureRoot(h.collider.gameObject);
+            if (!placedObjects.Contains(other) || other == piece) continue;
+            Bounds top = GetBounds(other);
+            if (own.extents.x > top.extents.x + 0.01f || own.extents.z > top.extents.z + 0.01f) continue; // too big to stand on it
+            hit = h;
+            support = other;
+            return true;
+        }
+        return false;
+    }
+
+    private static readonly System.Collections.Generic.Comparer<RaycastHit> HitDistance =
+        System.Collections.Generic.Comparer<RaycastHit>.Create((a, b) => a.distance.CompareTo(b.distance));
 
     private static Furniture.FurnitureType TypeOf(GameObject obj) =>
         obj.TryGetComponent(out Furniture furniture) ? furniture.Type : Furniture.FurnitureType.Floor;
@@ -293,6 +329,13 @@ public class RoomManager : MonoBehaviour
                 if (((1 << r.gameObject.layer) & placementLayer) != 0 && r.GetComponent<Collider>() == null) floors.Add(r);
             floorMeshes = floors.ToArray();
         }
+        foreach (Renderer floor in floorMeshes)
+        {
+            if (floor == null) continue;
+            if (!hasRoomFloor) roomFloor = floor.bounds;
+            else roomFloor.Encapsulate(floor.bounds);
+            hasRoomFloor = true;
+        }
     }
 
     private static int LayerIndex(LayerMask mask)
@@ -302,17 +345,23 @@ public class RoomManager : MonoBehaviour
         return 0;
     }
 
-    // Overlap check on the piece's own bounds, shrunk a little so touching a neighbour or the wall is fine.
-    private bool IsValidPlacement(GameObject piece)
+    // Overlap check on the piece's own bounds, shrunk a little so touching a neighbour, the wall or the
+    // piece it stands on is fine. Floor and ceiling pieces must also stay over the room's floor.
+    private bool IsValidPlacement(GameObject piece, GameObject support)
     {
         Bounds bounds = GetBounds(piece);
+        if (hasRoomFloor && TypeOf(piece) != Furniture.FurnitureType.Wall
+            && (bounds.min.x < roomFloor.min.x - 0.05f || bounds.max.x > roomFloor.max.x + 0.05f
+                || bounds.min.z < roomFloor.min.z - 0.05f || bounds.max.z > roomFloor.max.z + 0.05f))
+            return false;
         bounds.Expand(-0.04f);
         int count = Physics.OverlapBoxNonAlloc(bounds.center, bounds.extents, overlapBuffer, Quaternion.identity, furnitureLayer);
         for (int i = 0; i < count; i++)
-            if (!overlapBuffer[i].transform.IsChildOf(piece.transform)) return false;
+            if (!overlapBuffer[i].transform.IsChildOf(piece.transform)
+                && (support == null || !overlapBuffer[i].transform.IsChildOf(support.transform))) return false;
         foreach (GameObject placedObj in placedObjects)
         {
-            if (placedObj != piece && placedObj.activeInHierarchy && GetBounds(placedObj).Intersects(bounds))
+            if (placedObj != piece && placedObj != support && placedObj.activeInHierarchy && GetBounds(placedObj).Intersects(bounds))
                 return false;
         }
         return true;
@@ -445,8 +494,7 @@ public class RoomManager : MonoBehaviour
     private void DragSelected()
     {
         Furniture.FurnitureType type = TypeOf(selectedObject);
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-        if (!Physics.Raycast(ray, out RaycastHit hit, 100f, SurfaceMask(type))) return;
+        if (!FindSurface(selectedObject, type, out RaycastHit hit, out _)) return;
 
         Transform t = selectedObject.transform;
         Vector3 before = t.position;

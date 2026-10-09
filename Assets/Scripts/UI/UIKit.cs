@@ -99,6 +99,7 @@ public static class UIKit
     private static GameObject openDrawer;
 
     // 9-sliced rounded rectangle drawn once, so panels get soft corners without an art asset.
+    private static Sprite triangle;
     public static Sprite Rounded => rounded != null ? rounded : rounded = MakeRounded(64, 16);
     public static Sprite Circle => circle != null ? circle : circle = MakeRounded(64, 32);
 
@@ -353,5 +354,30 @@ public static class UIKit
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
         rect.offsetMin = rect.offsetMax = Vector2.zero;
+    }
+
+    // Right-pointing anti-aliased triangle, built once.
+    public static Sprite Triangle
+    {
+        get
+        {
+            if (triangle != null) return triangle;
+            const int n = 64;
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
+            var pixels = new Color32[n * n];
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    // Signed distance to the left edge and to the two slanted edges, 1px soft.
+                    float px = x + 0.5f, py = y + 0.5f, half = n / 2f;
+                    float slant = (n - px) - Mathf.Abs(py - half) * 2f;
+                    float d = Mathf.Min(px - 2, slant * 0.447f); // 0.447 = 1/(2*sqrt(1.25)) normalises the slant
+                    byte a = (byte)(Mathf.Clamp01(d) * 255);
+                    pixels[y * n + x] = new Color32(255, 255, 255, a);
+                }
+            tex.SetPixels32(pixels);
+            tex.Apply();
+            return triangle = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100);
+        }
     }
 }

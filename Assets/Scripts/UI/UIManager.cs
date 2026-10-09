@@ -54,22 +54,8 @@ public class UIManager : MonoBehaviour
         SetupUIListeners();
         if (playerCurrency != null) UpdateCurrencyUI(playerCurrency.GetCoins());
     }
-    private void Update()
-    {
-        if (UIKit.Typing()) return; // typing an "m" or "i" in a text field shouldn't open panels
-        if (Input.GetKeyDown(KeyCode.M))
-        {
-            TogglePanel(audioPanel);
-        }
-        if (Input.GetKeyDown(KeyCode.I))
-        {
-            TogglePanel(decorationPanel);
-        }
-        if (Input.GetKeyDown(KeyCode.Escape))
-        {
-            CloseAllPanels();
-        }
-    }
+    // No panel hotkeys any more: M and Esc toggled ALL_THE_MUSIC_STUFF (stopping the music) and I the
+    // old store; their replacements (music card, Shop B, E/Esc for edit mode) handle their own keys.
 
     private void InitializeManagers()
     {

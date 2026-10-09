@@ -352,8 +352,8 @@ MonoBehaviour:
           m_BoolArgument: 0
         m_CallState: 2
   playerCurrency: {fileID: 224380468}
-  plusButton: {fileID: 7405675031612160510}
-  minusButton: {fileID: 8819540212301646981}
+  plusButton: {fileID: 8819540212301646981}
+  minusButton: {fileID: 7405675031612160510}
 --- !u!4 &224380465
 Transform:
   m_ObjectHideFlags: 0

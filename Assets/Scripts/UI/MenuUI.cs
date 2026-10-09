@@ -27,7 +27,7 @@ public class MenuUI : MonoBehaviour
         if (cam != null)
         {
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = Color.Lerp(PanelColor, Color.black, 0.55f);
+            cam.backgroundColor = LightTheme ? CardColor : Color.Lerp(PanelColor, Color.black, 0.55f);
         }
         canvas = MakeCanvas("MenuCanvas", transform, 0).transform;
         Build();

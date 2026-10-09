@@ -168,7 +168,7 @@ public class PlannerUI : MonoBehaviour
         for (DateTime d = first; d.Month == first.Month; d = d.AddDays(1))
         {
             Transform cell = Make(d.Day.ToString(), grid.transform).transform;
-            if (d > today) { Dot(cell, 6, new Color(1, 1, 1, 0.08f)); continue; }
+            if (d > today) { Dot(cell, 6, new Color(MutedText.r, MutedText.g, MutedText.b, 0.18f)); continue; }
             float share = Share(d);
             if (d == today) Ring(cell, 26);
             if (share <= 0) Dot(cell, 8, new Color(MutedText.r, MutedText.g, MutedText.b, 0.35f));
@@ -230,7 +230,7 @@ public class PlannerUI : MonoBehaviour
                 hit.GetComponent<Image>().color = Color.clear;
                 hit.GetComponent<Button>().onClick.AddListener(() => ToggleHabit(habit));
             }
-            else if (day > today) Dot(cell, 6, new Color(1, 1, 1, 0.08f));
+            else if (day > today) Dot(cell, 6, new Color(MutedText.r, MutedText.g, MutedText.b, 0.18f));
             else if (done) Dot(cell, 22, XpColor);
             else Dot(cell, 9, new Color(MutedText.r, MutedText.g, MutedText.b, 0.4f));
 

@@ -322,6 +322,13 @@ public class SettingsUI : MonoBehaviour
             () => GameSettings.AutoStartBreak, v => GameSettings.AutoStartBreak = v);
         Switch(page, "Start the next session automatically", "After a break, the next session starts by itself.",
             () => GameSettings.AutoStartStudy, v => GameSettings.AutoStartStudy = v);
+
+        GameObject mini = Row("Mini mode", page, 48, 12, false);
+        mini.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+        MakeText("Label", mini.transform, $"Mini mode\n<size={CaptionSize}><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>" +
+            $"Just the room in a small window that stays on top. {Controls.KeyName(Controls.Act.MiniMode)} or Full switches back.</color></size>",
+            BodySize, TextColor, TextAlignmentOptions.Left).gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+        SmallButton(mini.transform, "Go mini", CardColor, 110).onClick.AddListener(() => { Toggle(); MiniMode.Set(true); });
     }
 
     private void BuildNotifications(Transform page)

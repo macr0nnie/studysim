@@ -28,6 +28,7 @@ public class MusicPlayer : MonoBehaviour
     {
         if (audioSource == null)
             audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.volume = GameSettings.MusicVolume;
             
         LoadPlayerData();
         ApplyUnlockStatus();

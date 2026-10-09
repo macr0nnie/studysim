@@ -126,16 +126,26 @@ public class GameHUD : MonoBehaviour
         xpFill.anchorMax = new Vector2(Mathf.Clamp01((float)xp / next), 1);
     }
 
-    private void ShowLevelUp(int level) => ShowToast($"Level up!  You reached level {level}");
+    private void ShowLevelUp(int level)
+    {
+        if (GameSettings.LevelUpToasts) ShowToast($"Level up!  You reached level {level}");
+    }
 
     private void OnTimerComplete()
     {
         // The timer has already flipped: now on a break means a study session just finished.
-        if (!timer.IsStudySession)
-            ShowToast($"Session complete!  +{timer.MoneyReward} coins, +{timer.ExperienceReward} XP.  Break started");
-        else
-            ShowToast("Break's over. Press play when you're ready");
-        if (chime != null) chime.Play();
+        if (GameSettings.SessionToasts)
+        {
+            string next = timer.IsTimerRunning ? "started" : "ready when you are";
+            ShowToast(!timer.IsStudySession
+                ? $"Session complete!  +{timer.MoneyReward} coins, +{timer.ExperienceReward} XP.  Break {next}"
+                : $"Break's over.  Next session {next}");
+        }
+        if (chime != null && GameSettings.SessionChime)
+        {
+            chime.volume = GameSettings.EffectsVolume;
+            chime.Play();
+        }
     }
 
     // Toasts queue up so a level-up and a session reward don't overwrite each other.

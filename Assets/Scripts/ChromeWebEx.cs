@@ -12,6 +12,10 @@ using TMPro;
 //   set                     set the study length in minutes (5-120), only while the timer is stopped
 //   focus                   "I'm on a study site": +1 XP, at most once a minute (anything on this PC can
 //                           reach localhost, so rewards are rate-limited rather than trusted)
+//   ping                    connection check, changes nothing
+// A GET returns the game's state as JSON, so the extension can follow the timer and focus mode
+// (e.g. block sites only during a strict study session):
+//   {"running":true,"studying":true,"secondsLeft":1234,"mode":"Pomodoro","strict":false}
 public class ChromeWebEx : MonoBehaviour
 {
     [Serializable]
@@ -26,16 +30,41 @@ public class ChromeWebEx : MonoBehaviour
     private const float FocusCooldown = 60f;
     private HttpListener _httpListener;
     private Thread _listenerThread;
+    private volatile string _status = "{}"; // written on the main thread, served by the listener thread
+    private float _nextStatus;
+
+    [Serializable]
+    private class Status
+    {
+        public bool running, studying, strict;
+        public int secondsLeft;
+        public string mode;
+    }
+
+    public const string Address = "http://localhost:8080/";
+    public bool IsListening => _httpListener != null && _httpListener.IsListening;
+    public string ListenError { get; private set; } = "";
+    public float LastExtensionMessageAt { get; private set; } = -1; // unscaled time; pings don't count
+    public string LastResult { get; private set; } = "";
 
     // Debugging
     [SerializeField] private TMP_Text debugText;
 
 
-    void Start()
+    void Start() => StartListening();
+
+    // Settings > Browser extension "Reconnect": e.g. after closing whatever held the port.
+    public void Restart()
     {
-        // Initialize the HttpListener and listen on localhost:8080
+        StopListening();
+        StartListening();
+    }
+
+    private void StartListening()
+    {
+        ListenError = "";
         _httpListener = new HttpListener();
-        _httpListener.Prefixes.Add("http://localhost:8080/");
+        _httpListener.Prefixes.Add(Address);
 
         try
         {
@@ -45,6 +74,7 @@ public class ChromeWebEx : MonoBehaviour
         {
             // Port in use or not permitted: run without the extension instead of breaking Start.
             Debug.LogWarning($"Chrome extension listener disabled: {ex.Message}");
+            ListenError = ex.Message;
             _httpListener = null;
             if (debugText) debugText.text = "";
             return;
@@ -52,18 +82,19 @@ public class ChromeWebEx : MonoBehaviour
         if (debugText) debugText.text = "Connected to Chrome Extension!";
         Debug.Log("HTTP Server started on http://localhost:8080/");
         // Start the listener thread
-        _listenerThread = new Thread(HandleRequests);
+        HttpListener listener = _httpListener; // the field can be swapped by Restart while this thread runs
+        _listenerThread = new Thread(() => HandleRequests(listener)) { IsBackground = true };
         _listenerThread.Start();
     }
 
-    private void HandleRequests()
+    private void HandleRequests(HttpListener listener)
     {
-        while (_httpListener.IsListening)
+        while (listener.IsListening)
         {
             try
             {
                 // Wait for an incoming request
-                HttpListenerContext context = _httpListener.GetContext();
+                HttpListenerContext context = listener.GetContext();
                 HttpListenerRequest request = context.Request;
 
                 // Log the incoming request data
@@ -80,7 +111,10 @@ public class ChromeWebEx : MonoBehaviour
 
                 // Send a response back to the client
                 HttpListenerResponse response = context.Response;
-                string responseString = "Unity received your request!";
+                response.AddHeader("Access-Control-Allow-Origin", "*");
+                bool get = request.HttpMethod == "GET";
+                if (get) response.ContentType = "application/json";
+                string responseString = get ? _status : "Unity received your request!";
                 byte[] buffer = Encoding.UTF8.GetBytes(responseString);
                 response.ContentLength64 = buffer.Length;
                 response.OutputStream.Write(buffer, 0, buffer.Length);
@@ -103,7 +137,21 @@ public class ChromeWebEx : MonoBehaviour
         while (_messages.TryDequeue(out string body))
         {
             string result = Handle(body);
+            LastResult = result;
             if (debugText) debugText.text = result;
+        }
+        if (Time.unscaledTime >= _nextStatus)
+        {
+            _nextStatus = Time.unscaledTime + 0.5f;
+            TimerManager timer = FindFirstObjectByType<TimerManager>();
+            _status = JsonUtility.ToJson(new Status
+            {
+                running = timer != null && timer.IsTimerRunning,
+                studying = timer == null || timer.IsStudySession,
+                secondsLeft = timer != null ? Mathf.CeilToInt(timer.CurrentTime) : 0,
+                mode = GameSettings.Modes[(int)GameSettings.Mode].name,
+                strict = GameSettings.StrictFocus,
+            });
         }
     }
 
@@ -111,6 +159,8 @@ public class ChromeWebEx : MonoBehaviour
     {
         Command command = Parse(body);
         if (command == null) return "Extension sent something unrecognised";
+        if (command.action == "ping") return "Extension: connection works";
+        LastExtensionMessageAt = Time.unscaledTime;
         TimerManager timer = FindFirstObjectByType<TimerManager>();
         switch (command.action)
         {
@@ -129,6 +179,7 @@ public class ChromeWebEx : MonoBehaviour
             case "set":
                 if (timer == null || timer.IsTimerRunning || command.minutes <= 0) break;
                 timer.SetCustomDuration(command.minutes);
+                GameSettings.Mode = GameSettings.FocusMode.Custom; // no longer one of the presets
                 return $"Extension: sessions are now {timer.StudyMinutes:0} minutes";
             case "focus":
                 if (Time.unscaledTime - _lastFocusReward < FocusCooldown) return "Extension: focus noted";
@@ -161,14 +212,13 @@ public class ChromeWebEx : MonoBehaviour
     }
 
     // OnDestroy also covers scene reloads (loading a save), which would otherwise leave port 8080 held
-    void OnDestroy()
+    void OnDestroy() => StopListening();
+
+    private void StopListening()
     {
-        // Stop the listener when the application quits
-        if (_httpListener != null)
-        {
-            _httpListener.Stop();
-            _listenerThread.Abort();
-            Debug.Log("HTTP Server stopped.");
-        }
+        if (_httpListener == null) return;
+        _httpListener.Close(); // unblocks GetContext, so the background thread ends on its own
+        _httpListener = null;
+        Debug.Log("HTTP Server stopped.");
     }
 }

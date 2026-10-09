@@ -50,7 +50,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: e22de3ad0ae298f48b2f806968d7878c, type: 3}
       propertyPath: m_Name
-      value: Bed
+      value: Bed 7
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -65,6 +65,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e22de3ad0ae298f48b2f806968d7878c, type: 3}
       insertIndex: -1
       addedObject: {fileID: 448224732367257456}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e22de3ad0ae298f48b2f806968d7878c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7407314796056234702}
   m_SourcePrefab: {fileID: 100100000, guid: e22de3ad0ae298f48b2f806968d7878c, type: 3}
 --- !u!1 &1606877426911963905 stripped
 GameObject:
@@ -126,3 +129,16 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.1498861, y: 0.9234896, z: 0.19574761}
   m_Center: {x: -0.00000047683716, y: 1.1056583, z: -1.7036513}
+--- !u!114 &7407314796056234702
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1606877426911963905}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee977423c936a1a40b8da5f33554af0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Furniture
+  Type: 0

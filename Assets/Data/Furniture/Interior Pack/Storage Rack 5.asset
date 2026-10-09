@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Storage Rack 5
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Storage Rack 5
+  description: A storage rack 5 to add some personality to your space.
+  category: 1
+  tags:
+  - storage
+  - rack
+  - racks
+  price: 15
+  prefab: {fileID: 313465811257834422, guid: b4ea096082934ca448cf65cd8de419f0, type: 3}
+  icon: {fileID: 0}

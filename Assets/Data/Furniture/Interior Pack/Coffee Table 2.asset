@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Coffee Table 2
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Coffee Table 2
+  description: A coffee table 2 to make your room your own.
+  category: 0
+  tags:
+  - coffee
+  - table
+  - shelf
+  price: 40
+  prefab: {fileID: 4272269745789347928, guid: e416d1311d5e06e4ba7fec46fe31d559, type: 3}
+  icon: {fileID: 0}

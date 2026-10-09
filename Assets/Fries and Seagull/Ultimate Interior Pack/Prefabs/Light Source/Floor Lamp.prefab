@@ -40,15 +40,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1044071872248243617}
   m_Enabled: 1
-  serializedVersion: 10
+  serializedVersion: 13
   m_Type: 2
-  m_Shape: 0
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
     m_Resolution: -1
@@ -92,8 +91,12 @@ Light:
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
-  m_ShadowRadius: 0
+  m_ForceVisible: 0
+  m_ShapeRadius: 0
   m_ShadowAngle: 0
+  m_LightUnit: 1
+  m_LuxAtDistance: 1
+  m_EnableSpotReflector: 1
 --- !u!1001 &2792801134172117801
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -181,6 +184,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6af04a2fd7a324b40a9a0a8d34e13e94, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6621133171823562603}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 6af04a2fd7a324b40a9a0a8d34e13e94, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 846619103610422117}
     - targetCorrespondingSourceObject: {fileID: -3559909895095799887, guid: 6af04a2fd7a324b40a9a0a8d34e13e94, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4829057263138097547}
@@ -272,6 +278,19 @@ MonoBehaviour:
   onTurnOff:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &846619103610422117
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3027382140278810232}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee977423c936a1a40b8da5f33554af0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Furniture
+  Type: 0
 --- !u!1 &5015536359472580055 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -2064682264359837954, guid: 6af04a2fd7a324b40a9a0a8d34e13e94, type: 3}

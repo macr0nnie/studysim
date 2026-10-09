@@ -108,6 +108,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 78bbd2790e2803a4498be32683bb7ef9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8550028565754299092}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 78bbd2790e2803a4498be32683bb7ef9, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3172891793084224215}
     - targetCorrespondingSourceObject: {fileID: -3559909895095799887, guid: 78bbd2790e2803a4498be32683bb7ef9, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2314997781290358909}
@@ -207,6 +210,19 @@ MonoBehaviour:
     value: {fileID: 8973866775906174726}
   - key: 1
     value: {fileID: 8927149928016226674}
+--- !u!114 &3172891793084224215
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 52107432400418595}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee977423c936a1a40b8da5f33554af0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Furniture
+  Type: 0
 --- !u!1 &4819096178803467715 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -3559909895095799887, guid: 78bbd2790e2803a4498be32683bb7ef9, type: 3}

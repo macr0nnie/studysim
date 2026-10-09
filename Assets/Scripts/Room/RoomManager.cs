@@ -706,11 +706,7 @@ public class RoomManager : MonoBehaviour
 
     private void DeleteObject(GameObject obj)
     {
-        if (starterPieces.Contains(obj))
-        {
-            FindFirstObjectByType<GameHUD>()?.ShowToast("Every room keeps its desk and chair. You can still move and turn them.");
-            return;
-        }
+        if (!CanRemove(obj)) return;
         if (placedObjects.Contains(obj))
         {
             obj.SetActive(false);
@@ -720,6 +716,29 @@ public class RoomManager : MonoBehaviour
             RecordAction(obj);
             SaveRoom();
         }
+    }
+
+    // A room always keeps at least one desk and one chair: any piece named or tagged so counts.
+    private bool IsKind(GameObject go, string kind)
+    {
+        if (go.name.IndexOf(kind, StringComparison.OrdinalIgnoreCase) >= 0) return true;
+        return boughtItems.TryGetValue(go, out FurnitureItem item) && item.tags != null
+            && Array.Exists(item.tags, t => t != null && t.IndexOf(kind, StringComparison.OrdinalIgnoreCase) >= 0);
+    }
+
+    private bool CanRemove(GameObject obj)
+    {
+        foreach (string kind in new[] { "desk", "chair" })
+        {
+            if (!IsKind(obj, kind)) continue;
+            bool another = false;
+            foreach (GameObject other in placedObjects)
+                if (other != obj && other.activeInHierarchy && IsKind(other, kind)) { another = true; break; }
+            if (another) continue;
+            FindFirstObjectByType<GameHUD>()?.ShowToast($"Your room needs a {kind}. Put another one down first, then you can remove this one.");
+            return false;
+        }
+        return true;
     }
 
     public void Undo()
@@ -743,6 +762,7 @@ public class RoomManager : MonoBehaviour
         if (show && boughtItems.TryGetValue(obj, out FurnitureItem item) && item.price > 0
             && (currency == null || !currency.SpendCoins(item.price)))
             return false;
+        if (!show && !CanRemove(obj)) return false;
         if (!show) Refund(obj);
         obj.SetActive(show);
         if (show) placedObjects.Add(obj);
@@ -826,7 +846,7 @@ public class RoomManager : MonoBehaviour
         SaveRoom(); // writes the layout, so the room stays as it is and later saves carry it
     }
 
-    // A chair on the camera side of the desk, facing it. The player can move and turn it, not delete it.
+    // A chair on the camera side of the desk, facing it.
     private void SpawnStarterChair(GameObject desk)
     {
         if (desk == null) { Debug.LogWarning("RoomManager: no desk in the scene to put a starter chair at."); return; }

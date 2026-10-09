@@ -73,7 +73,7 @@ public class RoomManager : MonoBehaviour
     private Bounds roomFloor;
     private bool hasRoomFloor;
     private static readonly RaycastHit[] surfaceHits = new RaycastHit[16];
-    // The desk and chair a new game starts with (the rule that keeps one of each is IsLastOfRole).
+    // The desk and chair a new game starts with: they can be moved and rotated but not deleted.
     private readonly HashSet<GameObject> starterPieces = new HashSet<GameObject>();
     private readonly Dictionary<GameObject, Color> pieceColors = new Dictionary<GameObject, Color>();
     private readonly Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
@@ -704,22 +704,9 @@ public class RoomManager : MonoBehaviour
 
     }
 
-    // True when obj is the only desk (or chair) left, so removing it would leave the room without one.
-    private bool IsLastOfRole(GameObject obj, string role)
-    {
-        if (!FurnitureRole.Is(obj, ItemOf(obj), role)) return false;
-        foreach (GameObject p in placedObjects)
-            if (p != obj && p != null && p.activeInHierarchy && FurnitureRole.Is(p, ItemOf(p), role)) return false;
-        return true;
-    }
-
     private void DeleteObject(GameObject obj)
     {
-        if (IsLastOfRole(obj, "desk") || IsLastOfRole(obj, "chair"))
-        {
-            FindFirstObjectByType<GameHUD>()?.ShowToast("Every room keeps a desk and a chair. Place another to swap this one out.");
-            return;
-        }
+        if (!CanRemove(obj)) return;
         if (placedObjects.Contains(obj))
         {
             obj.SetActive(false);
@@ -729,6 +716,24 @@ public class RoomManager : MonoBehaviour
             RecordAction(obj);
             SaveRoom();
         }
+    }
+
+    // A room always keeps at least one desk and one chair: any piece named or tagged so counts.
+    private bool IsKind(GameObject go, string kind) => FurnitureRole.Is(go, ItemOf(go), kind);
+
+    private bool CanRemove(GameObject obj)
+    {
+        foreach (string kind in new[] { "desk", "chair" })
+        {
+            if (!IsKind(obj, kind)) continue;
+            bool another = false;
+            foreach (GameObject other in placedObjects)
+                if (other != obj && other.activeInHierarchy && IsKind(other, kind)) { another = true; break; }
+            if (another) continue;
+            FindFirstObjectByType<GameHUD>()?.ShowToast($"Your room needs a {kind}. Put another one down first, then you can remove this one.");
+            return false;
+        }
+        return true;
     }
 
     public void Undo()
@@ -752,6 +757,7 @@ public class RoomManager : MonoBehaviour
         if (show && boughtItems.TryGetValue(obj, out FurnitureItem item) && item.price > 0
             && (currency == null || !currency.SpendCoins(item.price)))
             return false;
+        if (!show && !CanRemove(obj)) return false;
         if (!show) Refund(obj);
         obj.SetActive(show);
         if (show) placedObjects.Add(obj);
@@ -835,7 +841,7 @@ public class RoomManager : MonoBehaviour
         SaveRoom(); // writes the layout, so the room stays as it is and later saves carry it
     }
 
-    // A chair on the camera side of the desk, facing it. The player can move and turn it, not delete it.
+    // A chair on the camera side of the desk, facing it.
     private void SpawnStarterChair(GameObject desk)
     {
         if (desk == null) { Debug.LogWarning("RoomManager: no desk in the scene to put a starter chair at."); return; }

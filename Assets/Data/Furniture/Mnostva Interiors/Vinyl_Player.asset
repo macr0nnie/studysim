@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Vinyl_Player
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Vinyl_Player
+  description: A vinyl_player to add some personality to your space.
+  category: 1
+  tags:
+  - vinyl
+  - player
+  price: 15
+  prefab: {fileID: 5312235095817008196, guid: 40f7c93fed58e2240868fcc9d81787fe, type: 3}
+  icon: {fileID: 0}

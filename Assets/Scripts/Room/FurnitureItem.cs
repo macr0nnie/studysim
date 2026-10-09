@@ -10,13 +10,15 @@ public enum StoreCategory
     Ceiling // hanging lights and plants
 }
 
-// Where the character goes to use a piece (sit on a chair, lie on a bed). Local to the placed object, so every prefab
-// defines its own: pivot position (the feet) and a yaw added to the piece's own. Lying, the head points back along the yaw.
+// How the character uses a piece (sit on a chair, lie on a bed). The spot is worked out from the piece's real renderer
+// bounds, so imported rotations and scales don't matter: the middle of the piece, `height` of the way up it (0 = floor,
+// 0.6 = a mattress top), nudged by `offset` (fractions of the half-size on the world X/Z axes), facing turned by `yaw`.
 [System.Serializable]
 public struct Interaction
 {
     public bool enabled;
-    public Vector3 localPosition;
+    [Range(0f, 1f)] public float height;
+    public Vector2 offset;
     public float yaw;
 }
 

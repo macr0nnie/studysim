@@ -17,7 +17,7 @@ public class CharacterBehaviour : MonoBehaviour
     private TimerManager timer;
     private Animator animator;
     private Renderer[] renderers;
-    private SpriteRenderer icon;
+    private SpriteRenderer icon, backdrop;
     private SpriteRenderer bubbleBack;
     private TextMeshPro bubbleText;
     private MoodIcons icons;
@@ -306,6 +306,13 @@ public class CharacterBehaviour : MonoBehaviour
     {
         icon = new GameObject("MoodIcon").AddComponent<SpriteRenderer>();
         icon.sortingOrder = 100;
+        // The icons are dark line art: a light disc keeps them readable against the room.
+        backdrop = new GameObject("Backdrop").AddComponent<SpriteRenderer>();
+        backdrop.transform.SetParent(icon.transform, false);
+        backdrop.transform.localScale = Vector3.one * 1.7f;
+        backdrop.sprite = UIKit.Circle;
+        backdrop.color = new Color(1f, 1f, 1f, 0.85f);
+        backdrop.sortingOrder = 99;
         bubbleBack = new GameObject("SpeechBubble").AddComponent<SpriteRenderer>();
         bubbleBack.sprite = UIKit.Rounded;
         bubbleBack.drawMode = SpriteDrawMode.Sliced;
@@ -341,8 +348,9 @@ public class CharacterBehaviour : MonoBehaviour
     {
         if (shown == Mood) return;
         shown = Mood;
-        foreach (Transform c in icon.transform) Destroy(c.gameObject);
+        foreach (Transform c in icon.transform) if (c != backdrop.transform) Destroy(c.gameObject);
         icon.sprite = sprites != null && sprites.Length > 0 ? sprites[0] : null;
+        backdrop.enabled = icon.sprite != null;
         for (int i = 1; sprites != null && i < sprites.Length; i++)
         {
             var piece = new GameObject("Piece").AddComponent<SpriteRenderer>();

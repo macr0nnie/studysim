@@ -6,17 +6,18 @@ using UnityEngine.InputSystem;
 // the overrides are saved in PlayerPrefs.
 public static class Controls
 {
-    public enum Act { Edit, Store, Planner, Saves, Settings, Undo, Redo, Rotate, Delete, Grid }
+    public enum Act { Edit, Store, Planner, Saves, Settings, Undo, Redo, Rotate, Delete, Grid, Raise, Lower, Grow, Shrink }
 
     public static readonly string[] Labels =
     {
-        "Edit mode", "Shop", "Planner", "Saves", "Settings", "Undo", "Redo", "Rotate / flip", "Delete piece", "Grid snap",
+        "Edit mode", "Shop", "Planner", "Saves", "Settings", "Undo", "Redo", "Rotate / flip", "Delete piece", "Grid snap", "Raise piece", "Lower piece", "Enlarge piece", "Shrink piece",
     };
 
     private static readonly string[] Defaults =
     {
         "<Keyboard>/tab", "<Keyboard>/b", "<Keyboard>/p", "<Keyboard>/f5", "<Keyboard>/escape", "<Keyboard>/z", "<Keyboard>/y",
         "<Keyboard>/r", "<Keyboard>/delete", "<Keyboard>/g",
+        "<Keyboard>/pageUp", "<Keyboard>/pageDown", "<Keyboard>/equals", "<Keyboard>/minus",
     };
 
     private const string SaveKey = "ControlBindings";
@@ -30,6 +31,8 @@ public static class Controls
         for (int i = 0; i < Defaults.Length; i++)
             actions[i] = map.AddAction(((Act)i).ToString(), InputActionType.Button, Defaults[i]);
         actions[(int)Act.Delete].AddBinding("<Keyboard>/backspace");
+        actions[(int)Act.Grow].AddBinding("<Keyboard>/numpadPlus");
+        actions[(int)Act.Shrink].AddBinding("<Keyboard>/numpadMinus");
         string saved = PlayerPrefs.GetString(SaveKey, "");
         if (saved.Length > 0)
         {

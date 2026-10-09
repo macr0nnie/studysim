@@ -933,11 +933,38 @@ public class RoomManager : MonoBehaviour
         Bounds b = GetBounds(desk);
         Vector3 toCamera = Vector3.ProjectOnPlane(mainCamera.transform.position - b.center, Vector3.up).normalized;
         Vector3 position = new Vector3(b.center.x, b.min.y, b.center.z) + toCamera * (Mathf.Max(b.extents.x, b.extents.z) + 0.6f);
-        GameObject chair = Instantiate(item.prefab, position, Quaternion.LookRotation(-toCamera));
+        GameObject chair = Instantiate(item.prefab, position, Quaternion.identity);
         chair.name = item.prefab.name;
+        chair.transform.rotation = Quaternion.AngleAxis(Vector3.SignedAngle(ChairFront(chair, item.frontYaw), -toCamera, Vector3.up), Vector3.up);
         placedObjects.Add(chair);
         boughtItems[chair] = item;
         starterPieces.Add(chair);
+    }
+
+    // The way a sitter faces on a chair standing unrotated: the item's frontYaw if set, otherwise opposite
+    // the backrest, found as the side the upper part of the mesh leans towards.
+    public static Vector3 ChairFront(GameObject chair, float frontYaw)
+    {
+        if (frontYaw != 0f) return Quaternion.AngleAxis(frontYaw, Vector3.up) * chair.transform.rotation * Vector3.forward;
+        Physics.SyncTransforms();
+        Bounds b = GetBounds(chair);
+        Vector3 back = Vector3.zero;
+        float from = b.min.y + b.size.y * 0.7f;
+        try
+        {
+            foreach (MeshFilter mf in chair.GetComponentsInChildren<MeshFilter>())
+            {
+                if (mf.sharedMesh == null) continue;
+                foreach (Vector3 v in mf.sharedMesh.vertices)
+                {
+                    Vector3 w = mf.transform.TransformPoint(v);
+                    if (w.y >= from) back += new Vector3(w.x - b.center.x, 0, w.z - b.center.z);
+                }
+            }
+        }
+        catch (UnityException) { return chair.transform.forward; } // mesh not readable: assume the front is +Z
+        if (back.sqrMagnitude < 1e-6f) return chair.transform.forward;
+        return -back.normalized;
     }
 
     private void LoadRoom()

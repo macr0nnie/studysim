@@ -23,7 +23,7 @@ MonoBehaviour:
   prefab: {fileID: 3192255826745395173, guid: e23a2b6620ed88649b58a624d7103f3c, type: 3}
   icon: {fileID: 0}
   sit:
-    enabled: 1
+    enabled: 0
     height: 0
     offset: {x: 0, y: 0}
     yaw: 0

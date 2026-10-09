@@ -105,13 +105,65 @@ public class CharacterBehaviour : MonoBehaviour
     // The old scene's furniture isn't all store items, so names count too.
     private static bool Named(GameObject g, string part) => g.name.IndexOf(part, System.StringComparison.OrdinalIgnoreCase) >= 0;
 
-    private bool Usable(GameObject p, bool lie, out Interaction data)
+    private bool Usable(GameObject p, out Interaction data)
     {
         FurnitureItem item = room.ItemOf(p);
-        data = item == null ? default : lie ? item.lie : item.sit;
+        data = item == null ? default : item.lie;
         if (data.enabled) return true;
-        if (lie ? Named(p, "bed") && !Named(p, "plane") : Named(p, "chair") || Named(p, "desk")) { data.enabled = true; data.height = lie ? 0.6f : 0f; return true; }
+        if (Named(p, "bed") && !Named(p, "plane")) { data.enabled = true; data.height = 0.6f; return true; }
         return false;
+    }
+
+    // Chairs: pieces named chair, or a chair inside another piece (the old desk). Each is paired with its nearest desk.
+    private bool Chairs(out List<Transform> chairs)
+    {
+        chairs = new List<Transform>();
+        foreach (GameObject p in room.PlacedPieces)
+        {
+            if (p == null || !p.activeInHierarchy) continue;
+            FurnitureItem item = room.ItemOf(p);
+            if (Named(p, "chair") || (item != null && item.sit.enabled && !Named(p, "desk"))) chairs.Add(p.transform);
+            else if (Child(p, "chair") is Transform c) chairs.Add(c);
+        }
+        return chairs.Count > 0;
+    }
+
+    private Bounds? NearestDesk(Vector3 from)
+    {
+        Bounds? best = null; float bestDist = float.MaxValue;
+        foreach (GameObject p in room.PlacedPieces)
+        {
+            if (p == null || !p.activeInHierarchy || !Named(p, "desk")) continue;
+            Bounds b = BoundsOf(p);
+            float d = b.SqrDistance(from);
+            if (d < bestDist) { bestDist = d; best = b; }
+        }
+        return best;
+    }
+
+    // Sit in the chair, on the floor under it, facing the nearest desk along whichever of the chair's own horizontal
+    // axes points at it most, so a turned chair is respected. False when there is no desk to pair with.
+    private bool SitSpot(Transform chair, out Vector3 pos, out Quaternion rot, out float dist)
+    {
+        pos = default; rot = default; dist = 0f;
+        Bounds b = BoundsOf(chair.gameObject);
+        Bounds? desk = b.size == Vector3.zero ? null : NearestDesk(b.center);
+        if (desk == null) return false;
+        pos = new Vector3(b.center.x, b.min.y, b.center.z);
+        Vector3 toDesk = Vector3.ProjectOnPlane(desk.Value.ClosestPoint(b.center) - pos, Vector3.up);
+        dist = toDesk.magnitude;
+        if (dist < 0.0001f) toDesk = Vector3.ProjectOnPlane(desk.Value.center - pos, Vector3.up);
+        Vector3 face = Vector3.zero; float bestDot = -2f;
+        foreach (Vector3 axis in new[] { chair.right, -chair.right, chair.up, -chair.up, chair.forward, -chair.forward })
+        {
+            Vector3 flat = Vector3.ProjectOnPlane(axis, Vector3.up);
+            if (flat.magnitude < 0.7f) continue; // an axis pointing up or down says nothing about which way the chair faces
+            float dot = Vector3.Dot(flat.normalized, toDesk.normalized);
+            if (dot > bestDot) { bestDot = dot; face = flat.normalized; }
+        }
+        if (face == Vector3.zero) face = toDesk.sqrMagnitude > 0f ? toDesk.normalized : Vector3.back;
+        rot = Quaternion.LookRotation(face);
+        return true;
     }
 
     private static Bounds BoundsOf(GameObject g)
@@ -136,39 +188,20 @@ public class CharacterBehaviour : MonoBehaviour
     }
 
     // World position and rotation for the character on this piece: from its bounds, never from its local axes.
-    private bool Spot(GameObject piece, bool lie, Interaction d, out Vector3 pos, out Quaternion rot)
+    private bool Spot(GameObject piece, Interaction d, out Vector3 pos, out Quaternion rot)
     {
         pos = default; rot = Quaternion.identity;
-        Transform chair = lie ? null : Child(piece, "chair");
-        Bounds b = BoundsOf(chair != null ? chair.gameObject : piece);
+        Bounds b = BoundsOf(piece);
         if (b.size == Vector3.zero) return false;
         pos = new Vector3(b.center.x + d.offset.x * b.extents.x, b.min.y + d.height * b.size.y, b.center.z + d.offset.y * b.extents.z);
-        Camera cam = Camera.main;
-        Vector3 toCam = cam ? Vector3.ProjectOnPlane(cam.transform.position - b.center, Vector3.up).normalized : Vector3.back;
-        if (lie)
-        {
-            // Head toward the nearer wall along the bed's long side; the pivot (the feet) is half a body back from the middle.
-            Bounds floor = FloorBounds();
-            bool alongX = b.size.x >= b.size.z;
-            float c = alongX ? b.center.x : b.center.z, lo = alongX ? floor.min.x : floor.min.z, hi = alongX ? floor.max.x : floor.max.z;
-            float sign = floor.size == Vector3.zero || Mathf.Abs(c - lo) < Mathf.Abs(hi - c) ? -1f : 1f;
-            Vector3 head = (alongX ? Vector3.right : Vector3.forward) * sign;
-            pos -= head * standingHeight * 0.5f;
-            rot = Quaternion.AngleAxis(d.yaw, Vector3.up) * Quaternion.LookRotation(Vector3.up, head);
-            return true;
-        }
-        // Facing the nearest desk; a desk with no chair of its own gets the player on its camera side.
-        GameObject desk = null; float best = float.MaxValue;
-        foreach (GameObject p in room.PlacedPieces)
-        {
-            if (p == null || !p.activeInHierarchy || !Named(p, "desk")) continue;
-            float dist = (BoundsOf(p).center - b.center).sqrMagnitude;
-            if (dist < best) { best = dist; desk = p; }
-        }
-        if (desk == piece && chair == null) pos += toCam * Mathf.Max(b.extents.x, b.extents.z);
-        Vector3 face = desk == null ? -toCam : Vector3.ProjectOnPlane(BoundsOf(desk).center - pos, Vector3.up);
-        if (face.sqrMagnitude < 0.0001f) face = -toCam;
-        rot = Quaternion.AngleAxis(d.yaw, Vector3.up) * Quaternion.LookRotation(face.normalized);
+        // Head toward the nearer wall along the bed's long side; the pivot (the feet) is half a body back from the middle.
+        Bounds floor = FloorBounds();
+        bool alongX = b.size.x >= b.size.z;
+        float c = alongX ? b.center.x : b.center.z, lo = alongX ? floor.min.x : floor.min.z, hi = alongX ? floor.max.x : floor.max.z;
+        float sign = floor.size == Vector3.zero || Mathf.Abs(c - lo) < Mathf.Abs(hi - c) ? -1f : 1f;
+        Vector3 head = (alongX ? Vector3.right : Vector3.forward) * sign;
+        pos -= head * standingHeight * 0.5f;
+        rot = Quaternion.AngleAxis(d.yaw, Vector3.up) * Quaternion.LookRotation(Vector3.up, head);
         return true;
     }
 
@@ -176,26 +209,35 @@ public class CharacterBehaviour : MonoBehaviour
     {
         if (room == null || animator == null) return;
         bool wantLie = timer != null && !timer.IsStudySession;
-        GameObject best = null; int bestScore = 0; Interaction bestData = default;
-        IReadOnlyList<GameObject> pieces = room.PlacedPieces;
-        for (int i = pieces.Count - 1; i >= 0; i--) // newest first, and a chair beats a desk
+        if (Distraction.Busy && usedPiece != null && wantLie == lying) return; // the room is shaking: keep holding the last good spot
+        GameObject best = null; Vector3 pos = default; Quaternion rot = default; float bestDist = float.MaxValue;
+        if (wantLie)
         {
-            GameObject p = pieces[i];
-            if (p == null || !p.activeInHierarchy || !Usable(p, wantLie, out Interaction d)) continue;
-            int score = wantLie || !Named(p, "desk") ? 2 : 1;
-            if (score > bestScore) { best = p; bestScore = score; bestData = d; }
+            IReadOnlyList<GameObject> pieces = room.PlacedPieces;
+            for (int i = pieces.Count - 1; i >= 0 && best == null; i--)
+            {
+                GameObject p = pieces[i];
+                if (p != null && p.activeInHierarchy && Usable(p, out Interaction d) && Spot(p, d, out pos, out rot)) best = p;
+            }
+        }
+        else if (Chairs(out List<Transform> chairs))
+        {
+            // Several chairs: the one sitting closest to a desk, the newest winning a tie.
+            for (int i = chairs.Count - 1; i >= 0; i--)
+                if (SitSpot(chairs[i], out Vector3 p2, out Quaternion r2, out float dist) && dist < bestDist) { bestDist = dist; best = chairs[i].gameObject; pos = p2; rot = r2; }
         }
         if (best == null) { if (usedPiece != null) { usedPiece = null; Release(); } return; }
-        if (best == usedPiece && wantLie == lying) return;
-        if (!Spot(best, wantLie, bestData, out Vector3 pos, out Quaternion rot)) return;
+        if (usedPiece == null || wantLie != lying)
+        {
+            if (wantLie) { animator.SetBool("IsStudying", false); animator.speed = 0f; } // no lying clip yet: freeze the pose
+            else { animator.speed = 1f; animator.SetBool("IsStudying", true); }
+        }
         usedPiece = best;
         lying = wantLie;
         // Remembered in the piece's own frame, so the character rides with it instead of drifting.
         Matrix4x4 rest = Rest(best.transform);
         localPos = rest.inverse.MultiplyPoint3x4(pos);
         localRot = Quaternion.Inverse(rest.rotation) * rot;
-        if (lying) { animator.SetBool("IsStudying", false); animator.speed = 0f; } // no lying clip yet: freeze the pose
-        else { animator.speed = 1f; animator.SetBool("IsStudying", true); }
     }
 
     private Vector3 localPos;
@@ -215,18 +257,22 @@ public class CharacterBehaviour : MonoBehaviour
         if (animator != null) { animator.speed = 1f; animator.SetBool("IsStudying", true); }
     }
 
-    // Debug: blue = where the character would sit, pink = where it would lie, for every piece that can be used.
+    // Debug: cyan = where the character would sit in each chair, magenta = where it would lie, with a line for facing.
     private void OnDrawGizmos()
     {
         if (room == null) return;
+        if (Chairs(out List<Transform> chairs))
+            foreach (Transform c in chairs)
+                if (SitSpot(c, out Vector3 pos, out Quaternion rot, out _)) Mark(pos, rot * Vector3.forward, Color.cyan);
         foreach (GameObject p in room.PlacedPieces)
-            foreach (bool lie in new[] { false, true })
-                if (p != null && p.activeInHierarchy && Usable(p, lie, out Interaction d) && Spot(p, lie, d, out Vector3 pos, out Quaternion rot))
-                {
-                    Gizmos.color = lie ? Color.magenta : Color.cyan;
-                    Gizmos.DrawSphere(pos, 0.05f * Mathf.Max(1f, standingHeight));
-                    Gizmos.DrawRay(pos, rot * (lie ? Vector3.up : Vector3.forward) * standingHeight * 0.5f);
-                }
+            if (p != null && p.activeInHierarchy && Usable(p, out Interaction d) && Spot(p, d, out Vector3 pos, out Quaternion rot)) Mark(pos, rot * Vector3.up, Color.magenta);
+    }
+
+    private void Mark(Vector3 pos, Vector3 dir, Color color)
+    {
+        Gizmos.color = color;
+        Gizmos.DrawSphere(pos, 0.05f * Mathf.Max(1f, standingHeight));
+        Gizmos.DrawRay(pos, dir * standingHeight * 0.5f);
     }
 
     // ---------- overlays ----------

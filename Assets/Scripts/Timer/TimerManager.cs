@@ -32,11 +32,16 @@ public class TimerManager : MonoBehaviour
     public Button plusButton;
     public Button minusButton;
 
+    private const string LengthKey = "StudySessionSeconds", BreakKey = "BreakSessionSeconds";
+
     private void Start()
     {
+        // the player's chosen session length survives restarts
+        studyDuration = PlayerPrefs.GetFloat(LengthKey, studyDuration);
+        breakDuration = PlayerPrefs.GetFloat(BreakKey, breakDuration);
         ResetTimer();
-        plusButton.onClick.AddListener(AddFiveMinutes);
-        minusButton.onClick.AddListener(RemoveFiveMinutes);
+        if (plusButton) plusButton.onClick.AddListener(AddFiveMinutes);
+        if (minusButton) minusButton.onClick.AddListener(RemoveFiveMinutes);
     }
 
     private void Update()
@@ -59,6 +64,8 @@ public class TimerManager : MonoBehaviour
     }
     public void PauseTimer()
     {
+        // Strict focus: a study session can't be paused, only given up (no rewards).
+        if (GameSettings.StrictFocus && isStudySession && isTimerRunning) { ResetTimer(); return; }
         isTimerRunning = false;
     }
     public void ResetTimer()
@@ -77,26 +84,52 @@ public class TimerManager : MonoBehaviour
         }
         isStudySession = !isStudySession;
         ResetTimer();
+        // Each phase can roll straight into the next (Settings > Focus).
+        if (isStudySession ? GameSettings.AutoStartStudy : GameSettings.AutoStartBreak) StartTimer();
         OnTimerComplete?.Invoke();
     }
+
+    public int MoneyReward => baseMoneyReward;
+    public int ExperienceReward => baseExperienceReward;
+    public float StudyMinutes => studyDuration / 60f;
+    public float BreakMinutes => breakDuration / 60f;
+
+    private void SaveLength()
+    {
+        PlayerPrefs.SetFloat(LengthKey, studyDuration);
+        PlayerPrefs.Save();
+    }
+
     public void GrantRewards()
     {
-        playerCurrency.AddCoins(baseMoneyReward);
+        if (playerCurrency != null) playerCurrency.AddCoins(baseMoneyReward);
+        Experience experience = FindFirstObjectByType<Experience>();
+        if (experience != null) experience.GainExperience(baseExperienceReward);
     }
     public void SetCustomDuration(float minutes)
     {
         if (!isTimerRunning)
         {
-            studyDuration = minutes * 60f;
+            studyDuration = Mathf.Clamp(minutes, 5f, 120f) * 60f;
+            SaveLength();
             ResetTimer();
         }
+    }
+    public void SetBreakDuration(float minutes)
+    {
+        if (isTimerRunning) return;
+        breakDuration = Mathf.Clamp(minutes, 1f, 30f) * 60f;
+        PlayerPrefs.SetFloat(BreakKey, breakDuration);
+        PlayerPrefs.Save();
+        ResetTimer();
     }
     public void AddFiveMinutes()
     {
         if (!isTimerRunning && studyDuration < 7200f) // 2 hours in seconds
         {
-            studyDuration += 150f; // 5 minutes in seconds
+            studyDuration += 300f; // 5 minutes in seconds
             if (studyDuration > 7200f) studyDuration = 7200f; // Ensure it does not exceed 2 hours
+            SaveLength();
             ResetTimer();
         }
     }
@@ -104,7 +137,8 @@ public class TimerManager : MonoBehaviour
     {
         if (!isTimerRunning && studyDuration > 300f)
         {
-            studyDuration -= 150f; // 5 minutes in seconds
+            studyDuration -= 300f; // 5 minutes in seconds
+            SaveLength();
             ResetTimer();
         }
     }

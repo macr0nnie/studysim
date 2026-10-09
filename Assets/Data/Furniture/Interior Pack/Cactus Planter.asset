@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Cactus Planter
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Cactus Planter
+  description: A cactus planter to bring a little life into the room.
+  category: 3
+  tags:
+  - cactus
+  - planter
+  - plants
+  price: 20
+  prefab: {fileID: 4300180800147344411, guid: c84d85b592c153a42a07618dac7e3ab2, type: 3}
+  icon: {fileID: 0}

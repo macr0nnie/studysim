@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Desk 5
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Desk 5
+  description: A desk 5 to make your room your own.
+  category: 0
+  tags:
+  - desk
+  - shelf
+  - table
+  price: 40
+  prefab: {fileID: 13780727815000485, guid: 284a2dfa34e396548aceeb13d42f90a3, type: 3}
+  icon: {fileID: 0}

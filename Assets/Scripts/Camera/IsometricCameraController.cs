@@ -69,12 +69,12 @@ public class IsometricCameraController : MonoBehaviour
             float targetAspect = referenceResolution.x / referenceResolution.y;
 
             // Adjust orthographic size based on aspect ratio
-            float orthographicSize = initialOrthoSize;
+            float orthographicSize = targetOrthoSize; // was initialOrthoSize, so SetZoom never had any effect
 
             if (aspectRatio < targetAspect)
             {
                 // Screen is taller than reference, adjust ortho size to maintain width
-                orthographicSize = initialOrthoSize * (targetAspect / aspectRatio);
+                orthographicSize = targetOrthoSize * (targetAspect / aspectRatio);
             }
 
             // Clamp the orthographic size

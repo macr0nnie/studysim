@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Fire Alarm
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Fire Alarm
+  description: A fire alarm to add some personality to your space.
+  category: 1
+  tags:
+  - fire
+  - alarm
+  - clock
+  - alarms
+  price: 15
+  prefab: {fileID: 2748206577056410753, guid: bdef53ec9f0d5b54c86bfb80b6414db2, type: 3}
+  icon: {fileID: 0}

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Side Cabinet
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Side Cabinet
+  description: A side cabinet to make your room your own.
+  category: 0
+  tags:
+  - side
+  - cabinet
+  - shelf
+  - table
+  price: 40
+  prefab: {fileID: 9069414064825397559, guid: 0d846938cd25f024d97791a29aeadd4c, type: 3}
+  icon: {fileID: 0}

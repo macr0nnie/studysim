@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Gravestone_Old_Classic_Broken
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Gravestone_Old_Classic_Broken
+  description: A gravestone_old_classic_broken to add some personality to your space.
+  category: 1
+  tags:
+  - gravestone
+  - old
+  - classic
+  - broken
+  - halloween
+  price: 15
+  prefab: {fileID: 3042831833515112434, guid: e54b5da67e1b90f4e91949ca516a50ae, type: 3}
+  icon: {fileID: 0}

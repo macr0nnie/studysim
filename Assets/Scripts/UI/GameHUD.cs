@@ -101,11 +101,7 @@ public class GameHUD : MonoBehaviour
         if (editPill != null && room != null)
         {
             editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
-            if (room.IsEditMode != wasEditing)
-            {
-                hintBar.SetActive(room.IsEditMode);
-                if (room.IsEditMode) hintText.text = EditHints(); // rebuilt each time so rebound keys show
-            }
+            if (room.IsEditMode != wasEditing) hintBar.SetActive(room.IsEditMode);
             wasEditing = room.IsEditMode;
         }
         if (fitPanel != null && room != null)
@@ -133,36 +129,44 @@ public class GameHUD : MonoBehaviour
     // Edit mode, bottom centre (clear of the drawers on the left and the music card on the right): a key hint
     // bar, and above it the selected piece's panel to turn, remove, raise/lower and grow/shrink it.
     private GameObject fitPanel, hintBar;
-    private TMP_Text fitInfo, fitName, hintText;
+    private TMP_Text fitInfo, fitName;
     const float HintHeight = 40;
 
-    private static string EditHints()
-    {
-        string accent = ColorUtility.ToHtmlStringRGB(AccentColor);
-        string K(Controls.Act a) => $"<color=#{accent}>{Controls.KeyName(a)}</color>";
-        return $"Click or drag a piece    {K(Controls.Act.Rotate)} rotate    {K(Controls.Act.Lower)} / {K(Controls.Act.Raise)} height    "
-            + $"{K(Controls.Act.Shrink)} / {K(Controls.Act.Grow)} size    {K(Controls.Act.Delete)} remove    {K(Controls.Act.Undo)} undo    "
-            + $"{K(Controls.Act.Edit)} done    {K(Controls.Act.Settings)} settings";
-    }
-
+    // Each hint is also a button doing what its key does, so everything works with the mouse alone.
     private void BuildHintBar(Transform canvas)
     {
-        hintBar = Make("EditHints", canvas, typeof(Image));
+        hintBar = Make("EditHints", canvas, typeof(Image), typeof(HorizontalLayoutGroup));
         var rect = (RectTransform)hintBar.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
-        rect.sizeDelta = new Vector2(900, HintHeight);
+        rect.sizeDelta = new Vector2(960, HintHeight);
         rect.anchoredPosition = new Vector2(0, 24);
-        Image image = hintBar.GetComponent<Image>();
-        Style(image, PanelColor);
-        image.raycastTarget = false; // a hint, not a click target: it mustn't block clicks on the room behind it
-        hintText = MakeText("Text", hintBar.transform, "", CaptionSize, MutedText, TextAlignmentOptions.Center);
-        hintText.raycastTarget = false;
-        hintText.enableAutoSizing = true;
-        hintText.fontSizeMin = 11;
-        hintText.fontSizeMax = CaptionSize;
-        Stretch((RectTransform)hintText.transform);
-        hintText.margin = new Vector4(12, 0, 12, 0);
+        Style(hintBar.GetComponent<Image>(), PanelColor);
+        var h = hintBar.GetComponent<HorizontalLayoutGroup>();
+        h.padding = new RectOffset(6, 6, 5, 5);
+        h.spacing = 4;
+        h.childControlWidth = h.childControlHeight = true;
+        h.childForceExpandWidth = h.childForceExpandHeight = true;
+        HintButton("Rotate", Controls.Act.Rotate, () => room.RotateSelected());
+        HintButton("Lower", Controls.Act.Lower, () => room.NudgeHeight(-0.1f));
+        HintButton("Raise", Controls.Act.Raise, () => room.NudgeHeight(0.1f));
+        HintButton("Shrink", Controls.Act.Shrink, () => room.Resize(1 / 1.1f));
+        HintButton("Grow", Controls.Act.Grow, () => room.Resize(1.1f));
+        HintButton("Remove", Controls.Act.Delete, () => room.DeleteSelected());
+        HintButton("Undo", Controls.Act.Undo, () => room.Undo());
+        HintButton("Done", Controls.Act.Edit, () => room.ToggleEditMode());
+        HintButton("Settings", Controls.Act.Settings, () => FindFirstObjectByType<SettingsUI>()?.Toggle());
         hintBar.SetActive(false);
+    }
+
+    private void HintButton(string label, Controls.Act key, UnityEngine.Events.UnityAction onClick)
+    {
+        Button b = TextButton(label, hintBar.transform, label, TabColor, CaptionSize);
+        TMP_Text text = b.GetComponentInChildren<TMP_Text>();
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 10;
+        text.fontSizeMax = CaptionSize;
+        KeyHint(text, label, key); // "Rotate  R", kept current when keys are rebound
+        b.onClick.AddListener(onClick);
     }
 
     private void BuildFitPanel(Transform canvas)

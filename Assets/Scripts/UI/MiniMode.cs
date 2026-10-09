@@ -1,30 +1,27 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
-using UnityEngine.UI;
 using static UIKit;
 
-// Mini mode: shrinks the game to a small borderless, always-on-top window that shows just the room
-// (with a see-through background on Windows builds), a timer and a button back. Drag anywhere to move it;
-// the position is remembered. The timer, character and browser extension keep running underneath.
-// The window calls only run in a Windows build; in the Editor only the UI swap happens.
+// Mini mode: shrinks the game to a small borderless, always-on-top window that only displays the room
+// (with a see-through background on Windows builds). No HUD and no room interaction: drag anywhere to move
+// the window (the position is remembered); the Mini mode key, a double-click or a right-click goes back.
+// The timer, character and browser extension keep running underneath.
+// The window calls only run in a Windows build; in the Editor only the UI and input swap happens.
 public class MiniMode : MonoBehaviour
 {
     const int Width = 360, Height = 300;
+    const float DoubleClick = 0.3f;
 
     public static bool Active { get; private set; }
     static MiniMode instance;
 
-    private GameObject overlay;
-    private TMP_Text timeText;
-    private TimerManager timer;
     private readonly List<Canvas> hidden = new List<Canvas>();
-    private Canvas ownCanvas;
+    private RoomManager room;
+    private float lastClick = -1;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void AddToRoomScenes()
@@ -44,45 +41,16 @@ public class MiniMode : MonoBehaviour
         if (instance != null && on != Active) instance.Toggle();
     }
 
-    private void Awake()
-    {
-        timer = FindFirstObjectByType<TimerManager>();
-        ownCanvas = MakeCanvas("MiniCanvas", transform, 50);
-        // Constant pixel size: the 1920x1080 reference scaling would make everything tiny in a 360x300 window.
-        ownCanvas.GetComponent<CanvasScaler>().uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
-        Transform canvas = ownCanvas.transform;
-
-        overlay = Make("Overlay", canvas);
-        Stretch((RectTransform)overlay.transform);
-
-        GameObject pill = Make("Timer", overlay.transform, typeof(Image));
-        Style(pill.GetComponent<Image>(), PanelColor);
-        var pillRect = (RectTransform)pill.transform;
-        pillRect.anchorMin = pillRect.anchorMax = pillRect.pivot = new Vector2(0, 1);
-        pillRect.sizeDelta = new Vector2(96, 34);
-        pillRect.anchoredPosition = new Vector2(8, -8);
-        timeText = MakeText("Time", pill.transform, "", BodySize, TextColor, TextAlignmentOptions.Center, true);
-        Stretch((RectTransform)timeText.transform);
-
-        Button back = TextButton("FullButton", overlay.transform, "Full", PanelColor, LabelSize);
-        var backRect = (RectTransform)back.transform;
-        backRect.anchorMin = backRect.anchorMax = backRect.pivot = new Vector2(1, 1);
-        backRect.sizeDelta = new Vector2(64, 34);
-        backRect.anchoredPosition = new Vector2(-8, -8);
-        back.onClick.AddListener(Toggle);
-
-        overlay.SetActive(false);
-    }
-
     private void Update()
     {
-        if (Controls.Pressed(Controls.Act.MiniMode) && !Typing()) Toggle();
+        if (Controls.Pressed(Controls.Act.MiniMode) && !Typing()) { Toggle(); return; }
         if (!Active) return;
 
-        if (timer != null)
+        if (Controls.RightClickDown) { Toggle(); return; }
+        if (Controls.ClickDown)
         {
-            int seconds = Mathf.CeilToInt(timer.CurrentTime);
-            timeText.text = $"{seconds / 60:00}:{seconds % 60:00}";
+            if (Time.unscaledTime - lastClick <= DoubleClick) { lastClick = -1; Toggle(); return; }
+            lastClick = Time.unscaledTime;
         }
         Drag();
     }
@@ -95,13 +63,22 @@ public class MiniMode : MonoBehaviour
     public void Toggle()
     {
         Active = !Active;
-        overlay.SetActive(Active);
+        // Keys other than the Mini mode key would open hidden panels, so they're off while mini.
+        Controls.MiniOnly(Active);
+
+        // Display only: the room ignores clicks (a right-click would otherwise delete furniture).
+        if (room == null) room = FindFirstObjectByType<RoomManager>();
+        if (room != null)
+        {
+            if (Active && room.IsEditMode) room.ToggleEditMode();
+            room.enabled = !Active;
+        }
 
         if (Active)
         {
             hidden.Clear();
             foreach (Canvas c in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
-                if (c != ownCanvas && c.isRootCanvas && c.enabled) { c.enabled = false; hidden.Add(c); }
+                if (c.isRootCanvas && c.enabled) { c.enabled = false; hidden.Add(c); }
         }
         else
         {
@@ -183,12 +160,11 @@ public class MiniMode : MonoBehaviour
         PlayerPrefs.Save();
     }
 
-    // Click and drag anywhere that isn't a button moves the window. Cursor positions are in screen space,
+    // Click and drag anywhere moves the window. Cursor positions are in screen space,
     // so they stay valid while the window moves under the mouse.
     private void Drag()
     {
-        bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
-        if (Controls.ClickDown && !overUI && GetCursorPos(out POINT p) && GetWindowRect(hwnd, out RECT r))
+        if (Controls.ClickDown && GetCursorPos(out POINT p) && GetWindowRect(hwnd, out RECT r))
         {
             dragging = true;
             grabOffset = new POINT { x = p.x - r.left, y = p.y - r.top };

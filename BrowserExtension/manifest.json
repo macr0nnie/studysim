@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Study Sim Focus",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Connects your browser to Study Sim: control the timer, earn focus XP on study sites, and block distracting sites during study sessions.",
   "permissions": ["tabs", "storage", "alarms"],
   "host_permissions": ["http://localhost:8080/*"],

@@ -183,6 +183,10 @@ public static class UIKit
         tmp.color = color;
         tmp.alignment = align;
         tmp.overflowMode = TextOverflowModes.Ellipsis;
+        // TMP hides a line taller than its box (panel titles, music card rows), so shrink to fit instead.
+        tmp.fontSizeMax = size;
+        tmp.fontSizeMin = Mathf.Min(size, 8);
+        tmp.enableAutoSizing = true;
         tmp.raycastTarget = false;
         return tmp;
     }

@@ -43,6 +43,7 @@ public static class GameSettings
     public static bool LevelUpToasts { get => Get("NotifyLevelUp", true); set => Set("NotifyLevelUp", value); }
     public static bool AutosaveBadge { get => Get("NotifyAutosave", true); set => Set("NotifyAutosave", value); }
 
+    public static RoomAmbience.Style Ambience { get => (RoomAmbience.Style)PlayerPrefs.GetInt("Ambience", 1); set => PlayerPrefs.SetInt("Ambience", (int)value); }
     public static bool UISounds { get => Get("UISounds", true); set => Set("UISounds", value); }
     public static bool DistractionPenalty { get => Get("DistractionPenalty", true); set => Set("DistractionPenalty", value); }
     public static int DistractionCoinsPerMinute { get => PlayerPrefs.GetInt("DistractionCoins", 6); set => PlayerPrefs.SetInt("DistractionCoins", value); }

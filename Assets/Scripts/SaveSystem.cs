@@ -10,6 +10,7 @@ using UnityEngine.SceneManagement;
 public static class SaveSystem
 {
     public const int SlotCount = 4; // autosave + 3 manual slots
+    public const string GameScene = "Protoype_2", MenuScene = "MainMenu", SelectScene = "SaveSelect";
     private static readonly string[] StringKeys = { "RoomLayout", "RoomPaint", "MenuColor", "TodoTasks", "StudyHabits", "iPodPlayerData" };
     private static readonly string[] IntKeys = { "PlayerLevel", "PlayerExperience", "PlayerCoins" };
     private static readonly string[] FloatKeys = { "StudySessionSeconds", "BreakSessionSeconds" };
@@ -55,9 +56,36 @@ public static class SaveSystem
     // The current game goes to the autosave first, so loading the wrong slot can be undone from there.
     public static void Load(int slot)
     {
-        Snapshot snapshot = Peek(slot);
-        if (snapshot == null) return;
+        if (Peek(slot) == null) return;
         Save(0);
+        Apply(slot);
+        ReloadRoom();
+    }
+
+    public static void Delete(int slot)
+    {
+        PlayerPrefs.DeleteKey(SlotKey(slot));
+        PlayerPrefs.Save();
+    }
+
+    // From the save-select screen: open a slot in the game scene. A fresh (or empty) slot is cleared and
+    // written straight away so it shows up as a save.
+    public static void Play(int slot, bool fresh)
+    {
+        if (fresh || !Apply(slot))
+        {
+            ClearGame();
+            Save(slot);
+        }
+        UIKit.LoadSavedTheme();
+        SceneManager.LoadScene(GameScene);
+    }
+
+    // Writes a slot's snapshot back into the live keys. False when the slot is empty.
+    private static bool Apply(int slot)
+    {
+        Snapshot snapshot = Peek(slot);
+        if (snapshot == null) return false;
         ClearGame();
         for (int i = 0; i < snapshot.keys.Count && i < snapshot.values.Count; i++)
         {
@@ -67,7 +95,7 @@ public static class SaveSystem
             else if (Array.IndexOf(StringKeys, key) >= 0) PlayerPrefs.SetString(key, value);
         }
         PlayerPrefs.Save();
-        ReloadRoom();
+        return true;
     }
 
     // Fresh start; the old game is kept in the autosave. Manual slots are untouched.

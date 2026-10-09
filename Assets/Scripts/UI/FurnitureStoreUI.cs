@@ -239,6 +239,7 @@ public class FurnitureStoreUI : MonoBehaviour
         scroll.GetComponent<LayoutElement>().flexibleHeight = 1;
         GameObject viewport = Make("Viewport", scroll.transform, typeof(RectMask2D));
         Stretch((RectTransform)viewport.transform);
+        ((RectTransform)viewport.transform).offsetMax = new Vector2(-16, 0); // room for the scrollbar
         GameObject content = Make("Content", viewport.transform, typeof(GridLayoutGroup), typeof(ContentSizeFitter));
         var contentRect = (RectTransform)content.transform;
         contentRect.anchorMin = new Vector2(0, 1);
@@ -246,7 +247,7 @@ public class FurnitureStoreUI : MonoBehaviour
         contentRect.pivot = new Vector2(0.5f, 1);
         contentRect.sizeDelta = Vector2.zero;
         var grid = content.GetComponent<GridLayoutGroup>();
-        grid.cellSize = new Vector2(124, 150); // three per row
+        grid.cellSize = new Vector2(120, 150); // three per row beside the scrollbar
         grid.spacing = new Vector2(10, 10);
         grid.childAlignment = TextAnchor.UpperCenter;
         content.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
@@ -256,6 +257,23 @@ public class FurnitureStoreUI : MonoBehaviour
         scrollRect.horizontal = false;
         scrollRect.movementType = ScrollRect.MovementType.Clamped;
         scrollRect.scrollSensitivity = 30;
+
+        // Thin scrollbar on the right; draggable, and hidden when everything fits.
+        GameObject bar = Make("Scrollbar", scroll.transform, typeof(Image), typeof(Scrollbar));
+        Anchor(bar, new Vector2(1, 0), new Vector2(1, 1));
+        ((RectTransform)bar.transform).offsetMin = new Vector2(-10, 0);
+        Style(bar.GetComponent<Image>(), CardColor);
+        GameObject slidingArea = Make("Sliding Area", bar.transform);
+        Stretch((RectTransform)slidingArea.transform);
+        GameObject handle = Make("Handle", slidingArea.transform, typeof(Image));
+        Stretch((RectTransform)handle.transform);
+        Style(handle.GetComponent<Image>(), TabColor);
+        var scrollbar = bar.GetComponent<Scrollbar>();
+        scrollbar.direction = Scrollbar.Direction.BottomToTop;
+        scrollbar.handleRect = (RectTransform)handle.transform;
+        scrollbar.targetGraphic = handle.GetComponent<Image>();
+        scrollRect.verticalScrollbar = scrollbar;
+        scrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
 
         foreach (FurnitureItem item in catalog.items)
             if (item != null && item.prefab != null) AddCard(content.transform, item);

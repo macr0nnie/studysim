@@ -491,6 +491,16 @@ public class RoomManager : MonoBehaviour
         SaveRoom();
     }
 
+    public bool SelectedHasLights => selectedObject != null && HasLights(selectedObject);
+
+    // Edit mode swallows clicks (they select and drag), so a lamp is switched from the panel there.
+    public void ToggleSelectedLights()
+    {
+        if (!SelectedHasLights) return;
+        SetLights(selectedObject, !LightsOn(selectedObject));
+        SaveRoom();
+    }
+
     public void DeleteSelected()
     {
         if (selectedObject != null) DeleteObject(selectedObject);

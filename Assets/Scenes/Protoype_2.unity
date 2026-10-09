@@ -3583,7 +3583,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3725004373896570029}
-  - component: {fileID: 3666218668187465399}
   - component: {fileID: 3135804719454420132}
   m_Layer: 0
   m_Name: Music_Player
@@ -5049,34 +5048,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &3666218668187465399
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1963890234640723547}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe77ca457e84b4a4b9972c30a7c78b4f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  musicPlayer: {fileID: 3135804719454420132}
-  playerCurrency: {fileID: 0}
-  playlistContainer: {fileID: 0}
-  playlistItemPrefab: {fileID: 6354553348141661127, guid: ceda7418109d72b4caefbaf8a44573ee, type: 3}
-  currentSongText: {fileID: 0}
-  currentArtistText: {fileID: 0}
-  currentCoverImage: {fileID: 0}
-  progressSlider: {fileID: 0}
-  playPauseButton: {fileID: 0}
-  nextButton: {fileID: 0}
-  previousButton: {fileID: 0}
-  coinsText: {fileID: 0}
-  currentPlayingScreen: {fileID: 0}
-  storeScreen: {fileID: 0}
-  homeScreen: {fileID: 0}
-  homeButton: {fileID: 0}
 --- !u!222 &3705096828300223694
 CanvasRenderer:
   m_ObjectHideFlags: 0

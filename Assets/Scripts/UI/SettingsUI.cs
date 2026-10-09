@@ -339,7 +339,7 @@ public class SettingsUI : MonoBehaviour
         GameObject mini = Row("Mini mode", page, 48, 12, false);
         mini.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
         MakeText("Label", mini.transform, $"Mini mode\n<size={CaptionSize}><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>" +
-            $"Just the room in a small window on top. Drag to move; {Controls.KeyName(Controls.Act.MiniMode)}, double-click or right-click to come back.</color></size>",
+            $"Just the room, like a game overlay: top right, on top, click-through. F10 unlocks it to drag, F9 comes back.</color></size>",
             BodySize, TextColor, TextAlignmentOptions.Left).gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
         Button key = SmallButton(mini.transform, "", CardColor, 150);
         TMP_Text keyLabel = key.GetComponentInChildren<TMP_Text>();
@@ -347,6 +347,7 @@ public class SettingsUI : MonoBehaviour
         key.onClick.AddListener(() => { MiniMode.ColorKey = !MiniMode.ColorKey; ShowKey(); });
         ShowKey();
         SmallButton(mini.transform, "Go mini", CardColor, 110).onClick.AddListener(() => { Toggle(); MiniMode.Set(true); });
+        AddSlider(page, "Mini mode opacity", 20, 100, MiniMode.Opacity * 100, v => $"{v:0}%", v => MiniMode.Opacity = v / 100f, out _);
     }
 
     private void BuildNotifications(Transform page)

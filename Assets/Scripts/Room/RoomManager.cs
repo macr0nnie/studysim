@@ -683,6 +683,7 @@ public class RoomManager : MonoBehaviour
     }
 
     public bool IsEditMode => isEditMode;
+    public bool IsDragging => dragging && selectedObject != null && Controls.ClickHeld; // a piece is being dragged right now
     public void ToggleEditMode() => EnterEditMode(); // for the HUD's Edit button
 
     // ---------- paint (used by the Paint drawer) ----------
@@ -789,12 +790,7 @@ public class RoomManager : MonoBehaviour
     }
 
     // A room always keeps at least one desk and one chair: any piece named or tagged so counts.
-    private bool IsKind(GameObject go, string kind)
-    {
-        if (go.name.IndexOf(kind, StringComparison.OrdinalIgnoreCase) >= 0) return true;
-        return boughtItems.TryGetValue(go, out FurnitureItem item) && item.tags != null
-            && Array.Exists(item.tags, t => t != null && t.IndexOf(kind, StringComparison.OrdinalIgnoreCase) >= 0);
-    }
+    private bool IsKind(GameObject go, string kind) => FurnitureRole.Is(go, ItemOf(go), kind);
 
     private bool CanRemove(GameObject obj)
     {
@@ -1017,6 +1013,14 @@ public class RoomManager : MonoBehaviour
     // ---------- lamps ----------
 
     public IReadOnlyList<GameObject> PlacedPieces => placedObjects;
+
+    // The store entry behind a placed piece: bought ones directly, scene pieces by matching the prefab's name.
+    public FurnitureItem ItemOf(GameObject piece)
+    {
+        if (boughtItems.TryGetValue(piece, out FurnitureItem item)) return item;
+        FurnitureCatalog catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
+        return catalog == null ? null : catalog.items.Find(i => i != null && i.prefab != null && i.prefab.name == piece.name);
+    }
 
     private static bool HasLights(GameObject piece) => piece.GetComponentInChildren<Light>(true) != null;
 

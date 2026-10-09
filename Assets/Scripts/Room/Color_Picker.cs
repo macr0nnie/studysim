@@ -44,7 +44,6 @@ public class ColorPicker : MonoBehaviour
         float y = Mathf.Clamp01((localCursor.y - rect.y) / rect.height);
 
         Color selectedColor = colorTexture.GetPixelBilinear(x, y);
-        Debug.Log($"Selected Color: {selectedColor}");
 
         OnColorChanged?.Invoke(selectedColor);
     }

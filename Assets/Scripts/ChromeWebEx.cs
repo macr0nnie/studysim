@@ -108,7 +108,6 @@ public class ChromeWebEx : MonoBehaviour
                     using (var reader = new System.IO.StreamReader(request.InputStream, request.ContentEncoding))
                     {
                         string requestBody = reader.ReadToEnd();
-                        Debug.Log($"Received message: {requestBody}");
 
                         if (requestBody.Length <= 1024) _messages.Enqueue(requestBody); // ignore oversized junk
                     }

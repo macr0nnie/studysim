@@ -38,15 +38,30 @@ public class StudyCharacter : MonoBehaviour
         if (FindFirstObjectByType<RoomManager>() == null || FindFirstObjectByType<StudyCharacter>() != null) return;
         GameObject prefab = Resources.Load<GameObject>("Player");
         GameObject desk = GameObject.Find("desk");
-        if (prefab == null || desk == null || !desk.TryGetComponent(out Renderer deskRenderer)) return;
+        if (prefab == null) { Debug.LogWarning("No Resources/Player prefab: run Study Sim > Create Player Prefab"); return; }
+        // The desk's meshes can sit on children, so measure them all.
+        if (desk == null || !TryBounds(desk, out Bounds b)) { Debug.LogWarning("No desk with a mesh in this room; not placing the character"); return; }
 
         // shortcut: seat guessed from the desk bounds (camera side, sized to the desk); drag Player into the scene to place it exactly
-        Bounds b = deskRenderer.bounds;
         Vector3 toCamera = Camera.main ? Vector3.ProjectOnPlane(Camera.main.transform.position - b.center, Vector3.up).normalized : Vector3.back;
         Vector3 seat = new Vector3(b.center.x, b.min.y, b.center.z) + toCamera * Mathf.Max(b.extents.x, b.extents.z);
         GameObject player = Instantiate(prefab, seat, Quaternion.LookRotation(-toCamera));
         player.name = "Player";
-        player.transform.localScale *= b.size.y * 2.3f / 1.8f; // desks are ~0.75 m, a Mixamo character ~1.8 m tall
+        // Size by measurement: the prefab is measured standing (bind pose), and a person is ~2.4x desk height.
+        if (TryBounds(player, out Bounds body) && body.size.y > 0.0001f)
+            player.transform.localScale *= b.size.y * 2.4f / body.size.y;
+    }
+
+    private static bool TryBounds(GameObject go, out Bounds bounds)
+    {
+        bounds = default;
+        bool found = false;
+        foreach (Renderer r in go.GetComponentsInChildren<Renderer>())
+        {
+            if (!found) { bounds = r.bounds; found = true; }
+            else bounds.Encapsulate(r.bounds);
+        }
+        return found;
     }
 
     private void Start()

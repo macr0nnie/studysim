@@ -95,7 +95,7 @@ public class PlannerUI : MonoBehaviour
             if (taskList.ToggleTask(task) && experience != null) experience.GainExperience(TaskExperience);
             RefreshTodos();
         });
-        TMP_Text label = MakeText("Task", row.transform, task.taskName, 18, task.isComplete ? MutedText : TextColor, TextAlignmentOptions.Left);
+        TMP_Text label = MakeText("Task", row.transform, task.taskName, BodySize, task.isComplete ? MutedText : TextColor, TextAlignmentOptions.Left);
         if (task.isComplete) label.fontStyle = FontStyles.Strikethrough;
         label.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
         SmallButton(row.transform, "x", CardColor, 32).onClick.AddListener(() => { taskList.RemoveTask(task); RefreshTodos(); });
@@ -111,7 +111,7 @@ public class PlannerUI : MonoBehaviour
             if (experience != null) experience.GainExperience(HabitExperience);
             RefreshHabits();
         });
-        TMP_Text label = MakeText("Habit", row.transform, habit.habitName, 18, TextColor, TextAlignmentOptions.Left);
+        TMP_Text label = MakeText("Habit", row.transform, habit.habitName, BodySize, TextColor, TextAlignmentOptions.Left);
         label.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
         int streak = LiveStreak(habit);
         TMP_Text streakText = MakeText("Streak", row.transform, streak > 0 ? $"{streak} day streak" : "start today", 15,
@@ -135,19 +135,15 @@ public class PlannerUI : MonoBehaviour
         Transform canvas = MakeCanvas("PlannerCanvas", transform, 10).transform;
 
         // Sits next to the Shop button in the room-button row.
-        Button open = TextButton("PlannerButton", canvas, "Planner  (P)", TabColor, 20);
-        var openRect = (RectTransform)open.transform;
-        openRect.anchorMin = openRect.anchorMax = openRect.pivot = new Vector2(0, 0);
-        openRect.sizeDelta = new Vector2(150, 42);
-        openRect.anchoredPosition = new Vector2(304, 334);
+        Button open = NavButton(canvas, 2, "Planner", "P");
         open.onClick.AddListener(Toggle);
 
         panel = MakeDrawer("PlannerPanel", canvas);
         Header(panel.transform, "Planner", Toggle);
 
         GameObject tabs = Row("Tabs", panel.transform, 34, 6, true);
-        Button todoButton = TextButton("To-do", tabs.transform, "To-do", TabColor, 17);
-        Button habitButton = TextButton("Habits", tabs.transform, "Daily habits", TabColor, 17);
+        Button todoButton = TextButton("To-do", tabs.transform, "To-do", TabColor, LabelSize);
+        Button habitButton = TextButton("Habits", tabs.transform, "Daily habits", TabColor, LabelSize);
         todoTab = todoButton.GetComponent<Image>();
         habitTab = habitButton.GetComponent<Image>();
         todoButton.onClick.AddListener(() => ShowPage(true));
@@ -162,7 +158,7 @@ public class PlannerUI : MonoBehaviour
             RefreshHabits();
         }, out habitRows, out habitEmpty, "Add a habit and tick it off each day to build a streak.");
 
-        MakeText("Hint", panel.transform, $"+{TaskExperience} XP per task, +{HabitExperience} XP per habit each day", 14, MutedText, TextAlignmentOptions.Center)
+        MakeText("Hint", panel.transform, $"+{TaskExperience} XP per task, +{HabitExperience} XP per habit each day", CaptionSize, MutedText, TextAlignmentOptions.Center)
             .gameObject.AddComponent<LayoutElement>().preferredHeight = 20;
         ShowPage(true);
     }
@@ -191,7 +187,7 @@ public class PlannerUI : MonoBehaviour
         field.onSubmit.AddListener(_ => Submit());
         SmallButton(inputRow.transform, "Add", AccentButtonColor, 64).onClick.AddListener(Submit);
 
-        empty = MakeText("Empty", page.transform, emptyText, 16, MutedText, TextAlignmentOptions.Center);
+        empty = MakeText("Empty", page.transform, emptyText, LabelSize, MutedText, TextAlignmentOptions.Center);
         empty.gameObject.AddComponent<LayoutElement>().preferredHeight = 48;
         empty.textWrappingMode = TextWrappingModes.Normal;
 

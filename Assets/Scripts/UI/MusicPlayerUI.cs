@@ -116,7 +116,7 @@ public class MusicPlayerUI : MonoBehaviour
 
         string songs = playlist.songs.Count == 1 ? "1 track" : $"{playlist.songs.Count} tracks";
         TMP_Text label = MakeText("Label", row.transform,
-            $"{playlist.title}\n<size=15><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>{(current ? "Playing now" : songs)}</color></size>",
+            $"{playlist.title}\n<size=14><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>{(current ? "Playing now" : songs)}</color></size>",
             19, TextColor, TextAlignmentOptions.Left);
         label.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
 
@@ -202,14 +202,14 @@ public class MusicPlayerUI : MonoBehaviour
             eqBars[i].anchorMax = new Vector2((i + 1) / 3f - 0.04f, 0.25f);
             eqBars[i].offsetMin = eqBars[i].offsetMax = Vector2.zero;
         }
-        nowLabel = MakeText("Now", top.transform, "NOW PLAYING", 14, MutedText, TextAlignmentOptions.Left);
+        nowLabel = MakeText("Now", top.transform, "NOW PLAYING", CaptionSize, MutedText, TextAlignmentOptions.Left);
         nowLabel.characterSpacing = 8;
         nowLabel.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
         SmallButton(top.transform, "Library", TabColor, 72).onClick.AddListener(ToggleLibrary);
 
-        title = MakeText("Title", info.transform, "Nothing playing", 28, TextColor, TextAlignmentOptions.Left, display: true);
+        title = MakeText("Title", info.transform, "Nothing playing", TitleSize, TextColor, TextAlignmentOptions.Left, display: true);
         title.gameObject.AddComponent<LayoutElement>().preferredHeight = 30;
-        artist = MakeText("Artist", info.transform, "Open the library to pick a playlist", 16, MutedText, TextAlignmentOptions.Left);
+        artist = MakeText("Artist", info.transform, "Open the library to pick a playlist", LabelSize, MutedText, TextAlignmentOptions.Left);
         artist.gameObject.AddComponent<LayoutElement>().preferredHeight = 20;
 
         // Progress: thin bar, times under it.
@@ -221,8 +221,8 @@ public class MusicPlayerUI : MonoBehaviour
         progressFill = (RectTransform)fill.transform;
         Anchor(fill, Vector2.zero, new Vector2(0, 1));
         GameObject times = Row("Times", info.transform, 16, 0, true);
-        elapsed = MakeText("Elapsed", times.transform, "0:00", 13, MutedText, TextAlignmentOptions.Left);
-        total = MakeText("Total", times.transform, "--:--", 13, MutedText, TextAlignmentOptions.Right);
+        elapsed = MakeText("Elapsed", times.transform, "0:00", CaptionSize, MutedText, TextAlignmentOptions.Left);
+        total = MakeText("Total", times.transform, "--:--", CaptionSize, MutedText, TextAlignmentOptions.Right);
 
         // Transport, centred.
         GameObject controls = Row("Controls", info.transform, 38, 18, false);

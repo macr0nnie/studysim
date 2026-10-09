@@ -3,9 +3,10 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
-// Assets > Study Sim > Add To Furniture Store: turn selected models/prefabs into store items.
-// Each gets a prefab (with Furniture + collider) and a FurnitureItem in the catalog; fill in the
-// description, category, tags and price in the Inspector. Icons are rendered by the store at runtime.
+// Assets > Study Sim > Add To Furniture Store: turn selected models/prefabs (or whole folders of them) into
+// store items. Each gets a prefab (with Furniture + collider) and a FurnitureItem in the catalog with a
+// category, tags, price and description guessed from its name and folder; adjust them in the Inspector.
+// Icons are rendered by the store at runtime. Items already in the store are left as they are.
 //
 // The pieces below only exist inside WITCHYfURNITURE.fbx (their mesh IDs are made by Unity's importer),
 // so they are turned into prefabs + store items automatically the first time the project opens.
@@ -15,7 +16,6 @@ public static class FurnitureStoreTools
     const string PrefabFolder = "Assets/ART/Models/Furniture";
     const string ItemFolder = "Assets/Data/Furniture";
     const string CatalogPath = "Assets/Resources/FurnitureCatalog.asset"; // Resources so the store can find it in any scene
-    const int DefaultPrice = 10;
 
     const string WitchyModelPath = "Assets/ART/Models/WITCHYfURNITURE.fbx";
 
@@ -81,20 +81,24 @@ public static class FurnitureStoreTools
     [MenuItem("Assets/Study Sim/Add To Furniture Store", true)]
     static bool CanAddSelection()
     {
-        return Selection.GetFiltered<GameObject>(SelectionMode.Assets).Length > 0;
+        return Selection.GetFiltered<GameObject>(SelectionMode.DeepAssets).Length > 0;
     }
 
     [MenuItem("Assets/Study Sim/Add To Furniture Store")]
     static void AddSelection()
     {
-        GameObject[] sources = Selection.GetFiltered<GameObject>(SelectionMode.Assets);
+        // DeepAssets includes everything inside selected folders. Asset packs usually ship a prefab next to
+        // each model, so a model is skipped when a prefab of the same name is also selected.
+        GameObject[] all = Selection.GetFiltered<GameObject>(SelectionMode.DeepAssets);
+        var prefabNames = all.Where(g => PrefabUtility.GetPrefabAssetType(g) != PrefabAssetType.Model).Select(g => g.name).ToHashSet();
+        GameObject[] sources = all.Where(g => PrefabUtility.GetPrefabAssetType(g) != PrefabAssetType.Model || !prefabNames.Contains(g.name)).ToArray();
         FurnitureCatalog catalog = LoadOrCreateCatalog();
         var created = sources.Select(src => AddToStore(src, catalog)).Where(i => i != null).ToArray();
 
         EditorUtility.SetDirty(catalog);
         AssetDatabase.SaveAssets();
         Selection.objects = created;
-        Debug.Log($"Added {created.Length} item(s) to {AssetDatabase.GetAssetPath(catalog)}. Fill in description, category, tags and price in the Inspector.");
+        Debug.Log($"Added {created.Length} item(s) to {AssetDatabase.GetAssetPath(catalog)}. Check the guessed description, category, tags and price in the Inspector.");
     }
 
     static FurnitureItem AddToStore(GameObject source, FurnitureCatalog catalog)
@@ -111,8 +115,7 @@ public static class FurnitureStoreTools
         if (item == null)
         {
             item = ScriptableObject.CreateInstance<FurnitureItem>();
-            item.displayName = ObjectNames.NicifyVariableName(prefab.name);
-            item.price = DefaultPrice;
+            Describe(item, prefab.name, sourcePath);
             AssetDatabase.CreateAsset(item, itemPath);
         }
         item.prefab = prefab;
@@ -120,6 +123,51 @@ public static class FurnitureStoreTools
 
         if (!catalog.items.Contains(item)) catalog.items.Add(item);
         return item;
+    }
+
+    // (keyword, category) checked in order against the asset's name, then its folder path.
+    // shortcut: substring match, so e.g. "vegetable" reads as a table; fix such items in the Inspector.
+    static readonly (string word, StoreCategory category)[] CategoryWords =
+    {
+        ("lamp", StoreCategory.Lighting), ("light", StoreCategory.Lighting), ("candle", StoreCategory.Lighting),
+        ("lantern", StoreCategory.Lighting), ("chandelier", StoreCategory.Lighting),
+        ("plant", StoreCategory.Plants), ("tree", StoreCategory.Plants), ("flower", StoreCategory.Plants),
+        ("cactus", StoreCategory.Plants), ("leaf", StoreCategory.Plants), ("succulent", StoreCategory.Plants),
+        ("bed", StoreCategory.Furniture), ("chair", StoreCategory.Furniture), ("sofa", StoreCategory.Furniture),
+        ("couch", StoreCategory.Furniture), ("table", StoreCategory.Furniture), ("desk", StoreCategory.Furniture),
+        ("shelf", StoreCategory.Furniture), ("cabinet", StoreCategory.Furniture), ("drawer", StoreCategory.Furniture),
+        ("wardrobe", StoreCategory.Furniture), ("stool", StoreCategory.Furniture), ("bench", StoreCategory.Furniture),
+        ("counter", StoreCategory.Furniture), ("dresser", StoreCategory.Furniture), ("bathtub", StoreCategory.Furniture),
+        ("vanity", StoreCategory.Furniture), ("closet", StoreCategory.Furniture),
+    };
+    static readonly int[] CategoryPrices = { 40, 15, 25, 20 }; // indexed by StoreCategory
+
+    // First guess at store details for a new item; the Inspector is where they get polished.
+    static void Describe(FurnitureItem item, string assetName, string sourcePath)
+    {
+        string name = ObjectNames.NicifyVariableName(assetName);
+        string folders = Path.GetDirectoryName(sourcePath).Replace('\\', '/');
+        string lowerName = name.ToLowerInvariant(), lowerFolders = folders.ToLowerInvariant();
+        var match = CategoryWords.FirstOrDefault(c => lowerName.Contains(c.word));
+        if (match.word == null) match = CategoryWords.FirstOrDefault(c => lowerFolders.Contains(c.word));
+        item.category = match.word != null ? match.category : StoreCategory.Decor;
+
+        // Tags: words from the name and the asset's own folder (e.g. "Bed & Bedding"), minus numbers and filler.
+        string[] skip = { "assets", "models", "prefabs", "and", "the" };
+        item.tags = (name + " " + Path.GetFileName(folders)).ToLowerInvariant()
+            .Split(' ', '&', '-', '_', ',', '(', ')')
+            .Where(w => w.Length > 1 && !w.All(char.IsDigit) && !skip.Contains(w))
+            .Distinct().ToArray();
+
+        item.displayName = name;
+        item.price = CategoryPrices[(int)item.category];
+        item.description = item.category switch
+        {
+            StoreCategory.Lighting => $"A {lowerName} to keep your study corner warm and bright.",
+            StoreCategory.Plants => $"A {lowerName} to bring a little life into the room.",
+            StoreCategory.Furniture => $"A {lowerName} to make your room your own.",
+            _ => $"A {lowerName} to add some personality to your space.",
+        };
     }
 
     // Models get a prefab variant in the furniture folder; prefabs are fixed up in place.

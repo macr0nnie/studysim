@@ -12,7 +12,7 @@ public static class SaveSystem
     public const int SlotCount = 4; // autosave + 3 manual slots
     public const string GameScene = "Protoype_2", MenuScene = "MainMenu", SelectScene = "SaveSelect";
     private static readonly string[] StringKeys = { "RoomLayout", "RoomPaint", "MenuColor", "TodoTasks", "StudyHabits", "iPodPlayerData" };
-    private static readonly string[] IntKeys = { "PlayerLevel", "PlayerExperience", "PlayerCoins" };
+    private static readonly string[] IntKeys = { "PlayerLevel", "PlayerExperience", "PlayerCoins", "EmptyRoom" };
     private static readonly string[] FloatKeys = { "StudySessionSeconds", "BreakSessionSeconds" };
 
     [Serializable]
@@ -74,7 +74,7 @@ public static class SaveSystem
     {
         if (fresh || !Apply(slot))
         {
-            ClearGame();
+            StartFresh();
             Save(slot);
         }
         UIKit.LoadSavedTheme();
@@ -102,9 +102,17 @@ public static class SaveSystem
     public static void NewGame()
     {
         Save(0);
-        ClearGame();
+        StartFresh();
         PlayerPrefs.Save();
         ReloadRoom();
+    }
+
+    // A new game starts in an empty bedroom to decorate. The flag makes the room scene clear the designed
+    // furniture once; saves made before this have a RoomLayout (or no flag) and keep their room.
+    private static void StartFresh()
+    {
+        ClearGame();
+        PlayerPrefs.SetInt("EmptyRoom", 1);
     }
 
     private static void ClearGame()

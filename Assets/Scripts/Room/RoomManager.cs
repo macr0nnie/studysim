@@ -804,9 +804,23 @@ public class RoomManager : MonoBehaviour
             ApplyPieceColor(go, c);
     }
 
+    private void EmptyRoom()
+    {
+        foreach (GameObject go in sceneFurniture.Values)
+        {
+            go.SetActive(false);
+            placedObjects.Remove(go);
+        }
+        SaveRoom(); // writes the layout, so the room stays empty and later saves carry it
+    }
+
     private void LoadRoom()
     {
-        if (!PlayerPrefs.HasKey(SaveKey)) return; // first run: keep the room as designed
+        if (!PlayerPrefs.HasKey(SaveKey))
+        {
+            if (PlayerPrefs.GetInt("EmptyRoom", 0) == 1) EmptyRoom(); // new game: a bare bedroom to decorate
+            return; // otherwise keep the room as designed
+        }
         var save = JsonUtility.FromJson<RoomSave>(PlayerPrefs.GetString(SaveKey));
         if (save == null) return;
 

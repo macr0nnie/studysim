@@ -1,0 +1,42 @@
+<b>Study Sim</b>
+Made by ronnie (macr0nnie).
+
+<b>3D models</b>
+Ultimate Interior Pack (Interior O5) by Fries and Seagull, from the Unity Asset Store.
+Interiors pack by Mnostva (mnostva@gmail.com), from the Unity Asset Store.
+Poly Halloween by polyperfect and Tri Pirogy, from the Unity Asset Store.
+Bedroom, witchy furniture, desk, cabinet, TV and wall decor models: ronnie. [CHECK]
+Character models and animations (Ch03, Ch29, Sitting Disbelief, Sitting Victory, Zombie Biting): Mixamo, by Adobe. [CHECK]
+Unity Asset Store packs are used under the Unity Asset Store EULA.
+
+<b>Music</b>
+Source for the tracks below: Pixabay. [CHECK]
+Background Royalty Free Music: Emotional Piano
+Cozy Piano
+Dramatic Orchestral: Epic Mystery of Tension
+Evening Glow: Soft Piano Music
+Good Night: Lofi Cozy Chill Music
+Hope Overture: Uplifting Classical Loop
+Once in Paris
+Pure Love
+Soft Background Piano
+Spellcraft
+Summer Walk
+Whispering Vinyl Loops: Lofi Beats
+Yagi Wrath
+Iced Coffee by moonboy. [CHECK]
+
+<b>Sound effects</b>
+The interface sounds and the timer chime are generated in the game's code.
+
+<b>Fonts</b>
+All fonts are licensed under the SIL Open Font License 1.1:
+Zain, by the Zain Project Authors.
+Jersey 15, by the Soft Type Project Authors.
+DM Serif Display. Copyright Adobe; copyright Google LLC.
+Modak, by Ek Type.
+Sour Gummy, by the Sour Gummy Project Authors.
+Liberation Sans, included with TextMesh Pro.
+
+<b>Built with</b>
+Unity, the Universal Render Pipeline and TextMesh Pro.

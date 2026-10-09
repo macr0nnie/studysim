@@ -21,7 +21,7 @@ public class ColorPicker : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        if (Controls.ClickDown)
         {
             SelectColor();
         }
@@ -34,7 +34,7 @@ public class ColorPicker : MonoBehaviour
         Vector2 localCursor;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             colorImage.rectTransform,
-            Input.mousePosition,
+            Controls.PointerPosition,
             uiCamera,
             out localCursor
         );

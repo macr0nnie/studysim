@@ -15,7 +15,6 @@ public class FurnitureStoreUI : MonoBehaviour
     [SerializeField] private FurnitureCatalog catalog;
     [SerializeField] private RoomManager roomManager;
     [SerializeField] private PlayerCurrency playerCurrency;
-    [SerializeField] private KeyCode toggleKey = KeyCode.B;
 
 
     private class Card
@@ -75,7 +74,7 @@ public class FurnitureStoreUI : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(toggleKey) && !Typing()) Toggle();
+        if (Controls.Pressed(Controls.Act.Store) && !Typing()) Toggle();
     }
 
     public void Toggle()
@@ -147,7 +146,7 @@ public class FurnitureStoreUI : MonoBehaviour
         GameObject canvasGO = MakeCanvas("FurnitureStoreCanvas", transform, 10).gameObject;
 
         // Shop button sits in the row with the existing colour/edit-mode buttons on the left.
-        Button shop = NavButton(canvasGO.transform, 1, "Shop", "B");
+        Button shop = NavButton(canvasGO.transform, 1, "Shop", Controls.Act.Store);
         shop.onClick.AddListener(Toggle);
 
         panel = MakeDrawer("StorePanel", canvasGO.transform);

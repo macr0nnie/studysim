@@ -141,7 +141,7 @@ public class PaintUI : MonoBehaviour
         {
             canPaint = room.CanPaint(shownPiece);
             painted = room.IsPainted(shownPiece);
-            info.text = shownPiece == null ? "Select a piece in edit mode (Esc) to paint it."
+            info.text = shownPiece == null ? $"Select a piece in edit mode ({Controls.KeyName(Controls.Act.Edit)}) to paint it."
                 : canPaint ? $"Painting {shownPiece.name}."
                 : $"{shownPiece.name} can't be recoloured: its look comes from its texture.";
         }

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Hanging Light 2
   description: A hanging light 2 to keep your study corner warm and bright.
-  category: 2
+  category: 4
   tags:
   - hanging
   - light
@@ -22,3 +22,4 @@ MonoBehaviour:
   price: 25
   prefab: {fileID: 5525325216558927822, guid: b39443b4d581dcc459c67a35f06080b6, type: 3}
   icon: {fileID: 0}
+  colorable: 1

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Desk Lamp 2
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Desk Lamp 2
+  description: A desk lamp 2 to keep your study corner warm and bright.
+  category: 2
+  tags:
+  - desk
+  - lamp
+  - light
+  - source
+  price: 25
+  prefab: {fileID: 8826941914721280803, guid: e5fb4e55aeb50914dae8dd596c555cde, type: 3}
+  icon: {fileID: 0}

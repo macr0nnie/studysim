@@ -15,6 +15,11 @@ public class MusicPlayer : MonoBehaviour
     private Playlist currentPlaylist;
     private int currentSongIndex;
     private bool isPlaying;
+
+    public bool IsPlaying => isPlaying;
+    public Playlist CurrentPlaylist => currentPlaylist;
+    public float SongTime => audioSource.clip != null ? audioSource.time : 0;
+    public float SongLength => audioSource.clip != null ? audioSource.clip.length : 0;
     
     // Player state that persists between game sessions
     private PlayerData playerData;
@@ -23,21 +28,28 @@ public class MusicPlayer : MonoBehaviour
     {
         if (audioSource == null)
             audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.volume = GameSettings.MusicVolume;
             
         LoadPlayerData();
         ApplyUnlockStatus();
     }
     
+    private float nextProgressUpdate;
+
     private void Update()
     {
         if (isPlaying && audioSource.clip != null)
         {
-            // Update playback progress
-            float progress = audioSource.time / audioSource.clip.length;
-            OnPlaybackProgressChanged.Invoke(progress);
+            // Progress bar only needs a few updates a second; every frame rebuilds the UI canvas for nothing.
+            if (Time.unscaledTime >= nextProgressUpdate)
+            {
+                nextProgressUpdate = Time.unscaledTime + 0.25f;
+                OnPlaybackProgressChanged.Invoke(audioSource.time / audioSource.clip.length);
+            }
             
-            // Auto-advance to next song when current one finishes
-            if (!audioSource.isPlaying && audioSource.time >= audioSource.clip.length - 0.1f)
+            // Auto-advance when the song ends. A finished AudioSource rewinds time to 0, so check that it
+            // stopped on its own (we weren't paused) instead of comparing time to the clip length.
+            if (!audioSource.isPlaying)
             {
                 PlayNextSong();
             }

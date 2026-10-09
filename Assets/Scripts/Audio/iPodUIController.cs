@@ -30,10 +30,10 @@ public class iPodUIController : MonoBehaviour
     private void Start()
     {
         if (musicPlayer == null)
-            musicPlayer = FindObjectOfType<MusicPlayer>();
+            musicPlayer = FindFirstObjectByType<MusicPlayer>();
             
         if (playerCurrency == null)
-            playerCurrency = FindObjectOfType<PlayerCurrency>();
+            playerCurrency = FindFirstObjectByType<PlayerCurrency>();
             
         // Setup event listeners
         musicPlayer.OnSongChanged.AddListener(UpdateSongDisplay);
@@ -92,6 +92,7 @@ public class iPodUIController : MonoBehaviour
             // Update UI
             UpdateCurrencyDisplay();
             LoadPlaylists(); // Refresh to update locked status
+            GameHUD.Theme(playlistContainer); // the rebuilt rows need the HUD colours again
         }
         else
         {

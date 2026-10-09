@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Pumpkin_Carved_Lit_B
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Pumpkin_Carved_Lit_B
+  description: A pumpkin_carved_lit_b to add some personality to your space.
+  category: 1
+  tags:
+  - pumpkin
+  - carved
+  - lit
+  - halloween
+  price: 15
+  prefab: {fileID: 5589411136755986614, guid: 32a07afdb9244484ea69e3551e9cbd4f, type: 3}
+  icon: {fileID: 0}

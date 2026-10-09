@@ -7,6 +7,15 @@ public class GameManager : MonoBehaviour
     public event Action<GameState> OnGameStateChanged;
     private GameState currentGameState;
     
+    // A cozy room doesn't need hundreds of fps: cap it, and idle further while the game sits behind the study browser.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+    private static void CapFrameRate()
+    {
+        QualitySettings.vSyncCount = 0;
+        Application.targetFrameRate = 60;
+        Application.focusChanged += focused => Application.targetFrameRate = focused ? 60 : 15;
+    }
+
     private void Awake()
     {
         if (Instance == null)
@@ -25,10 +34,6 @@ public class GameManager : MonoBehaviour
         if (currentGameState == newState) return;
         currentGameState = newState;
         OnGameStateChanged?.Invoke(newState);
-    }
-    public int LoadSaveSlot()
-    {
-        return PlayerPrefs.GetInt("SaveSlot" + 0);
     }
 }
 public enum GameState

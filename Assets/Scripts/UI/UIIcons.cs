@@ -31,6 +31,10 @@ public class UIIcons : ScriptableObject
         return All().TryGetValue(name + " Light", out white) ? white : null;
     }
 
+    // The money icon, used everywhere coins are drawn. Drop a sprite at Assets/Resources/Coin.png (Sprite type)
+    // to replace it; until then it's the coin from the icon sheet.
+    public static Sprite Coin => Resources.Load<Sprite>("Coin") ?? Named("Icons_21");
+
     // A white icon by its sheet name, e.g. "Icons_21" (coin).
     public static Sprite Named(string name) => All().TryGetValue(name, out Sprite s) ? s : null;
 }

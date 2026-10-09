@@ -172,7 +172,8 @@ public class SettingsUI : MonoBehaviour
         "  set: study length in minutes (5-120, timer stopped)\n" +
         "  focus: on a study site, +1 XP at most once a minute\n" +
         "  distracted: on a distracting site, {\"action\":\"distracted\",\"site\":\"youtube.com\"}; re-send at least\n" +
-        "    every 20 s while it stays open (during a study session the room falls apart and coins drain)\n" +
+        "    every 45 s while it stays open (during a study session the room falls apart and coins drain)\n" +
+        "  back: left the distracting site (ends it, no XP)\n" +
         "  ping: connection check\n" +
         "GET http://localhost:8080/ returns {\"running\",\"studying\",\"secondsLeft\",\"mode\",\"strict\",\"distracted\"} so the\n" +
         "extension can follow the timer, e.g. block distracting sites during a strict session.";
@@ -352,7 +353,8 @@ public class SettingsUI : MonoBehaviour
             v => GameSettings.DistractionCoinsPerMinute = Mathf.RoundToInt(v), out _);
 
         TMP_Text help = MakeText("Help", page,
-            "Keep the game running, then turn on the Study Sim extension in your browser. It talks to the game at "
+            "Install the extension from the game's BrowserExtension folder (Chrome: Extensions, Developer mode, Load unpacked), "
+            + "keep the game running, and it connects by itself. It talks to the game at "
             + $"<color=#{ColorUtility.ToHtmlStringRGB(AccentColor)}>{ChromeWebEx.Address}</color>: it can start, pause and reset the timer, "
             + "set the session length, earn focus XP on study sites, and tell the game when you're on a distracting one. "
             + "Copy setup info gives the full message list.",

@@ -4,11 +4,11 @@ using UnityEngine.SceneManagement;
 
 // The room falls apart while the player is on a distracting site during a study session. The browser
 // extension reports it ({"action":"distracted","site":"youtube.com"}, re-sent while the site stays open);
-// furniture tilts, wobbles and sags, the lights flicker, and coins drain. Back on task ("focus", or no
+// furniture tilts, wobbles and sags, the lights flicker, and coins drain. Back on task ("focus" or "back", or no
 // report for Timeout seconds) the room puts itself back together. Settings > Focus can turn it off.
 public class Distraction : MonoBehaviour
 {
-    private const float Timeout = 20f;      // seconds without a "distracted" report before it counts as over
+    private const float Timeout = 45f;      // seconds without a "distracted" report before it counts as over
     private const float FallSeconds = 8f;   // time for the room to fall apart completely
     private const float MendSeconds = 1.5f;
     private const float MaxTilt = 16f;

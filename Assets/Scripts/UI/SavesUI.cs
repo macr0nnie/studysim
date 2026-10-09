@@ -97,7 +97,7 @@ public class SavesUI : MonoBehaviour
         string title = slot == 0 ? "Autosave" : $"Slot {slot}";
         string detail = save == null ? "Empty"
             : $"Level {save.level}  ·  {save.coins} coins  ·  {save.SavedAt.ToString("MMM d, h:mm tt", CultureInfo.CurrentCulture)}";
-        TMP_Text label = MakeText("Label", row.transform, $"<b>{title}</b>\n<size=15><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>{detail}</color></size>",
+        TMP_Text label = MakeText("Label", row.transform, $"<b>{title}</b>\n<size=14><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>{detail}</color></size>",
             20, TextColor, TextAlignmentOptions.Left);
         label.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
 
@@ -113,17 +113,13 @@ public class SavesUI : MonoBehaviour
     {
         Transform canvas = MakeCanvas("SavesCanvas", transform, 10).transform;
 
-        // Last button in the room-button row, after Shop and Planner.
-        Button open = TextButton("SavesButton", canvas, "Saves  (F5)", TabColor, 20);
-        var openRect = (RectTransform)open.transform;
-        openRect.anchorMin = openRect.anchorMax = openRect.pivot = new Vector2(0, 0);
-        openRect.sizeDelta = new Vector2(140, 42);
-        openRect.anchoredPosition = new Vector2(466, 334);
+        // Room-button row: Edit, Shop, Planner, Saves, Settings.
+        Button open = NavButton(canvas, 3, "Saves", "F5");
         open.onClick.AddListener(Toggle);
 
         panel = MakeDrawer("SavesPanel", canvas);
         Header(panel.transform, "Saves", Toggle);
-        MakeText("Hint", panel.transform, "Your progress also saves itself as you play.", 16, MutedText, TextAlignmentOptions.Left)
+        MakeText("Hint", panel.transform, "Your progress also saves itself as you play.", LabelSize, MutedText, TextAlignmentOptions.Left)
             .gameObject.AddComponent<LayoutElement>().preferredHeight = 22;
 
         slots = ScrollList(panel.transform, out _);
@@ -134,7 +130,7 @@ public class SavesUI : MonoBehaviour
         list.childForceExpandHeight = false;
 
         // Two clicks to wipe; the old game still lands in the autosave.
-        Button newGame = TextButton("NewGame", panel.transform, "New game", DangerColor, 18);
+        Button newGame = TextButton("NewGame", panel.transform, "New game", DangerColor, BodySize);
         newGame.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
         newGameLabel = newGame.GetComponentInChildren<TMP_Text>();
         newGame.onClick.AddListener(() =>
@@ -145,7 +141,7 @@ public class SavesUI : MonoBehaviour
         });
 
         // Bottom right, just left of the music card, so autosaves are visible without interrupting.
-        badge = MakeText("SavedBadge", canvas, "", 18, MutedText, TextAlignmentOptions.Right);
+        badge = MakeText("SavedBadge", canvas, "", BodySize, MutedText, TextAlignmentOptions.Right);
         var badgeRect = (RectTransform)badge.transform;
         badgeRect.anchorMin = badgeRect.anchorMax = badgeRect.pivot = new Vector2(1, 0);
         badgeRect.sizeDelta = new Vector2(260, 28);

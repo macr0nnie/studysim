@@ -22,6 +22,23 @@ public static class UIKit
 
     // Left-side drawer slot shared by the store and planner: below the HUD card, above the room buttons.
     public const float DrawerWidth = 440, DrawerBottom = 410, DrawerTop = 130;
+    // Type scale: every panel picks from these instead of one-off sizes.
+    public const float TitleSize = 30, HeadingSize = 23, BodySize = 19, LabelSize = 16, CaptionSize = 14;
+
+    // Room-button row (bottom left, under the drawers): one shared slot per button so they line up.
+    const float NavWidth = 104, NavGap = 8, NavY = 334;
+
+    public static Button NavButton(Transform canvas, int slot, string label, string key)
+    {
+        string text = key == null ? label : $"{label}  <size={CaptionSize}><alpha=#99>{key}</size>";
+        Button button = TextButton(label + "Button", canvas, text, TabColor, LabelSize + 1);
+        var rect = (RectTransform)button.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
+        rect.sizeDelta = new Vector2(NavWidth, 40);
+        rect.anchoredPosition = new Vector2(24 + slot * (NavWidth + NavGap), NavY);
+        return button;
+    }
+
     public static readonly Vector2 DrawerOffset = new Vector2(24, (DrawerBottom - DrawerTop) / 2);
 
     private static Sprite rounded, circle;
@@ -66,7 +83,9 @@ public static class UIKit
         var scaler = go.GetComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0;
+        // Expand keeps the whole 1920x1080 layout on screen at any aspect: ultrawide gets extra width,
+        // 16:10 and 4:3 get extra height, and nothing scales off the edge.
+        scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
         return canvas;
     }
 
@@ -178,7 +197,7 @@ public static class UIKit
 
     public static Button SmallButton(Transform parent, string label, Color color, float width)
     {
-        Button b = TextButton(label, parent, label, color, 16);
+        Button b = TextButton(label, parent, label, color, LabelSize);
         var element = b.gameObject.AddComponent<LayoutElement>();
         element.preferredWidth = width;
         element.flexibleWidth = 0;
@@ -189,10 +208,10 @@ public static class UIKit
     public static TMP_Text Header(Transform panel, string title, Action onClose)
     {
         GameObject header = Row("Header", panel, 40, 10, false);
-        TMP_Text text = MakeText("Title", header.transform, title, 28, TextColor, TextAlignmentOptions.Left);
+        TMP_Text text = MakeText("Title", header.transform, title, TitleSize, TextColor, TextAlignmentOptions.Left);
         text.fontStyle = FontStyles.Bold;
         text.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
-        Button close = TextButton("Close", header.transform, "X", TabColor, 22);
+        Button close = TextButton("Close", header.transform, "X", TabColor, HeadingSize);
         close.gameObject.AddComponent<LayoutElement>().preferredWidth = 40;
         close.onClick.AddListener(() => onClose());
         return text;
@@ -249,9 +268,9 @@ public static class UIKit
         Stretch((RectTransform)area.transform);
         ((RectTransform)area.transform).offsetMin = new Vector2(12, 4);
         ((RectTransform)area.transform).offsetMax = new Vector2(-12, -4);
-        TMP_Text hint = MakeText("Placeholder", area.transform, placeholder, 18, MutedText, TextAlignmentOptions.Left);
+        TMP_Text hint = MakeText("Placeholder", area.transform, placeholder, BodySize, MutedText, TextAlignmentOptions.Left);
         hint.fontStyle = FontStyles.Italic;
-        TMP_Text text = MakeText("Text", area.transform, "", 18, TextColor, TextAlignmentOptions.Left);
+        TMP_Text text = MakeText("Text", area.transform, "", BodySize, TextColor, TextAlignmentOptions.Left);
         Stretch((RectTransform)hint.transform);
         Stretch((RectTransform)text.transform);
         var field = go.GetComponent<TMP_InputField>();

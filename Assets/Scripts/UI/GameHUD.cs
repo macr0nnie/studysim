@@ -190,10 +190,10 @@ public class GameHUD : MonoBehaviour
         levelBadge = MakeText("Level", badge.transform, "1", 34, TextColor, TextAlignmentOptions.Center, display: true);
         Stretch((RectTransform)levelBadge.transform);
 
-        levelLabel = MakeText("LevelLabel", card.transform, "Level 1", 22, TextColor, TextAlignmentOptions.Left);
+        levelLabel = MakeText("LevelLabel", card.transform, "Level 1", HeadingSize, TextColor, TextAlignmentOptions.Left);
         levelLabel.fontStyle = FontStyles.Bold;
         Place(levelLabel.rectTransform, new Vector2(88, -6), new Vector2(150, 36)); // Zain has tall line height; a short box hides the text
-        xpLabel = MakeText("XP", card.transform, "", 15, MutedText, TextAlignmentOptions.Right);
+        xpLabel = MakeText("XP", card.transform, "", CaptionSize, MutedText, TextAlignmentOptions.Right);
         Place(xpLabel.rectTransform, new Vector2(240, -14), new Vector2(124, 24));
 
         GameObject bar = Make("XPBar", card.transform, typeof(Image));
@@ -208,15 +208,11 @@ public class GameHUD : MonoBehaviour
         Place((RectTransform)coin.transform, new Vector2(88, -64), new Vector2(16, 16));
         coin.GetComponent<Image>().sprite = UIIcons.Named("Icons_21") ?? Circle; // the $ coin from the icon sheet
         coin.GetComponent<Image>().color = AccentColor;
-        coinsLabel = MakeText("Coins", card.transform, "0", 22, AccentColor, TextAlignmentOptions.Left, display: true);
+        coinsLabel = MakeText("Coins", card.transform, "0", HeadingSize, AccentColor, TextAlignmentOptions.Left, display: true);
         Place(coinsLabel.rectTransform, new Vector2(110, -60), new Vector2(200, 24));
 
         // Edit-mode toggle, first in the room-button row (Shop and Planner follow it).
-        Button edit = TextButton("EditButton", canvas, "Edit  (Esc)", TabColor, 20);
-        var editRect = (RectTransform)edit.transform;
-        editRect.anchorMin = editRect.anchorMax = editRect.pivot = new Vector2(0, 0);
-        editRect.sizeDelta = new Vector2(130, 42);
-        editRect.anchoredPosition = new Vector2(24, 334);
+        Button edit = NavButton(canvas, 0, "Edit", "Esc");
         editPill = edit.GetComponent<Image>();
         edit.onClick.AddListener(() => { if (room != null) room.ToggleEditMode(); });
 
@@ -230,7 +226,7 @@ public class GameHUD : MonoBehaviour
         toast = toastGO.GetComponent<CanvasGroup>();
         toast.alpha = 0;
         toast.blocksRaycasts = false;
-        toastText = MakeText("Text", toastGO.transform, "", 24, TextColor, TextAlignmentOptions.Center);
+        toastText = MakeText("Text", toastGO.transform, "", HeadingSize, TextColor, TextAlignmentOptions.Center);
         toastText.fontStyle = FontStyles.Bold;
         // Long hints (edit mode, session complete) were clipped at 24pt, so shrink them to fit.
         toastText.enableAutoSizing = true;
@@ -275,6 +271,9 @@ public class GameHUD : MonoBehaviour
 
     private void ThemeSceneUI()
     {
+        // Scene canvases scale the same way as the built ones, so nothing slides off on other aspect ratios.
+        foreach (CanvasScaler scaler in FindObjectsByType<CanvasScaler>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            if (scaler.uiScaleMode == CanvasScaler.ScaleMode.ScaleWithScreenSize) scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
         var ipod = FindFirstObjectByType<iPodUIController>();
         if (ipod != null) ThemeTree(ipod.transform.root);
 
@@ -348,7 +347,7 @@ public class GameHUD : MonoBehaviour
         foreach (Button b in root.GetComponentsInChildren<Button>(true))
         {
             if (b.name != buttonName || b.GetComponentInChildren<TMP_Text>() != null) continue;
-            Stretch((RectTransform)MakeText("Label", b.transform, label, 22, TextColor, TextAlignmentOptions.Center).transform);
+            Stretch((RectTransform)MakeText("Label", b.transform, label, HeadingSize, TextColor, TextAlignmentOptions.Center).transform);
         }
     }
 }

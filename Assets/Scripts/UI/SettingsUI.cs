@@ -62,11 +62,7 @@ public class SettingsUI : MonoBehaviour
     {
         Transform canvas = MakeCanvas("SettingsCanvas", transform, 10).transform;
 
-        Button open = TextButton("SettingsButton", canvas, "Settings", TabColor, 20);
-        var openRect = (RectTransform)open.transform;
-        openRect.anchorMin = openRect.anchorMax = openRect.pivot = new Vector2(0, 0);
-        openRect.sizeDelta = new Vector2(120, 42);
-        openRect.anchoredPosition = new Vector2(616, 334);
+        Button open = NavButton(canvas, 4, "Settings", null);
         open.onClick.AddListener(Toggle);
 
         panel = MakeDrawer("SettingsPanel", canvas);
@@ -83,14 +79,14 @@ public class SettingsUI : MonoBehaviour
                 v => { if (!timer.IsTimerRunning) timer.SetCustomDuration(v * 5); });
             rest = Setting("Break", out restText, 1, 30, Mathf.Round(timer.BreakMinutes), v => $"{v:0} min",
                 v => { if (!timer.IsTimerRunning) timer.SetBreakDuration(v); });
-            timerNote = MakeText("TimerNote", panel.transform, "Stop the timer to change session lengths.", 15, MutedText, TextAlignmentOptions.Left);
+            timerNote = MakeText("TimerNote", panel.transform, "Stop the timer to change session lengths.", CaptionSize, MutedText, TextAlignmentOptions.Left);
             timerNote.gameObject.AddComponent<LayoutElement>().preferredHeight = 20;
         }
 
         GameObject spacer = Make("Spacer", panel.transform, typeof(LayoutElement));
         spacer.GetComponent<LayoutElement>().flexibleHeight = 1;
 
-        Button quit = TextButton("Quit", panel.transform, "Save and quit", DangerColor, 18);
+        Button quit = TextButton("Quit", panel.transform, "Save and quit", DangerColor, BodySize);
         quit.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
         quit.onClick.AddListener(Quit);
     }
@@ -99,8 +95,8 @@ public class SettingsUI : MonoBehaviour
     private Slider Setting(string title, out TMP_Text valueText, float min, float max, float value, Func<float, string> format, Action<float> changed)
     {
         GameObject labels = Row(title, panel.transform, 26, 8, false);
-        MakeText("Title", labels.transform, title, 19, TextColor, TextAlignmentOptions.Left).gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
-        valueText = MakeText("Value", labels.transform, format(value), 19, AccentColor, TextAlignmentOptions.Right);
+        MakeText("Title", labels.transform, title, BodySize, TextColor, TextAlignmentOptions.Left).gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+        valueText = MakeText("Value", labels.transform, format(value), BodySize, AccentColor, TextAlignmentOptions.Right);
         valueText.gameObject.AddComponent<LayoutElement>().preferredWidth = 90;
 
         GameObject root = Make(title + "Slider", panel.transform, typeof(Slider), typeof(LayoutElement));

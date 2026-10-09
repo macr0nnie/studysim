@@ -147,23 +147,19 @@ public class FurnitureStoreUI : MonoBehaviour
         GameObject canvasGO = MakeCanvas("FurnitureStoreCanvas", transform, 10).gameObject;
 
         // Shop button sits in the row with the existing colour/edit-mode buttons on the left.
-        Button shop = TextButton("ShopButton", canvasGO.transform, "Shop  (B)", TabColor, 20);
-        var shopRect = (RectTransform)shop.transform;
-        shopRect.anchorMin = shopRect.anchorMax = shopRect.pivot = new Vector2(0, 0);
-        shopRect.sizeDelta = new Vector2(130, 42);
-        shopRect.anchoredPosition = new Vector2(164, 334);
+        Button shop = NavButton(canvasGO.transform, 1, "Shop", "B");
         shop.onClick.AddListener(Toggle);
 
         panel = MakeDrawer("StorePanel", canvasGO.transform);
 
         // Header: title, coins, close.
         GameObject header = Row("Header", panel.transform, 40, 10, false);
-        TMP_Text title = MakeText("Title", header.transform, "Furniture Store", 28, TextColor, TextAlignmentOptions.Left);
+        TMP_Text title = MakeText("Title", header.transform, "Furniture Store", TitleSize, TextColor, TextAlignmentOptions.Left);
         title.fontStyle = FontStyles.Bold;
         title.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
-        coinsText = MakeText("Coins", header.transform, "0", 24, AccentColor, TextAlignmentOptions.Right);
+        coinsText = MakeText("Coins", header.transform, "0", HeadingSize, AccentColor, TextAlignmentOptions.Right);
         coinsText.gameObject.AddComponent<LayoutElement>().preferredWidth = 110;
-        Button close = TextButton("Close", header.transform, "X", TabColor, 22);
+        Button close = TextButton("Close", header.transform, "X", TabColor, HeadingSize);
         close.gameObject.AddComponent<LayoutElement>().preferredWidth = 40;
         close.onClick.AddListener(Toggle);
 
@@ -194,12 +190,12 @@ public class FurnitureStoreUI : MonoBehaviour
         detailsLayout.childControlWidth = detailsLayout.childControlHeight = true;
         detailsLayout.childForceExpandWidth = true;
         detailsLayout.childForceExpandHeight = false;
-        detailName = MakeText("Name", details.transform, "", 21, TextColor, TextAlignmentOptions.Left);
+        detailName = MakeText("Name", details.transform, "", HeadingSize, TextColor, TextAlignmentOptions.Left);
         detailName.fontStyle = FontStyles.Bold;
-        detailDescription = MakeText("Description", details.transform, "Select something to see what it is.", 16, MutedText, TextAlignmentOptions.TopLeft);
+        detailDescription = MakeText("Description", details.transform, "Select something to see what it is.", LabelSize, MutedText, TextAlignmentOptions.TopLeft);
         detailDescription.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
-        detailTags = MakeText("Tags", details.transform, "", 14, AccentColor, TextAlignmentOptions.Left);
-        buyButton = TextButton("Buy", details.transform, "", AccentButtonColor, 20);
+        detailTags = MakeText("Tags", details.transform, "", CaptionSize, AccentColor, TextAlignmentOptions.Left);
+        buyButton = TextButton("Buy", details.transform, "", AccentButtonColor, BodySize);
         buyButton.gameObject.AddComponent<LayoutElement>().preferredHeight = 42;
         buyLabel = buyButton.GetComponentInChildren<TMP_Text>();
         buyButton.onClick.AddListener(Buy);
@@ -209,7 +205,7 @@ public class FurnitureStoreUI : MonoBehaviour
 
     private void AddTab(Transform parent, string label, int category)
     {
-        TextButton(label, parent, label, TabColor, 15).onClick.AddListener(() => ShowCategory(category));
+        TextButton(label, parent, label, TabColor, CaptionSize).onClick.AddListener(() => ShowCategory(category));
     }
 
     private void AddCard(Transform parent, FurnitureItem item)
@@ -226,9 +222,9 @@ public class FurnitureStoreUI : MonoBehaviour
         icon.enabled = icon.sprite != null;
         if (icon.sprite == null) pendingIcons.Enqueue((icon, item));
         Anchor(icon.gameObject, new Vector2(0.08f, 0.32f), new Vector2(0.92f, 0.96f));
-        Anchor(MakeText("Name", root.transform, item.displayName, 15, TextColor, TextAlignmentOptions.Center).gameObject,
+        Anchor(MakeText("Name", root.transform, item.displayName, CaptionSize, TextColor, TextAlignmentOptions.Center).gameObject,
             new Vector2(0.04f, 0.16f), new Vector2(0.96f, 0.32f));
-        Anchor(MakeText("Price", root.transform, item.price.ToString(), 17, AccentColor, TextAlignmentOptions.Center).gameObject,
+        Anchor(MakeText("Price", root.transform, item.price.ToString(), LabelSize, AccentColor, TextAlignmentOptions.Center).gameObject,
             new Vector2(0, 0.02f), new Vector2(1, 0.17f));
         cards.Add(card);
     }

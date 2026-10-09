@@ -24,7 +24,11 @@ public class UIIcons : ScriptableObject
     public static Sprite Light(Sprite sprite)
     {
         if (sprite == null) return null;
-        return All().TryGetValue(sprite.name, out Sprite white) || All().TryGetValue(sprite.name + " Light", out white) ? white : null;
+        string name = sprite.name;
+        if (All().TryGetValue(name, out Sprite white)) return white;
+        // single-image icons: "Pause circle" (or "Pause circle_0" once Unity re-slices it) -> "Pause circle Light"
+        if (name.EndsWith("_0") && !name.StartsWith("Icons_")) name = name.Substring(0, name.Length - 2);
+        return All().TryGetValue(name + " Light", out white) ? white : null;
     }
 
     // A white icon by its sheet name, e.g. "Icons_21" (coin).

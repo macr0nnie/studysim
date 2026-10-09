@@ -9,7 +9,6 @@ using static UIKit;
 // Save / load drawer (F5) with an autosave every couple of minutes and a small "Saved" badge when it happens.
 public class SavesUI : MonoBehaviour
 {
-    [SerializeField] private KeyCode toggleKey = KeyCode.F5;
     [SerializeField] private float autosaveSeconds = 120f;
 
     private GameObject panel;
@@ -45,7 +44,7 @@ public class SavesUI : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(toggleKey) && !Typing()) Toggle();
+        if (Controls.Pressed(Controls.Act.Saves) && !Typing()) Toggle();
         if (Time.unscaledTime >= nextAutosave)
         {
             nextAutosave = Time.unscaledTime + autosaveSeconds;
@@ -115,7 +114,7 @@ public class SavesUI : MonoBehaviour
         Transform canvas = MakeCanvas("SavesCanvas", transform, 10).transform;
 
         // Room-button row: Edit, Shop, Paint, Planner, Saves, Settings.
-        Button open = NavButton(canvas, 4, "Saves", "F5");
+        Button open = NavButton(canvas, 4, "Saves", Controls.Act.Saves);
         open.onClick.AddListener(Toggle);
 
         panel = MakeDrawer("SavesPanel", canvas);

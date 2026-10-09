@@ -8,11 +8,10 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static UIKit;
 
-// Game settings window (top-left Settings button or F10): Sound, Focus, Notifications and the browser
-// extension, plus Save and quit. Values live in GameSettings.
+// Game settings window (top-left Settings button or F10): Sound, Focus, Notifications, Controls, the
+// browser extension and Credits, plus Save and quit. Values live in GameSettings and Controls.
 public class SettingsUI : MonoBehaviour
 {
-    [SerializeField] private KeyCode toggleKey = KeyCode.F10;
 
     private GameObject window;
     private GameObject[] pages;
@@ -30,7 +29,12 @@ public class SettingsUI : MonoBehaviour
     private Image statusDot;
     private TMP_Text statusText, testResult;
 
-    private static readonly string[] PageNames = { "Sound", "Focus", "Notifications", "Browser extension" };
+    private static readonly string[] PageNames = { "Sound", "Focus", "Notifications", "Controls", "Browser extension", "Credits" };
+    private const int ExtensionPage = 4;
+
+    // Controls page
+    private TMP_Text[] keyLabels;
+    private TMP_Text controlsNote;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void AddToRoomScenes()
@@ -54,8 +58,8 @@ public class SettingsUI : MonoBehaviour
 
     private void Update()
     {
-        if (Input.GetKeyDown(toggleKey) && !Typing()) Toggle();
-        if (window.activeSelf && pages[3].activeSelf) RefreshExtension();
+        if (Controls.Pressed(Controls.Act.Settings) && !Typing()) Toggle();
+        if (window.activeSelf && pages[ExtensionPage].activeSelf) RefreshExtension();
     }
 
     public void Toggle()
@@ -167,8 +171,11 @@ public class SettingsUI : MonoBehaviour
         "  start, pause, reset: control the timer\n" +
         "  set: study length in minutes (5-120, timer stopped)\n" +
         "  focus: on a study site, +1 XP at most once a minute\n" +
+        "  distracted: on a distracting site, {\"action\":\"distracted\",\"site\":\"youtube.com\"}; re-send at least\n" +
+        "    every 45 s while it stays open (during a study session the room falls apart and coins drain)\n" +
+        "  back: left the distracting site (ends it, no XP)\n" +
         "  ping: connection check\n" +
-        "GET http://localhost:8080/ returns {\"running\",\"studying\",\"secondsLeft\",\"mode\",\"strict\"} so the\n" +
+        "GET http://localhost:8080/ returns {\"running\",\"studying\",\"secondsLeft\",\"mode\",\"strict\",\"distracted\"} so the\n" +
         "extension can follow the timer, e.g. block distracting sites during a strict session.";
 
     // ---------- UI construction ----------
@@ -178,7 +185,8 @@ public class SettingsUI : MonoBehaviour
         Transform canvas = MakeCanvas("SettingsCanvas", transform, 20).transform;
 
         // Next to the player card, top left.
-        Button open = TextButton("SettingsButton", canvas, $"Settings  <size={CaptionSize}><alpha=#99>F10</size>", TabColor, LabelSize + 1);
+        Button open = TextButton("SettingsButton", canvas, "Settings", TabColor, LabelSize + 1);
+        KeyHint(open.GetComponentInChildren<TMP_Text>(), "Settings", Controls.Act.Settings);
         var openRect = (RectTransform)open.transform;
         openRect.anchorMin = openRect.anchorMax = openRect.pivot = new Vector2(0, 1);
         openRect.sizeDelta = new Vector2(130, 44);
@@ -242,7 +250,9 @@ public class SettingsUI : MonoBehaviour
         BuildSound(pages[0].transform);
         BuildFocus(pages[1].transform);
         BuildNotifications(pages[2].transform);
-        BuildExtension(pages[3].transform);
+        BuildControls(pages[3].transform);
+        BuildExtension(pages[ExtensionPage].transform);
+        BuildCredits(pages[5].transform);
 
         ShowPage(0);
         window.SetActive(false);
@@ -253,7 +263,8 @@ public class SettingsUI : MonoBehaviour
         Heading(page, "Sound");
         AddSlider(page, "Master volume", 0, 100, GameSettings.MasterVolume * 100, v => $"{v:0}%", v => GameSettings.MasterVolume = v / 100f, out _);
         AddSlider(page, "Music", 0, 100, GameSettings.MusicVolume * 100, v => $"{v:0}%", v => GameSettings.MusicVolume = v / 100f, out _);
-        AddSlider(page, "Effects (session chime)", 0, 100, GameSettings.EffectsVolume * 100, v => $"{v:0}%", v => GameSettings.EffectsVolume = v / 100f, out _);
+        AddSlider(page, "Effects (UI sounds, chime)", 0, 100, GameSettings.EffectsVolume * 100, v => $"{v:0}%", v => GameSettings.EffectsVolume = v / 100f, out _);
+        Switch(page, "Interface sounds", "Clicks, placing furniture, coins and lamps.", () => GameSettings.UISounds, v => GameSettings.UISounds = v);
     }
 
     private void BuildFocus(Transform page)
@@ -336,17 +347,91 @@ public class SettingsUI : MonoBehaviour
         testResult = MakeText("Result", page, "", LabelSize, MutedText, TextAlignmentOptions.Left);
         testResult.gameObject.AddComponent<LayoutElement>().preferredHeight = 22;
 
+        Switch(page, "Distractions break the room", "On a distracting site during a study session, your room falls apart and coins drain.",
+            () => GameSettings.DistractionPenalty, v => GameSettings.DistractionPenalty = v);
+        AddSlider(page, "Coins lost per minute while distracted", 0, 30, GameSettings.DistractionCoinsPerMinute, v => $"{v:0}",
+            v => GameSettings.DistractionCoinsPerMinute = Mathf.RoundToInt(v), out _);
+
         TMP_Text help = MakeText("Help", page,
-            "Keep the game running, then turn on the Study Sim extension in your browser. It talks to the game at "
+            "Install the extension from the game's BrowserExtension folder (Chrome: Extensions, Developer mode, Load unpacked), "
+            + "keep the game running, and it connects by itself. It talks to the game at "
             + $"<color=#{ColorUtility.ToHtmlStringRGB(AccentColor)}>{ChromeWebEx.Address}</color>: it can start, pause and reset the timer, "
-            + "set the session length, and earn focus XP while you're on study sites. Copy setup info gives the full message list.",
+            + "set the session length, earn focus XP on study sites, and tell the game when you're on a distracting one. "
+            + "Copy setup info gives the full message list.",
             LabelSize, MutedText, TextAlignmentOptions.TopLeft);
         help.textWrappingMode = TextWrappingModes.Normal;
         help.enableAutoSizing = false;
-        help.gameObject.AddComponent<LayoutElement>().preferredHeight = 110;
+        help.gameObject.AddComponent<LayoutElement>().preferredHeight = 90;
+    }
+
+    private void BuildControls(Transform page)
+    {
+        Heading(page, "Controls");
+        Transform list = ScrollList(page, out _);
+        StackChildren(list, 6);
+        var labels = Controls.Labels;
+        keyLabels = new TMP_Text[labels.Length];
+        for (int i = 0; i < labels.Length; i++)
+        {
+            var act = (Controls.Act)i;
+            GameObject row = Row(labels[i], list, 40, 12, false);
+            row.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+            MakeText("Label", row.transform, labels[i], BodySize, TextColor, TextAlignmentOptions.Left)
+                .gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+            Button key = SmallButton(row.transform, Controls.KeyName(act), CardColor, 150);
+            keyLabels[i] = key.GetComponentInChildren<TMP_Text>();
+            TMP_Text label = keyLabels[i];
+            key.onClick.AddListener(() =>
+            {
+                label.text = "Press a key...";
+                controlsNote.text = "Press the new key, or Esc to keep the old one.";
+                Controls.Rebind(act, RefreshControls);
+            });
+        }
+        TMP_Text mouse = MakeText("Mouse", list,
+            "Mouse: click to place or pick up, drag to move, right-click to cancel or remove. Click a lamp to switch it on or off; double-click a piece to edit it.",
+            LabelSize, MutedText, TextAlignmentOptions.TopLeft);
+        mouse.textWrappingMode = TextWrappingModes.Normal;
+        mouse.enableAutoSizing = false;
+
+        GameObject footer = Row("Footer", page, 40, 12, false);
+        footer.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+        SmallButton(footer.transform, "Reset to defaults", TabColor, 180).onClick.AddListener(() => { Controls.ResetAll(); RefreshControls(); });
+        controlsNote = MakeText("Note", footer.transform, "", LabelSize, MutedText, TextAlignmentOptions.Left);
+        controlsNote.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+    }
+
+    private void RefreshControls()
+    {
+        for (int i = 0; i < keyLabels.Length; i++) keyLabels[i].text = Controls.KeyName((Controls.Act)i);
+        controlsNote.text = "";
+    }
+
+    // Credits come from Resources/Credits.txt, so they can be edited without touching code.
+    // "[CHECK]" marks lines still to be confirmed; it is hidden in the game.
+    private static void BuildCredits(Transform page)
+    {
+        Heading(page, "Credits");
+        Transform list = ScrollList(page, out _);
+        StackChildren(list, 0);
+        TextAsset file = Resources.Load<TextAsset>("Credits");
+        TMP_Text text = MakeText("Text", list, file != null ? file.text.Replace(" [CHECK]", "") : "Credits file missing.",
+            LabelSize, TextColor, TextAlignmentOptions.TopLeft);
+        text.textWrappingMode = TextWrappingModes.Normal;
+        text.enableAutoSizing = false;
     }
 
     // ---------- widgets ----------
+
+    // Lays a scroll list's children out top to bottom at their preferred heights.
+    private static void StackChildren(Transform list, float spacing)
+    {
+        var v = list.gameObject.AddComponent<VerticalLayoutGroup>();
+        v.spacing = spacing;
+        v.childControlWidth = v.childControlHeight = true;
+        v.childForceExpandWidth = true;
+        v.childForceExpandHeight = false;
+    }
 
     private static GameObject Column(string name, Transform parent, float spacing)
     {

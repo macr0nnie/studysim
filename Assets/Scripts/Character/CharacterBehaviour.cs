@@ -155,17 +155,15 @@ public class CharacterBehaviour : MonoBehaviour
         Vector3 toDesk = Vector3.ProjectOnPlane(desk.Value.ClosestPoint(b.center) - pos, Vector3.up);
         dist = toDesk.magnitude;
         if (dist < 0.0001f) toDesk = Vector3.ProjectOnPlane(desk.Value.center - pos, Vector3.up);
-        Vector3 face = Vector3.zero; float bestDot = -2f;
-        foreach (Vector3 axis in new[] { chair.right, -chair.right, chair.up, -chair.up, chair.forward, -chair.forward })
-        {
-            Vector3 flat = Vector3.ProjectOnPlane(axis, Vector3.up);
-            if (flat.magnitude < 0.7f) continue; // an axis pointing up or down says nothing about which way the chair faces
-            float dot = Vector3.Dot(flat.normalized, toDesk.normalized);
-            if (dot > bestDot) { bestDot = dot; face = flat.normalized; }
-        }
-        if (face == Vector3.zero) face = toDesk.sqrMagnitude > 0f ? toDesk.normalized : Vector3.back;
+        // The chair's real front (backrest side of the mesh, or the item's Front yaw), so the placed chair and the sitter agree.
         FurnitureItem item = room.ItemOf(chair.gameObject);
-        rot = Quaternion.AngleAxis(item != null ? item.sit.yaw : 0f, Vector3.up) * Quaternion.LookRotation(face); // sit.yaw tunes a chair whose front is off
+        // Reading the mesh is slow, so the front is worked out once per chair and kept in the chair's own frame.
+        if (!localFronts.TryGetValue(chair, out Vector3 localFront))
+            localFronts[chair] = localFront = Quaternion.Inverse(chair.rotation) * RoomManager.ChairFront(chair.gameObject, item != null ? item.frontYaw : 0f);
+        Distraction.RestPose(chair, out _, out Quaternion chairRot);
+        Vector3 face = Vector3.ProjectOnPlane(chairRot * localFront, Vector3.up);
+        if (face.sqrMagnitude < 0.0001f) face = toDesk.sqrMagnitude > 0f ? toDesk : Vector3.back;
+        rot = Quaternion.AngleAxis(item != null ? item.sit.yaw : 0f, Vector3.up) * Quaternion.LookRotation(face.normalized); // sit.yaw tunes a chair whose front is off
         return true;
     }
 
@@ -277,6 +275,7 @@ public class CharacterBehaviour : MonoBehaviour
         localRot = Quaternion.Inverse(rest.rotation) * rot;
     }
 
+    private readonly Dictionary<Transform, Vector3> localFronts = new Dictionary<Transform, Vector3>();
     private struct Stamp { public Vector3 pos; public Quaternion rot; public float time; }
     private readonly Dictionary<Transform, Stamp> stamps = new Dictionary<Transform, Stamp>();
     private Vector3 localPos;

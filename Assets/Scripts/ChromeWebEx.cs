@@ -41,11 +41,12 @@ public class ChromeWebEx : MonoBehaviour
         {
             _httpListener.Start();
         }
-        catch (HttpListenerException ex)
+        catch (Exception ex) when (ex is HttpListenerException || ex is System.Net.Sockets.SocketException) // Mono throws SocketException when the port is taken
         {
             // Port in use or not permitted: run without the extension instead of breaking Start.
             Debug.LogWarning($"Chrome extension listener disabled: {ex.Message}");
             _httpListener = null;
+            if (debugText) debugText.text = "";
             return;
         }
         if (debugText) debugText.text = "Connected to Chrome Extension!";

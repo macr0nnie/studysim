@@ -46,3 +46,17 @@ public class FurnitureItem : ScriptableObject
     [Tooltip("What this piece adds to (or, negative, takes from) the character's hidden happiness.")]
     public int comfort = 1;
 }
+
+// Which pieces count as a desk or a chair: store items tagged "desk"/"chair", or anything whose name says so
+// (the old scene's furniture). The character and the keep-one-of-each rule both go through here.
+public static class FurnitureRole
+{
+    public static bool Is(GameObject piece, FurnitureItem item, string role)
+    {
+        // A store item says what it is through its tags ("Desk Lamp" is not a desk); only scene leftovers go by name.
+        if (item == null) return piece != null && piece.name.IndexOf(role, System.StringComparison.OrdinalIgnoreCase) >= 0;
+        foreach (string tag in item.tags ?? new string[0])
+            if (string.Equals(tag, role, System.StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+}

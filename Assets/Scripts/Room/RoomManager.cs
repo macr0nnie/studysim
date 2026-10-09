@@ -73,7 +73,7 @@ public class RoomManager : MonoBehaviour
     private Bounds roomFloor;
     private bool hasRoomFloor;
     private static readonly RaycastHit[] surfaceHits = new RaycastHit[16];
-    // The desk and chair a new game starts with: they can be moved and rotated but not deleted.
+    // The desk and chair a new game starts with (the rule that keeps one of each is IsLastOfRole).
     private readonly HashSet<GameObject> starterPieces = new HashSet<GameObject>();
     private readonly Dictionary<GameObject, Color> pieceColors = new Dictionary<GameObject, Color>();
     private readonly Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
@@ -704,11 +704,20 @@ public class RoomManager : MonoBehaviour
 
     }
 
+    // True when obj is the only desk (or chair) left, so removing it would leave the room without one.
+    private bool IsLastOfRole(GameObject obj, string role)
+    {
+        if (!FurnitureRole.Is(obj, ItemOf(obj), role)) return false;
+        foreach (GameObject p in placedObjects)
+            if (p != obj && p != null && p.activeInHierarchy && FurnitureRole.Is(p, ItemOf(p), role)) return false;
+        return true;
+    }
+
     private void DeleteObject(GameObject obj)
     {
-        if (starterPieces.Contains(obj))
+        if (IsLastOfRole(obj, "desk") || IsLastOfRole(obj, "chair"))
         {
-            FindFirstObjectByType<GameHUD>()?.ShowToast("Every room keeps its desk and chair. You can still move and turn them.");
+            FindFirstObjectByType<GameHUD>()?.ShowToast("Every room keeps a desk and a chair. Place another to swap this one out.");
             return;
         }
         if (placedObjects.Contains(obj))

@@ -105,6 +105,8 @@ public class CharacterBehaviour : MonoBehaviour
     // The old scene's furniture isn't all store items, so names count too.
     private static bool Named(GameObject g, string part) => g.name.IndexOf(part, System.StringComparison.OrdinalIgnoreCase) >= 0;
 
+    private bool Is(GameObject g, string role) => FurnitureRole.Is(g, room.ItemOf(g), role);
+
     private bool Usable(GameObject p, out Interaction data)
     {
         FurnitureItem item = room.ItemOf(p);
@@ -122,7 +124,7 @@ public class CharacterBehaviour : MonoBehaviour
         {
             if (p == null || !p.activeInHierarchy) continue;
             FurnitureItem item = room.ItemOf(p);
-            if (Named(p, "chair") || (item != null && item.sit.enabled && !Named(p, "desk"))) chairs.Add(p.transform);
+            if (Is(p, "chair") || (item != null && item.sit.enabled && !Is(p, "desk"))) chairs.Add(p.transform);
             else if (Child(p, "chair") is Transform c) chairs.Add(c);
         }
         return chairs.Count > 0;
@@ -133,7 +135,7 @@ public class CharacterBehaviour : MonoBehaviour
         Bounds? best = null; float bestDist = float.MaxValue;
         foreach (GameObject p in room.PlacedPieces)
         {
-            if (p == null || !p.activeInHierarchy || !Named(p, "desk")) continue;
+            if (p == null || !p.activeInHierarchy || !Is(p, "desk")) continue;
             Bounds b = BoundsOf(p);
             float d = b.SqrDistance(from);
             if (d < bestDist) { bestDist = d; best = b; }

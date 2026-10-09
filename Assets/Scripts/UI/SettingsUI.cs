@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static UIKit;
 
-// Game settings window (top-left Settings button or F10): Sound, Focus, Notifications, Controls, the
+// Game settings window (the gear next to the player card, or Esc): Sound, Focus, Notifications, Controls, the
 // browser extension and Credits, plus Save and quit. Values live in GameSettings and Controls.
 public class SettingsUI : MonoBehaviour
 {
@@ -185,12 +185,17 @@ public class SettingsUI : MonoBehaviour
         Transform canvas = MakeCanvas("SettingsCanvas", transform, 20).transform;
 
         // Next to the player card, top left.
-        Button open = TextButton("SettingsButton", canvas, "Settings", TabColor, LabelSize + 1);
-        KeyHint(open.GetComponentInChildren<TMP_Text>(), "Settings", Controls.Act.Settings);
+        Button open = TextButton("SettingsButton", canvas, "", TabColor, LabelSize);
+        open.GetComponent<Image>().sprite = Circle;
+        Destroy(open.GetComponentInChildren<TMP_Text>().gameObject);
+        GameObject gear = Make("Gear", open.transform, typeof(Image));
+        gear.GetComponent<Image>().sprite = Gear;
+        gear.GetComponent<Image>().raycastTarget = false;
+        Anchor(gear, new Vector2(0.18f, 0.18f), new Vector2(0.82f, 0.82f));
         var openRect = (RectTransform)open.transform;
         openRect.anchorMin = openRect.anchorMax = openRect.pivot = new Vector2(0, 1);
-        openRect.sizeDelta = new Vector2(130, 44);
-        openRect.anchoredPosition = new Vector2(24 + 380 + 12, -46);
+        openRect.sizeDelta = new Vector2(36, 36);
+        openRect.anchoredPosition = new Vector2(24 + 380 + 12, -24);
         open.onClick.AddListener(Toggle);
 
         // Dimmed backdrop (click to close) with the window centred on it. They are siblings so a click

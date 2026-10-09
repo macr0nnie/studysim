@@ -24,7 +24,6 @@ public class CharacterBehaviour : MonoBehaviour
     private float nextSay, hideBubble, nextCheck;
     private GameObject usedPiece;
     private bool lying;
-    private Vector3 usedPos;
 
     private void Start()
     {
@@ -33,6 +32,7 @@ public class CharacterBehaviour : MonoBehaviour
         animator = GetComponent<Animator>();
         renderers = GetComponentsInChildren<Renderer>();
         icons = Resources.Load<MoodIcons>("MoodIcons");
+        standingHeight = Mathf.Max(0.1f, BoundsOf(gameObject).size.y);
         Happiness = Target();
         nextSay = Time.time + 8f;
         MakeOverlays();
@@ -96,38 +96,116 @@ public class CharacterBehaviour : MonoBehaviour
 
     // ---------- furniture ----------
 
+    private Matrix4x4 Rest(Transform t)
+    {
+        Distraction.RestPose(t, out Vector3 p, out Quaternion r);
+        return Matrix4x4.TRS(p, r, t.lossyScale);
+    }
+
+    // The old scene's furniture isn't all store items, so names count too.
+    private static bool Named(GameObject g, string part) => g.name.IndexOf(part, System.StringComparison.OrdinalIgnoreCase) >= 0;
+
+    private bool Usable(GameObject p, bool lie, out Interaction data)
+    {
+        FurnitureItem item = room.ItemOf(p);
+        data = item == null ? default : lie ? item.lie : item.sit;
+        if (data.enabled) return true;
+        if (lie ? Named(p, "bed") && !Named(p, "plane") : Named(p, "chair") || Named(p, "desk")) { data.enabled = true; data.height = lie ? 0.6f : 0f; return true; }
+        return false;
+    }
+
+    private static Bounds BoundsOf(GameObject g)
+    {
+        Bounds b = default; bool any = false;
+        foreach (Renderer r in g.GetComponentsInChildren<Renderer>())
+            if (r is MeshRenderer || r is SkinnedMeshRenderer) { if (!any) { b = r.bounds; any = true; } else b.Encapsulate(r.bounds); }
+        return b;
+    }
+
+    private static Transform Child(GameObject g, string part)
+    {
+        foreach (Transform t in g.GetComponentsInChildren<Transform>()) if (Named(t.gameObject, part)) return t;
+        return null;
+    }
+
+    private Bounds FloorBounds()
+    {
+        Bounds f = default; bool any = false;
+        foreach (Renderer r in room.FloorRenderers) if (r != null) { if (!any) { f = r.bounds; any = true; } else f.Encapsulate(r.bounds); }
+        return f;
+    }
+
+    // World position and rotation for the character on this piece: from its bounds, never from its local axes.
+    private bool Spot(GameObject piece, bool lie, Interaction d, out Vector3 pos, out Quaternion rot)
+    {
+        pos = default; rot = Quaternion.identity;
+        Transform chair = lie ? null : Child(piece, "chair");
+        Bounds b = BoundsOf(chair != null ? chair.gameObject : piece);
+        if (b.size == Vector3.zero) return false;
+        pos = new Vector3(b.center.x + d.offset.x * b.extents.x, b.min.y + d.height * b.size.y, b.center.z + d.offset.y * b.extents.z);
+        Camera cam = Camera.main;
+        Vector3 toCam = cam ? Vector3.ProjectOnPlane(cam.transform.position - b.center, Vector3.up).normalized : Vector3.back;
+        if (lie)
+        {
+            // Head toward the nearer wall along the bed's long side; the pivot (the feet) is half a body back from the middle.
+            Bounds floor = FloorBounds();
+            bool alongX = b.size.x >= b.size.z;
+            float c = alongX ? b.center.x : b.center.z, lo = alongX ? floor.min.x : floor.min.z, hi = alongX ? floor.max.x : floor.max.z;
+            float sign = floor.size == Vector3.zero || Mathf.Abs(c - lo) < Mathf.Abs(hi - c) ? -1f : 1f;
+            Vector3 head = (alongX ? Vector3.right : Vector3.forward) * sign;
+            pos -= head * standingHeight * 0.5f;
+            rot = Quaternion.AngleAxis(d.yaw, Vector3.up) * Quaternion.LookRotation(Vector3.up, head);
+            return true;
+        }
+        // Facing the nearest desk; a desk with no chair of its own gets the player on its camera side.
+        GameObject desk = null; float best = float.MaxValue;
+        foreach (GameObject p in room.PlacedPieces)
+        {
+            if (p == null || !p.activeInHierarchy || !Named(p, "desk")) continue;
+            float dist = (BoundsOf(p).center - b.center).sqrMagnitude;
+            if (dist < best) { best = dist; desk = p; }
+        }
+        if (desk == piece && chair == null) pos += toCam * Mathf.Max(b.extents.x, b.extents.z);
+        Vector3 face = desk == null ? -toCam : Vector3.ProjectOnPlane(BoundsOf(desk).center - pos, Vector3.up);
+        if (face.sqrMagnitude < 0.0001f) face = -toCam;
+        rot = Quaternion.AngleAxis(d.yaw, Vector3.up) * Quaternion.LookRotation(face.normalized);
+        return true;
+    }
+
     private void UseFurniture()
     {
         if (room == null || animator == null) return;
         bool wantLie = timer != null && !timer.IsStudySession;
-        GameObject best = null;
+        GameObject best = null; int bestScore = 0; Interaction bestData = default;
         IReadOnlyList<GameObject> pieces = room.PlacedPieces;
-        for (int i = pieces.Count - 1; i >= 0 && best == null; i--) // newest first: a bought chair beats the desk
+        for (int i = pieces.Count - 1; i >= 0; i--) // newest first, and a chair beats a desk
         {
             GameObject p = pieces[i];
-            if (p == null || !p.activeInHierarchy) continue;
-            FurnitureItem item = room.ItemOf(p);
-            if (item != null && (wantLie ? item.lie : item.sit).enabled) best = p;
+            if (p == null || !p.activeInHierarchy || !Usable(p, wantLie, out Interaction d)) continue;
+            int score = wantLie || !Named(p, "desk") ? 2 : 1;
+            if (score > bestScore) { best = p; bestScore = score; bestData = d; }
         }
         if (best == null) { if (usedPiece != null) { usedPiece = null; Release(); } return; }
         if (best == usedPiece && wantLie == lying) return;
+        if (!Spot(best, wantLie, bestData, out Vector3 pos, out Quaternion rot)) return;
         usedPiece = best;
         lying = wantLie;
-        Interaction spot = (lying ? room.ItemOf(best).lie : room.ItemOf(best).sit);
-        usedPos = spot.localPosition;
-        yaw = spot.yaw;
+        // Remembered in the piece's own frame, so the character rides with it instead of drifting.
+        Matrix4x4 rest = Rest(best.transform);
+        localPos = rest.inverse.MultiplyPoint3x4(pos);
+        localRot = Quaternion.Inverse(rest.rotation) * rot;
         if (lying) { animator.SetBool("IsStudying", false); animator.speed = 0f; } // no lying clip yet: freeze the pose
         else { animator.speed = 1f; animator.SetBool("IsStudying", true); }
     }
 
-    private float yaw;
+    private Vector3 localPos;
+    private Quaternion localRot;
+    private float standingHeight = 1f;
 
-    // Follows the piece (and ignores the shake while the room falls apart).
     private void Hold()
     {
-        Distraction.RestPose(usedPiece.transform, out Vector3 p, out Quaternion r);
-        transform.SetPositionAndRotation(p + r * Vector3.Scale(usedPos, usedPiece.transform.lossyScale),
-            r * Quaternion.Euler(lying ? -90f : 0f, yaw, 0f));
+        Matrix4x4 rest = Rest(usedPiece.transform);
+        transform.SetPositionAndRotation(rest.MultiplyPoint3x4(localPos), rest.rotation * localRot);
     }
 
     private void Release()
@@ -135,6 +213,20 @@ public class CharacterBehaviour : MonoBehaviour
         lying = false;
         transform.rotation = Quaternion.Euler(0f, transform.eulerAngles.y, 0f);
         if (animator != null) { animator.speed = 1f; animator.SetBool("IsStudying", true); }
+    }
+
+    // Debug: blue = where the character would sit, pink = where it would lie, for every piece that can be used.
+    private void OnDrawGizmos()
+    {
+        if (room == null) return;
+        foreach (GameObject p in room.PlacedPieces)
+            foreach (bool lie in new[] { false, true })
+                if (p != null && p.activeInHierarchy && Usable(p, lie, out Interaction d) && Spot(p, lie, d, out Vector3 pos, out Quaternion rot))
+                {
+                    Gizmos.color = lie ? Color.magenta : Color.cyan;
+                    Gizmos.DrawSphere(pos, 0.05f * Mathf.Max(1f, standingHeight));
+                    Gizmos.DrawRay(pos, rot * (lie ? Vector3.up : Vector3.forward) * standingHeight * 0.5f);
+                }
     }
 
     // ---------- overlays ----------

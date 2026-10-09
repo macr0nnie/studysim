@@ -785,6 +785,20 @@ public class RoomManager : MonoBehaviour
             && b.center.x > s.min.x && b.center.x < s.max.x && b.center.z > s.min.z && b.center.z < s.max.z;
     }
 
+    // Whatever stood on a piece that is being removed falls to the floor below it instead of hanging in the air.
+    private void DropRiders(GameObject parent)
+    {
+        Bounds s = GetBounds(parent);
+        foreach (GameObject p in new List<GameObject>(placedObjects))
+        {
+            if (p == parent || !StandsOn(p, parent, s)) continue;
+            Bounds b = GetBounds(p);
+            if (Physics.Raycast(new Vector3(b.center.x, s.min.y + 0.1f, b.center.z), Vector3.down, out RaycastHit hit, 5f, placementLayer))
+                p.transform.position += Vector3.up * (hit.point.y - b.min.y);
+        }
+        Physics.SyncTransforms();
+    }
+
     private GameObject SupportOf(GameObject piece)
     {
         foreach (GameObject p in placedObjects)
@@ -834,13 +848,20 @@ public class RoomManager : MonoBehaviour
         Quaternion inv = Quaternion.Inverse(t.rotation);
         Bounds s = GetBounds(selectedObject);
         var states = new List<PieceState> { StateOf(selectedObject) };
-        foreach (GameObject p in placedObjects)
+        // Pieces on the piece, then pieces on those (a lamp on a book on a desk).
+        var carriers = new List<GameObject> { selectedObject };
+        for (int c = 0; c < carriers.Count; c++)
         {
-            if (!StandsOn(p, selectedObject, s)) continue;
-            Bounds b = GetBounds(p);
-            Vector3 foot = new Vector3(b.center.x, b.min.y, b.center.z);
-            riders.Add(new Rider { go = p, foot = inv * (foot - t.position), pivot = inv * (p.transform.position - foot), rotation = inv * p.transform.rotation });
-            states.Add(StateOf(p));
+            Bounds cb = c == 0 ? s : GetBounds(carriers[c]);
+            foreach (GameObject p in placedObjects)
+            {
+                if (p == selectedObject || carriers.Contains(p) || !StandsOn(p, carriers[c], cb)) continue;
+                Bounds b = GetBounds(p);
+                Vector3 foot = new Vector3(b.center.x, b.min.y, b.center.z);
+                riders.Add(new Rider { go = p, foot = inv * (foot - t.position), pivot = inv * (p.transform.position - foot), rotation = inv * p.transform.rotation });
+                states.Add(StateOf(p));
+                carriers.Add(p);
+            }
         }
         riderSize = SelectedSize;
         pendingEdit = new Step { states = states.ToArray() };
@@ -1010,6 +1031,7 @@ public class RoomManager : MonoBehaviour
         if (!CanRemove(obj)) return;
         if (placedObjects.Contains(obj))
         {
+            DropRiders(obj);
             obj.SetActive(false);
             placedObjects.Remove(obj);
             if (selectedObject == obj) Select(null);

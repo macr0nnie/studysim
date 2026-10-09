@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Wall_Graveyard_End 1
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Wall_Graveyard_End 1
+  description: A wall_graveyard_end 1 to add some personality to your space.
+  category: 1
+  tags:
+  - wall
+  - graveyard
+  - end
+  - fences
+  price: 15
+  prefab: {fileID: 8834861161078517984, guid: e2988c31f93223f45b96296589bed8a2, type: 3}
+  icon: {fileID: 0}

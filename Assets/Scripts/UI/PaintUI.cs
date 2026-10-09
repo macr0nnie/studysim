@@ -5,11 +5,12 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static UIKit;
 
-// Paint drawer: colours and materials for the walls and floor, and colours for the selected piece
-// (select it in edit mode). Every target has a reset. Pieces that can't be recoloured say so.
+// Paint drawer, the game's one colour system: walls and floor (colours and materials), the selected piece
+// (select it in edit mode), the menus' theme colour and the background behind the room. Every target
+// has a reset. Pieces that can't be recoloured say so.
 public class PaintUI : MonoBehaviour
 {
-    private enum Target { Walls, Floor, Piece }
+    private enum Target { Walls, Floor, Piece, Menus, Background }
     private const string SaveKey = "RoomPaint";
 
     [Serializable]
@@ -17,6 +18,7 @@ public class PaintUI : MonoBehaviour
     {
         public string wallColor = "", floorColor = "";
         public int wallMaterial = -1, floorMaterial = -1;
+        public string backgroundColor = "";
     }
 
     // Soft, room-friendly paints.
@@ -37,6 +39,9 @@ public class PaintUI : MonoBehaviour
     private Image[] tabs;
     private Target target = Target.Walls;
     private GameObject shownPiece;
+    private Camera backgroundCamera;
+    private Color originalBackground;
+    private CameraClearFlags originalClear;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void AddToRoomScenes()
@@ -69,6 +74,28 @@ public class PaintUI : MonoBehaviour
         }
         ApplySurface(Target.Walls);
         ApplySurface(Target.Floor);
+        backgroundCamera = Camera.main;
+        if (backgroundCamera != null)
+        {
+            originalBackground = backgroundCamera.backgroundColor;
+            originalClear = backgroundCamera.clearFlags;
+        }
+        ApplyBackground();
+    }
+
+    private void ApplyBackground()
+    {
+        if (backgroundCamera == null) return;
+        if (paint.backgroundColor.Length > 0 && ColorUtility.TryParseHtmlString("#" + paint.backgroundColor, out Color c))
+        {
+            backgroundCamera.clearFlags = CameraClearFlags.SolidColor; // a skybox would hide the colour
+            backgroundCamera.backgroundColor = c;
+        }
+        else
+        {
+            backgroundCamera.clearFlags = originalClear;
+            backgroundCamera.backgroundColor = originalBackground;
+        }
     }
 
     private void Update()
@@ -98,7 +125,19 @@ public class PaintUI : MonoBehaviour
 
         bool canPaint;
         bool painted;
-        if (target == Target.Piece)
+        if (target == Target.Menus)
+        {
+            canPaint = true;
+            painted = MenuColorChanged;
+            info.text = "The colour of every menu and panel.";
+        }
+        else if (target == Target.Background)
+        {
+            canPaint = backgroundCamera != null;
+            painted = paint.backgroundColor.Length > 0;
+            info.text = "The colour behind the room.";
+        }
+        else if (target == Target.Piece)
         {
             canPaint = room.CanPaint(shownPiece);
             painted = room.IsPainted(shownPiece);
@@ -120,7 +159,7 @@ public class PaintUI : MonoBehaviour
         foreach (Button swatch in swatchGrid.GetComponentsInChildren<Button>(true)) swatch.interactable = canPaint;
         resetButton.interactable = painted;
 
-        bool surface = target != Target.Piece;
+        bool surface = target == Target.Walls || target == Target.Floor;
         materialsLabel.SetActive(surface && Materials(target).Length > 0);
         materialScroll.SetActive(surface && Materials(target).Length > 0);
         for (int i = materialGrid.childCount - 1; i >= 0; i--) Destroy(materialGrid.GetChild(i).gameObject);
@@ -133,7 +172,14 @@ public class PaintUI : MonoBehaviour
 
     private void Pick(Color color)
     {
-        if (target == Target.Piece)
+        if (target == Target.Menus) UIKit.ApplyMenuColor(color);
+        else if (target == Target.Background)
+        {
+            paint.backgroundColor = ColorUtility.ToHtmlStringRGB(color);
+            ApplyBackground();
+            Save();
+        }
+        else if (target == Target.Piece)
         {
             room.PaintPiece(shownPiece, color);
         }
@@ -158,7 +204,14 @@ public class PaintUI : MonoBehaviour
 
     private void ResetTarget()
     {
-        if (target == Target.Piece) room.PaintPiece(shownPiece, null);
+        if (target == Target.Menus) UIKit.ApplyMenuColor(null);
+        else if (target == Target.Background)
+        {
+            paint.backgroundColor = "";
+            ApplyBackground();
+            Save();
+        }
+        else if (target == Target.Piece) room.PaintPiece(shownPiece, null);
         else
         {
             if (target == Target.Walls) { paint.wallColor = ""; paint.wallMaterial = -1; }
@@ -199,11 +252,11 @@ public class PaintUI : MonoBehaviour
         Header(panel.transform, "Paint", Toggle);
 
         GameObject tabRow = Row("Tabs", panel.transform, 34, 6, true);
-        tabs = new Image[3];
+        tabs = new Image[Enum.GetValues(typeof(Target)).Length];
         foreach (Target t in Enum.GetValues(typeof(Target)))
         {
             Target captured = t;
-            Button tab = TextButton(t.ToString(), tabRow.transform, t == Target.Piece ? "Selected piece" : t.ToString(), TabColor, LabelSize);
+            Button tab = TextButton(t.ToString(), tabRow.transform, t.ToString(), TabColor, CaptionSize);
             tab.onClick.AddListener(() => ShowTarget(captured));
             tabs[(int)t] = tab.GetComponent<Image>();
         }

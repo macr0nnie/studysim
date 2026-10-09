@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 public static class SaveSystem
 {
     public const int SlotCount = 4; // autosave + 3 manual slots
-    private static readonly string[] StringKeys = { "RoomLayout", "RoomPaint", "TodoTasks", "StudyHabits", "iPodPlayerData" };
+    private static readonly string[] StringKeys = { "RoomLayout", "RoomPaint", "MenuColor", "TodoTasks", "StudyHabits", "iPodPlayerData" };
     private static readonly string[] IntKeys = { "PlayerLevel", "PlayerExperience", "PlayerCoins" };
     private static readonly string[] FloatKeys = { "StudySessionSeconds", "BreakSessionSeconds" };
 
@@ -85,5 +85,9 @@ public static class SaveSystem
             foreach (string key in keys) PlayerPrefs.DeleteKey(key);
     }
 
-    private static void ReloadRoom() => SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    private static void ReloadRoom()
+    {
+        UIKit.LoadSavedTheme();
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
 }

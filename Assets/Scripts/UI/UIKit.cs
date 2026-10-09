@@ -9,16 +9,69 @@ using UnityEngine.UI;
 // uses the same palette, fonts, rounded corners and motion.
 public static class UIKit
 {
-    public static readonly Color PanelColor = new Color(0.16f, 0.12f, 0.22f, 0.96f);
-    public static readonly Color CardColor = new Color(0.26f, 0.20f, 0.34f, 1f);
-    public static readonly Color SelectedColor = new Color(0.45f, 0.34f, 0.60f, 1f);
-    public static readonly Color TabColor = new Color(0.40f, 0.30f, 0.52f, 1f);
+    // Menu colours are a theme: every shade below comes from one menu colour the player can pick
+    // (Paint > Menus), saved under MenuColor. Text, gold accent, XP green and danger red stay fixed.
+    public static Color PanelColor, CardColor, SelectedColor, TabColor, MutedText, AccentButtonColor;
     public static readonly Color TextColor = new Color(0.96f, 0.93f, 0.88f, 1f);
-    public static readonly Color MutedText = new Color(0.78f, 0.72f, 0.84f, 1f);
     public static readonly Color AccentColor = new Color(1f, 0.82f, 0.40f, 1f);
-    public static readonly Color AccentButtonColor = new Color(0.62f, 0.42f, 0.78f, 1f);
     public static readonly Color XpColor = new Color(0.55f, 0.85f, 0.65f, 1f);
     public static readonly Color DangerColor = new Color(0.85f, 0.42f, 0.48f, 1f);
+
+    public static readonly Color DefaultMenuColor = new Color(0.45f, 0.34f, 0.60f, 1f); // the original purple
+    private const string MenuColorKey = "MenuColor";
+    public static bool MenuColorChanged => PlayerPrefs.HasKey(MenuColorKey);
+
+    static UIKit() => LoadSavedTheme();
+
+    // Also called before a save slot reloads the room, since that slot may carry another menu colour.
+    public static void LoadSavedTheme()
+    {
+        Color menu = DefaultMenuColor;
+        if (PlayerPrefs.HasKey(MenuColorKey) && !ColorUtility.TryParseHtmlString("#" + PlayerPrefs.GetString(MenuColorKey), out menu))
+            menu = DefaultMenuColor;
+        SetPalette(menu);
+    }
+
+    // Shades keep the purple theme's saturation and brightness steps, on the picked colour's hue.
+    private static void SetPalette(Color menu)
+    {
+        Color.RGBToHSV(menu, out float h, out float s, out _);
+        float k = s / 0.43f; // the default purple's saturation
+        Color Shade(float sat, float value, float alpha = 1f)
+        {
+            Color c = Color.HSVToRGB(h, Mathf.Clamp01(sat * k), value);
+            c.a = alpha;
+            return c;
+        }
+        PanelColor = Shade(0.45f, 0.22f, 0.96f);
+        CardColor = Shade(0.41f, 0.34f);
+        SelectedColor = Shade(0.43f, 0.60f);
+        TabColor = Shade(0.42f, 0.52f);
+        AccentButtonColor = Shade(0.46f, 0.78f);
+        MutedText = Shade(0.14f, 0.84f);
+    }
+
+    private static Color[] Palette() => new[] { PanelColor, CardColor, SelectedColor, TabColor, AccentButtonColor, MutedText };
+
+    // New menu colour (null = default purple): recolours everything already built, which was coloured
+    // from the old palette; panels built later read the new one.
+    public static void ApplyMenuColor(Color? menu)
+    {
+        Color[] before = Palette();
+        SetPalette(menu ?? DefaultMenuColor);
+        if (menu.HasValue) PlayerPrefs.SetString(MenuColorKey, ColorUtility.ToHtmlStringRGB(menu.Value));
+        else PlayerPrefs.DeleteKey(MenuColorKey);
+        PlayerPrefs.Save();
+        Color[] after = Palette();
+        foreach (Graphic g in UnityEngine.Object.FindObjectsByType<Graphic>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            for (int i = 0; i < before.Length; i++)
+            {
+                Color c = g.color;
+                if (Mathf.Abs(c.r - before[i].r) + Mathf.Abs(c.g - before[i].g) + Mathf.Abs(c.b - before[i].b) > 0.01f) continue;
+                g.color = new Color(after[i].r, after[i].g, after[i].b, c.a);
+                break;
+            }
+    }
 
     // Left-side drawer slot shared by the store and planner: below the HUD card, above the room buttons.
     public const float DrawerWidth = 440, DrawerBottom = 410, DrawerTop = 130;

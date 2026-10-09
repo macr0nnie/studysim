@@ -19,6 +19,12 @@ public class StudyHabit
     public bool isCompletedToday;
     public string lastRewardDay = ""; // XP once a day, even if today is unticked and ticked again
 
+    public string color = ""; // hex RGB; empty in older saves, filled in on load
+
+    // Pleasant on white and on the dark theme; each habit takes the next one nobody uses.
+    public static readonly string[] Palette = { "E86A6A", "F2A33A", "D9B52B", "5BBF7A", "39B5A8", "4A90D9", "8E7CD6", "D870B0", "8A9A5B", "C98A5E" };
+    public Color Tint => ColorUtility.TryParseHtmlString("#" + color, out Color c) ? c : Color.gray;
+
     public bool DoneOn(DateTime day) => completionDays.Contains(day.ToString(Day, CultureInfo.InvariantCulture));
 }
 
@@ -32,6 +38,7 @@ public class HabitTracker : MonoBehaviour
     private void Start()
     {
         LoadHabits();
+        if (habits.FindAll(x => string.IsNullOrEmpty(x.color)).Count > 0) { foreach (var x in habits) if (string.IsNullOrEmpty(x.color)) x.color = FreeColor(); SaveHabits(); }
         ResetDailyCompletion();
         UpdateAllStreaks();
     }
@@ -43,9 +50,25 @@ public class HabitTracker : MonoBehaviour
             habitName = name,
             description = description,
             targetMinutes = targetMinutes,
+            color = FreeColor(),
             isCompletedToday = false
         };
         habits.Add(habit);
+        SaveHabits();
+    }
+
+    // First palette colour no habit has yet, or the next in turn once they are all taken.
+    private string FreeColor()
+    {
+        foreach (string hex in StudyHabit.Palette)
+            if (!habits.Exists(x => x.color == hex)) return hex;
+        return StudyHabit.Palette[habits.Count % StudyHabit.Palette.Length];
+    }
+
+    // The colour dot on a habit card: next colour in the palette.
+    public void CycleColor(StudyHabit habit)
+    {
+        habit.color = StudyHabit.Palette[(Array.IndexOf(StudyHabit.Palette, habit.color) + 1) % StudyHabit.Palette.Length];
         SaveHabits();
     }
 

@@ -12,6 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2c7b29bb6d2d4526ad3226ad33c4e3a6, type: 3}
   m_Name: MoodIcons
   m_EditorClassIdentifier: 
-  happy: {fileID: 1379689994, guid: d8e2b05986f532b45b22ab247a11bf73, type: 3}
-  sad: {fileID: 932215467, guid: d8e2b05986f532b45b22ab247a11bf73, type: 3}
-  stressed: {fileID: -1007494679, guid: d8e2b05986f532b45b22ab247a11bf73, type: 3}
+  happy:
+  - {fileID: 1379689994, guid: d8e2b05986f532b45b22ab247a11bf73, type: 3}
+  sad:
+  - {fileID: 932215467, guid: d8e2b05986f532b45b22ab247a11bf73, type: 3}
+  - {fileID: -425224386, guid: d8e2b05986f532b45b22ab247a11bf73, type: 3}
+  - {fileID: -2039345439, guid: d8e2b05986f532b45b22ab247a11bf73, type: 3}
+  - {fileID: 499746766, guid: d8e2b05986f532b45b22ab247a11bf73, type: 3}
+  - {fileID: 1896467512, guid: d8e2b05986f532b45b22ab247a11bf73, type: 3}
+  stressed:
+  - {fileID: -1007494679, guid: d8e2b05986f532b45b22ab247a11bf73, type: 3}
+  - {fileID: -1653959090, guid: d8e2b05986f532b45b22ab247a11bf73, type: 3}

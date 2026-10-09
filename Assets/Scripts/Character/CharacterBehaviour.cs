@@ -166,8 +166,27 @@ public class CharacterBehaviour : MonoBehaviour
     {
         while (true)
         {
-            icon.sprite = icons == null ? null : icons.For(Mood);
+            Show(icons == null ? null : icons.For(Mood));
             yield return new WaitForSeconds(0.5f);
+        }
+    }
+
+    private Mood shown = (Mood)(-1);
+
+    // Anchor sprite on the icon itself, the other pieces (bolt, drops) as children at their sheet offsets.
+    private void Show(Sprite[] sprites)
+    {
+        if (shown == Mood) return;
+        shown = Mood;
+        foreach (Transform c in icon.transform) Destroy(c.gameObject);
+        icon.sprite = sprites != null && sprites.Length > 0 ? sprites[0] : null;
+        for (int i = 1; sprites != null && i < sprites.Length; i++)
+        {
+            var piece = new GameObject("Piece").AddComponent<SpriteRenderer>();
+            piece.sprite = sprites[i];
+            piece.sortingOrder = icon.sortingOrder;
+            piece.transform.SetParent(icon.transform, false);
+            piece.transform.localPosition = (sprites[i].rect.center - sprites[0].rect.center) / sprites[0].pixelsPerUnit;
         }
     }
 

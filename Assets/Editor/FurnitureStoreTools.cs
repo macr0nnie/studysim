@@ -14,7 +14,7 @@ public static class FurnitureStoreTools
 {
     const string PrefabFolder = "Assets/ART/Models/Furniture";
     const string ItemFolder = "Assets/Data/Furniture";
-    const string CatalogPath = "Assets/Data/FurnitureCatalog.asset";
+    const string CatalogPath = "Assets/Resources/FurnitureCatalog.asset"; // Resources so the store can find it in any scene
     const int DefaultPrice = 10;
 
     const string WitchyModelPath = "Assets/ART/Models/WITCHYfURNITURE.fbx";

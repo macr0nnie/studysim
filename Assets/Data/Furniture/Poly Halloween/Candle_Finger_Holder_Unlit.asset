@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Candle_Finger_Holder_Unlit
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Candle_Finger_Holder_Unlit
+  description: A candle_finger_holder_unlit to keep your study corner warm and bright.
+  category: 2
+  tags:
+  - candle
+  - finger
+  - holder
+  - unlit
+  - halloween
+  price: 25
+  prefab: {fileID: 1819007322492704564, guid: a8a6944873c3a3a40ae7156193549f12, type: 3}
+  icon: {fileID: 0}

@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Candle_Spine_Lit
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Candle_Spine_Lit
+  description: A candle_spine_lit to keep your study corner warm and bright.
+  category: 2
+  tags:
+  - candle
+  - spine
+  - lit
+  - halloween
+  price: 25
+  prefab: {fileID: 9013014873337006512, guid: e9d1fe4365b88924fb5b97ea37edfb6b, type: 3}
+  icon: {fileID: 0}

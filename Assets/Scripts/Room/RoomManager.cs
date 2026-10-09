@@ -50,6 +50,10 @@ public class RoomManager : MonoBehaviour
     private FurnitureItem previewItem;
     private PlayerCurrency currency;
     private const string SaveKey = "RoomLayout";
+    private bool dragging, grabbed;
+    private Vector3 grabOffset;
+    private MaterialPropertyBlock highlight;
+    static readonly Color SelectedTint = new Color(1f, 0.9f, 0.6f, 1f);
 
     private void Start()
     {
@@ -61,19 +65,9 @@ public class RoomManager : MonoBehaviour
             return;
         }
 
-        if (validPlacementMaterial == null || invalidPlacementMaterial == null)
-        {
-            Debug.LogError("Placement materials not assigned!");
-            enabled = false;
-            return;
-        }
-
-        if (placementParticlePrefab == null)
-        {
-            Debug.LogError("Placement particle prefab not assigned!");
-            enabled = false;
-            return;
-        }
+        // The preview is tinted with a property block now and the particle effect is optional,
+        // so neither missing asset should switch off building and edit mode.
+        if (placementParticlePrefab == null) Debug.LogWarning("RoomManager: no placement particle effect assigned.");
 
         currency = FindFirstObjectByType<PlayerCurrency>();
         // Furniture already in the room at startup can be moved and deleted like bought furniture.
@@ -89,17 +83,22 @@ public class RoomManager : MonoBehaviour
 
     private void Update()
     {
+        // Letters typed into a text field (planner, etc.) must not also fire room shortcuts.
+        bool typing = UIKit.Typing();
 
         if (currentPreview != null)
         {
             UpdatePreviewPosition();
             HandlePlacement();
-            HandleRotationAndFlipping();
+            if (!typing) HandleRotationAndFlipping();
         }
         else if (isEditMode)
         {
             HandleEditMode();
+            if (typing) return;
             HandleRotationAndFlipping();
+            if (selectedObject != null && (Input.GetKeyDown(KeyCode.Delete) || Input.GetKeyDown(KeyCode.Backspace)))
+                DeleteObject(selectedObject);
             if (Input.GetKeyDown(KeyCode.Escape)) EnterEditMode();
         }
 
@@ -107,6 +106,8 @@ public class RoomManager : MonoBehaviour
         {
             HandleObjectSelection();
         }
+
+        if (typing) return;
 
         // Save once a drag or rotation in edit mode is finished, not every frame.
         if (isEditMode && selectedObject != null && (Input.GetMouseButtonUp(0) || Input.GetKeyUp(KeyCode.R))) SaveRoom();
@@ -376,42 +377,68 @@ public class RoomManager : MonoBehaviour
         if (target != null) target.localScale = scale;
     }
 
-    // Handle edit mode input: selection and dragging.
+    // Edit mode: click a piece to select it (it glows), drag it to move it along its surface,
+    // R rotates, Delete removes, Esc leaves. Clicking empty space deselects.
     private void HandleEditMode()
     {
-        if (IsPointerOverUI()) return;
-
-        // Selection: On mouse button down, try to select an object.
+        if (Input.GetMouseButtonUp(0)) dragging = false;
         if (Input.GetMouseButtonDown(0))
         {
+            if (IsPointerOverUI()) return;
+            GameObject hitRoot = null;
             Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, 100f))
-            {
-                GameObject hitObject = hit.collider.gameObject;
-                GameObject rootObject = FurnitureRoot(hitObject);
-                if (placedObjects.Contains(rootObject))
-                {
-                    selectedObject = rootObject;
-                    Debug.Log("Selected object for editing: " + selectedObject.name);
-                }
-            }
+            if (Physics.Raycast(ray, out RaycastHit hit, 100f)) hitRoot = FurnitureRoot(hit.collider.gameObject);
+            Select(hitRoot != null && placedObjects.Contains(hitRoot) ? hitRoot : null);
+            // Only a press that starts on the piece drags it, so clicking elsewhere can't teleport it.
+            dragging = selectedObject != null;
+            grabbed = false;
         }
-        // Dragging: While holding down the mouse, move the selected object.
-        if (selectedObject != null && Input.GetMouseButton(0))
+        if (dragging && selectedObject != null && Input.GetMouseButton(0)) DragSelected();
+    }
+
+    private void DragSelected()
+    {
+        Furniture furniture = selectedObject.GetComponent<Furniture>();
+        Furniture.FurnitureType type = furniture != null ? furniture.Type : Furniture.FurnitureType.Floor;
+        int mask = type == Furniture.FurnitureType.Wall ? wallLayer
+            : type == Furniture.FurnitureType.Shelf ? shelfLayer | placementLayer
+            : placementLayer;
+        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
+        if (!Physics.Raycast(ray, out RaycastHit hit, 100f, mask)) return;
+
+        Vector3 position = hit.point;
+        Bounds bounds = GetBounds(selectedObject);
+        if (type == Furniture.FurnitureType.Wall)
+            position += hit.normal * bounds.extents.z;
+        else
+            position.y += selectedObject.transform.position.y - bounds.min.y; // rest its bottom on the surface
+        // Keep the point you grabbed under the cursor instead of jumping the piece's centre to it.
+        if (!grabbed)
         {
-            Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-            RaycastHit hit;
-            if (Physics.Raycast(ray, out hit, 100f, placementLayer))
-            {
-                Vector3 newPosition = hit.point;
-                if (useGridPlacement)
-                {
-                    newPosition = SnapToGrid(newPosition);
-                }
-                selectedObject.transform.position = newPosition;
-            }
+            grabOffset = selectedObject.transform.position - position;
+            grabOffset.y = 0;
+            grabbed = true;
         }
+        position += grabOffset;
+        if (useGridPlacement) position = SnapToGrid(position);
+        selectedObject.transform.position = position;
+    }
+
+    // Warm glow on the selected piece so it's obvious what edit mode will move.
+    private void Select(GameObject obj)
+    {
+        if (selectedObject == obj) return;
+        if (selectedObject != null)
+            foreach (Renderer r in selectedObject.GetComponentsInChildren<Renderer>()) r.SetPropertyBlock(null);
+        selectedObject = obj;
+        if (obj == null) return;
+        if (highlight == null)
+        {
+            highlight = new MaterialPropertyBlock();
+            highlight.SetColor("_BaseColor", SelectedTint);
+            highlight.SetColor("_Color", SelectedTint);
+        }
+        foreach (Renderer r in obj.GetComponentsInChildren<Renderer>()) r.SetPropertyBlock(highlight);
     }
 
     // Handle normal object selection (supports double-click to trigger edit mode).
@@ -432,7 +459,7 @@ public class RoomManager : MonoBehaviour
                     if (Time.time - lastClickTime <= doubleClickThreshold)
                     {
                         isEditMode = true;
-                        selectedObject = rootObject;
+                        Select(rootObject);
                         Debug.Log("Entering Edit Mode on object: " + rootObject.name);
                     }
                     lastClickTime = Time.time;
@@ -459,7 +486,7 @@ public class RoomManager : MonoBehaviour
     private void EnterEditMode()
     {
         isEditMode = !isEditMode; // Toggle edit mode state
-        if (!isEditMode) selectedObject = null;
+        if (!isEditMode) Select(null);
         Debug.Log("Edit Mode: " + (isEditMode ? "Enabled" : "Disabled"));
 
 
@@ -471,7 +498,7 @@ public class RoomManager : MonoBehaviour
         {
             obj.SetActive(false);
             placedObjects.Remove(obj);
-            if (selectedObject == obj) selectedObject = null;
+            if (selectedObject == obj) Select(null);
             Refund(obj);
             RecordAction(obj);
             SaveRoom();
@@ -503,7 +530,7 @@ public class RoomManager : MonoBehaviour
         obj.SetActive(show);
         if (show) placedObjects.Add(obj);
         else placedObjects.Remove(obj);
-        if (selectedObject == obj && !show) selectedObject = null;
+        if (selectedObject == obj && !show) Select(null);
         SaveRoom();
         return true;
     }

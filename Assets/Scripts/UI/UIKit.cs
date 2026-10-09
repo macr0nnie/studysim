@@ -1,0 +1,281 @@
+using System;
+using System.Collections;
+using TMPro;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+// Shared look and building blocks for the game's code-built UI (store, HUD, planner), so every panel
+// uses the same palette, fonts, rounded corners and motion.
+public static class UIKit
+{
+    public static readonly Color PanelColor = new Color(0.16f, 0.12f, 0.22f, 0.96f);
+    public static readonly Color CardColor = new Color(0.26f, 0.20f, 0.34f, 1f);
+    public static readonly Color SelectedColor = new Color(0.45f, 0.34f, 0.60f, 1f);
+    public static readonly Color TabColor = new Color(0.40f, 0.30f, 0.52f, 1f);
+    public static readonly Color TextColor = new Color(0.96f, 0.93f, 0.88f, 1f);
+    public static readonly Color MutedText = new Color(0.78f, 0.72f, 0.84f, 1f);
+    public static readonly Color AccentColor = new Color(1f, 0.82f, 0.40f, 1f);
+    public static readonly Color AccentButtonColor = new Color(0.62f, 0.42f, 0.78f, 1f);
+    public static readonly Color XpColor = new Color(0.55f, 0.85f, 0.65f, 1f);
+    public static readonly Color DangerColor = new Color(0.85f, 0.42f, 0.48f, 1f);
+
+    // Left-side drawer slot shared by the store and planner: below the HUD card, above the room buttons.
+    public const float DrawerWidth = 440, DrawerBottom = 410, DrawerTop = 130;
+    public static readonly Vector2 DrawerOffset = new Vector2(24, (DrawerBottom - DrawerTop) / 2);
+
+    private static Sprite rounded, circle;
+    private static TMP_FontAsset bodyFont, displayFont;
+    private static GameObject openDrawer;
+
+    // 9-sliced rounded rectangle drawn once, so panels get soft corners without an art asset.
+    public static Sprite Rounded => rounded != null ? rounded : rounded = MakeRounded(64, 16);
+    public static Sprite Circle => circle != null ? circle : circle = MakeRounded(64, 32);
+
+    public static TMP_FontAsset BodyFont => bodyFont != null ? bodyFont : bodyFont = Resources.Load<TMP_FontAsset>("Fonts/Zain-Regular SDF");
+    public static TMP_FontAsset DisplayFont => displayFont != null ? displayFont : displayFont = Resources.Load<TMP_FontAsset>("Fonts/Jersey15-Regular SDF");
+
+    private static Sprite MakeRounded(int size, int radius)
+    {
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        var pixels = new Color32[size * size];
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                // distance outside the inner rectangle, anti-aliased over one pixel
+                float dx = Mathf.Max(radius - x - 0.5f, x + 0.5f - (size - radius), 0);
+                float dy = Mathf.Max(radius - y - 0.5f, y + 0.5f - (size - radius), 0);
+                float a = Mathf.Clamp01(radius - Mathf.Sqrt(dx * dx + dy * dy) + 0.5f);
+                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255));
+            }
+        tex.SetPixels32(pixels);
+        tex.Apply(false, true);
+        float border = Mathf.Min(radius, size / 2 - 1);
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100, 0,
+            SpriteMeshType.FullRect, new Vector4(border, border, border, border));
+    }
+
+    // Overlay canvas scaled like the game's other canvases (1920x1080, match width) so positions line up.
+    public static Canvas MakeCanvas(string name, Transform parent, int sortingOrder)
+    {
+        var go = new GameObject(name, typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+        go.transform.SetParent(parent, false);
+        var canvas = go.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = sortingOrder;
+        var scaler = go.GetComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.matchWidthOrHeight = 0;
+        return canvas;
+    }
+
+    // A left drawer panel with the standard look; starts hidden.
+    public static GameObject MakeDrawer(string name, Transform canvas)
+    {
+        GameObject panel = Make(name, canvas, typeof(Image), typeof(VerticalLayoutGroup), typeof(CanvasGroup), typeof(Shadow));
+        var rect = (RectTransform)panel.transform;
+        rect.anchorMin = new Vector2(0, 0);
+        rect.anchorMax = new Vector2(0, 1);
+        rect.pivot = new Vector2(0, 0.5f);
+        rect.sizeDelta = new Vector2(DrawerWidth, -(DrawerBottom + DrawerTop));
+        rect.anchoredPosition = DrawerOffset;
+        Style(panel.GetComponent<Image>(), PanelColor);
+        var shadow = panel.GetComponent<Shadow>();
+        shadow.effectColor = new Color(0, 0, 0, 0.35f);
+        shadow.effectDistance = new Vector2(0, -6);
+        var layout = panel.GetComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(18, 18, 16, 16);
+        layout.spacing = 10;
+        layout.childControlWidth = layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        panel.SetActive(false);
+        return panel;
+    }
+
+    // Opens or closes a drawer; only one drawer is open at a time. Returns true if it is now open.
+    public static bool ToggleDrawer(MonoBehaviour host, GameObject panel)
+    {
+        bool open = !panel.activeSelf;
+        if (open && openDrawer != null && openDrawer != panel) openDrawer.SetActive(false);
+        panel.SetActive(open);
+        openDrawer = open ? panel : null;
+        if (open) host.StartCoroutine(SlideIn((RectTransform)panel.transform, panel.GetComponent<CanvasGroup>()));
+        return open;
+    }
+
+    // Short slide + fade from the left; unscaled so it still plays if the game is paused.
+    private static IEnumerator SlideIn(RectTransform rect, CanvasGroup group)
+    {
+        for (float t = 0; t < 1; t += Time.unscaledDeltaTime / 0.18f)
+        {
+            float e = 1 - (1 - t) * (1 - t) * (1 - t); // ease-out cubic
+            rect.anchoredPosition = Vector2.LerpUnclamped(DrawerOffset + new Vector2(-60, 0), DrawerOffset, e);
+            group.alpha = e;
+            yield return null;
+        }
+        rect.anchoredPosition = DrawerOffset;
+        group.alpha = 1;
+    }
+
+    // True while the player is typing in a text field, so single-key shortcuts stay quiet.
+    public static bool Typing()
+    {
+        GameObject selected = EventSystem.current != null ? EventSystem.current.currentSelectedGameObject : null;
+        return selected != null && selected.TryGetComponent(out TMP_InputField field) && field.isFocused;
+    }
+
+    public static GameObject Make(string name, Transform parent, params Type[] components)
+    {
+        var go = new GameObject(name, typeof(RectTransform));
+        go.transform.SetParent(parent, false);
+        foreach (Type c in components) go.AddComponent(c);
+        return go;
+    }
+
+    public static GameObject Row(string name, Transform parent, float height, float spacing, bool expand)
+    {
+        GameObject row = Make(name, parent, typeof(HorizontalLayoutGroup), typeof(LayoutElement));
+        var element = row.GetComponent<LayoutElement>();
+        element.preferredHeight = height;
+        element.flexibleHeight = 0; // otherwise the layout group reports flexible height and steals space from lists
+        var h = row.GetComponent<HorizontalLayoutGroup>();
+        h.spacing = spacing;
+        h.childControlWidth = h.childControlHeight = true;
+        h.childForceExpandWidth = expand;
+        return row;
+    }
+
+    public static void Style(Image image, Color color)
+    {
+        image.color = color;
+        image.sprite = Rounded;
+        image.type = Image.Type.Sliced;
+    }
+
+    public static TMP_Text MakeText(string name, Transform parent, string text, float size, Color color, TextAlignmentOptions align, bool display = false)
+    {
+        var tmp = Make(name, parent, typeof(TextMeshProUGUI)).GetComponent<TextMeshProUGUI>();
+        TMP_FontAsset font = display ? DisplayFont : BodyFont;
+        if (font != null) tmp.font = font;
+        tmp.text = text;
+        tmp.fontSize = size;
+        tmp.color = color;
+        tmp.alignment = align;
+        tmp.overflowMode = TextOverflowModes.Ellipsis;
+        tmp.raycastTarget = false;
+        return tmp;
+    }
+
+    public static Button TextButton(string name, Transform parent, string label, Color color, float fontSize)
+    {
+        GameObject go = Make(name, parent, typeof(Image), typeof(Button));
+        Style(go.GetComponent<Image>(), color);
+        Stretch((RectTransform)MakeText("Label", go.transform, label, fontSize, TextColor, TextAlignmentOptions.Center).transform);
+        return go.GetComponent<Button>();
+    }
+
+    public static Button SmallButton(Transform parent, string label, Color color, float width)
+    {
+        Button b = TextButton(label, parent, label, color, 16);
+        var element = b.gameObject.AddComponent<LayoutElement>();
+        element.preferredWidth = width;
+        element.flexibleWidth = 0;
+        return b;
+    }
+
+    // Header row with a title and a close button.
+    public static TMP_Text Header(Transform panel, string title, Action onClose)
+    {
+        GameObject header = Row("Header", panel, 40, 10, false);
+        TMP_Text text = MakeText("Title", header.transform, title, 28, TextColor, TextAlignmentOptions.Left);
+        text.fontStyle = FontStyles.Bold;
+        text.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+        Button close = TextButton("Close", header.transform, "X", TabColor, 22);
+        close.gameObject.AddComponent<LayoutElement>().preferredWidth = 40;
+        close.onClick.AddListener(() => onClose());
+        return text;
+    }
+
+    // Vertical scroll list with a thin auto-hiding scrollbar; returns the content to add rows to.
+    public static Transform ScrollList(Transform parent, out ScrollRect scrollRect)
+    {
+        GameObject scroll = Make("Scroll", parent, typeof(ScrollRect), typeof(LayoutElement));
+        scroll.GetComponent<LayoutElement>().flexibleHeight = 1;
+        GameObject viewport = Make("Viewport", scroll.transform, typeof(RectMask2D));
+        Stretch((RectTransform)viewport.transform);
+        ((RectTransform)viewport.transform).offsetMax = new Vector2(-16, 0); // room for the scrollbar
+        GameObject content = Make("Content", viewport.transform, typeof(ContentSizeFitter));
+        var contentRect = (RectTransform)content.transform;
+        contentRect.anchorMin = new Vector2(0, 1);
+        contentRect.anchorMax = new Vector2(1, 1);
+        contentRect.pivot = new Vector2(0.5f, 1);
+        contentRect.sizeDelta = Vector2.zero;
+        content.GetComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        scrollRect = scroll.GetComponent<ScrollRect>();
+        scrollRect.viewport = (RectTransform)viewport.transform;
+        scrollRect.content = contentRect;
+        scrollRect.horizontal = false;
+        scrollRect.movementType = ScrollRect.MovementType.Clamped;
+        scrollRect.scrollSensitivity = 30;
+
+        GameObject bar = Make("Scrollbar", scroll.transform, typeof(Image), typeof(Scrollbar));
+        Anchor(bar, new Vector2(1, 0), new Vector2(1, 1));
+        ((RectTransform)bar.transform).offsetMin = new Vector2(-10, 0);
+        Style(bar.GetComponent<Image>(), CardColor);
+        GameObject slidingArea = Make("Sliding Area", bar.transform);
+        Stretch((RectTransform)slidingArea.transform);
+        GameObject handle = Make("Handle", slidingArea.transform, typeof(Image));
+        Stretch((RectTransform)handle.transform);
+        Style(handle.GetComponent<Image>(), TabColor);
+        var scrollbar = bar.GetComponent<Scrollbar>();
+        scrollbar.direction = Scrollbar.Direction.BottomToTop;
+        scrollbar.handleRect = (RectTransform)handle.transform;
+        scrollbar.targetGraphic = handle.GetComponent<Image>();
+        scrollRect.verticalScrollbar = scrollbar;
+        scrollRect.verticalScrollbarVisibility = ScrollRect.ScrollbarVisibility.AutoHide;
+        return content.transform;
+    }
+
+    // Single-line text field with a placeholder.
+    public static TMP_InputField MakeInput(Transform parent, string placeholder)
+    {
+        GameObject go = Make("Input", parent, typeof(Image), typeof(TMP_InputField), typeof(LayoutElement));
+        Style(go.GetComponent<Image>(), CardColor);
+        go.GetComponent<LayoutElement>().flexibleWidth = 1;
+        GameObject area = Make("Text Area", go.transform, typeof(RectMask2D));
+        Stretch((RectTransform)area.transform);
+        ((RectTransform)area.transform).offsetMin = new Vector2(12, 4);
+        ((RectTransform)area.transform).offsetMax = new Vector2(-12, -4);
+        TMP_Text hint = MakeText("Placeholder", area.transform, placeholder, 18, MutedText, TextAlignmentOptions.Left);
+        hint.fontStyle = FontStyles.Italic;
+        TMP_Text text = MakeText("Text", area.transform, "", 18, TextColor, TextAlignmentOptions.Left);
+        Stretch((RectTransform)hint.transform);
+        Stretch((RectTransform)text.transform);
+        var field = go.GetComponent<TMP_InputField>();
+        field.textViewport = (RectTransform)area.transform;
+        field.textComponent = text;
+        field.placeholder = hint;
+        if (BodyFont != null) field.fontAsset = BodyFont;
+        field.pointSize = 18;
+        field.characterLimit = 60;
+        return field;
+    }
+
+    public static void Anchor(GameObject go, Vector2 min, Vector2 max)
+    {
+        var rect = (RectTransform)go.transform;
+        rect.anchorMin = min;
+        rect.anchorMax = max;
+        rect.offsetMin = rect.offsetMax = Vector2.zero;
+    }
+
+    public static void Stretch(RectTransform rect)
+    {
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.offsetMin = rect.offsetMax = Vector2.zero;
+    }
+}

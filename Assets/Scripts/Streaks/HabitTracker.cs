@@ -1,6 +1,7 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 
 [Serializable]
 public class StudyHabit
@@ -8,7 +9,11 @@ public class StudyHabit
     public string habitName;
     public string description;
     public int targetMinutes; // Target study time in minutes
-    public List<DateTime> completionDates = new List<DateTime>();
+    // Stored as "yyyy-MM-dd" text: JsonUtility can't save DateTime, so streaks used to reset every launch.
+    public const string Day = "yyyy-MM-dd";
+    public static string Today => DateTime.Now.ToString(Day, CultureInfo.InvariantCulture);
+    public List<string> completionDays = new List<string>();
+    public List<DateTime> completionDates => completionDays.ConvertAll(d => DateTime.ParseExact(d, Day, CultureInfo.InvariantCulture));
     public int currentStreak;
     public int bestStreak;
     public bool isCompletedToday;
@@ -47,7 +52,7 @@ public class HabitTracker : MonoBehaviour
         if (habit != null && !habit.isCompletedToday)
         {
             habit.isCompletedToday = true;
-            habit.completionDates.Add(DateTime.Now);
+            habit.completionDays.Add(StudyHabit.Today);
             UpdateStreak(habit);
             SaveHabits();
         }
@@ -69,17 +74,18 @@ public class HabitTracker : MonoBehaviour
 
     private void UpdateStreak(StudyHabit habit)
     {
-        if (habit.completionDates.Count == 0)
+        if (habit.completionDays.Count == 0)
         {
             habit.currentStreak = 0;
             return;
         }
-        habit.completionDates.Sort();
+        habit.completionDays.Sort(); // ISO dates sort by text
+        List<DateTime> dates = habit.completionDates;
         int streak = 1;
-        for (int i = habit.completionDates.Count - 1; i > 0; i--)
+        for (int i = dates.Count - 1; i > 0; i--)
         {
-            var today = habit.completionDates[i].Date;
-            var prev = habit.completionDates[i - 1].Date;
+            var today = dates[i].Date;
+            var prev = dates[i - 1].Date;
             if ((today - prev).Days == 1)
                 streak++;
             else if ((today - prev).Days > 1)
@@ -94,7 +100,7 @@ public class HabitTracker : MonoBehaviour
     {
         foreach (var habit in habits)
         {
-            if (habit.completionDates.Count == 0 || habit.completionDates[habit.completionDates.Count - 1].Date != DateTime.Now.Date)
+            if (habit.completionDays.Count == 0 || habit.completionDays[habit.completionDays.Count - 1] != StudyHabit.Today)
             {
                 habit.isCompletedToday = false;
             }

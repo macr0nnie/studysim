@@ -79,9 +79,13 @@ public class TimerManager : MonoBehaviour
         ResetTimer();
         OnTimerComplete?.Invoke();
     }
+    const int StudySessionExperience = 50; // two sessions is about a level early on
+
     public void GrantRewards()
     {
         if (playerCurrency != null) playerCurrency.AddCoins(baseMoneyReward);
+        Experience experience = FindFirstObjectByType<Experience>();
+        if (experience != null) experience.GainExperience(StudySessionExperience);
     }
     public void SetCustomDuration(float minutes)
     {

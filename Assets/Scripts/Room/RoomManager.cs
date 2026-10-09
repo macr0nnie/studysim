@@ -683,6 +683,7 @@ public class RoomManager : MonoBehaviour
     }
 
     public bool IsEditMode => isEditMode;
+    public bool IsDragging => dragging && selectedObject != null && Controls.ClickHeld; // a piece is being dragged right now
     public void ToggleEditMode() => EnterEditMode(); // for the HUD's Edit button
 
     // ---------- paint (used by the Paint drawer) ----------

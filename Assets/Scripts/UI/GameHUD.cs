@@ -50,6 +50,11 @@ public class GameHUD : MonoBehaviour
         room = FindFirstObjectByType<RoomManager>();
         timer = FindFirstObjectByType<TimerManager>();
         BuildUI();
+        if (PlayerPrefs.GetInt("SeenWelcome", 0) == 0)
+        {
+            PlayerPrefs.SetInt("SeenWelcome", 1);
+            ShowToast($"Welcome! {Controls.KeyName(Controls.Act.Store)} opens the shop, {Controls.KeyName(Controls.Act.Edit)} lets you move furniture, {Controls.KeyName(Controls.Act.Planner)} is your planner.");
+        }
         chime = MakeChime();
     }
 
@@ -101,14 +106,21 @@ public class GameHUD : MonoBehaviour
         if (editPill != null && room != null)
         {
             editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
-            if (room.IsEditMode && !wasEditing) ShowToast($"Edit mode: drag a piece to move it.  {Controls.KeyName(Controls.Act.Rotate)} rotates, {Controls.KeyName(Controls.Act.Delete)} removes, {Controls.KeyName(Controls.Act.Edit)} finishes");
+            if (room.IsEditMode != wasEditing) hintBar.SetActive(room.IsEditMode);
             wasEditing = room.IsEditMode;
         }
         if (fitPanel != null && room != null)
         {
             bool show = room.IsEditMode && room.SelectedPiece != null;
             if (fitPanel.activeSelf != show) fitPanel.SetActive(show);
-            if (show) fitInfo.text = $"Height +{room.SelectedLift:0.00}   Size {room.SelectedSize:0.00}x";
+            if (show)
+            {
+                fitName.text = room.SelectedName;
+                lightsButton.gameObject.SetActive(room.SelectedHasLights);
+                fitInfo.text = room.SelectedFits
+                    ? $"Height +{room.SelectedLift:0.00}   Size {room.SelectedSize:0.00}x"
+                    : $"<color=#{ColorUtility.ToHtmlStringRGB(DangerColor)}>Overlaps something. Let go somewhere free, or {Controls.KeyName(Controls.Act.Undo)} to undo</color>";
+            }
         }
         if (debugText == null) return;
         if (debugText.text != lastDebug)
@@ -120,17 +132,57 @@ public class GameHUD : MonoBehaviour
         debugText.alpha = age < 4 ? 1 : Mathf.Clamp01(1 - (age - 4));
     }
 
-    // Edit mode, bottom centre: raise/lower and grow/shrink the selected piece (the keys do the same).
-    private GameObject fitPanel;
-    private TMP_Text fitInfo;
+    // Edit mode, bottom centre (clear of the drawers on the left and the music card on the right): a key hint
+    // bar, and above it the selected piece's panel to turn, remove, raise/lower and grow/shrink it.
+    private GameObject fitPanel, hintBar;
+    private Button lightsButton;
+    private TMP_Text fitInfo, fitName;
+    const float HintHeight = 40;
+
+    // Each hint is also a button doing what its key does, so everything works with the mouse alone.
+    private void BuildHintBar(Transform canvas)
+    {
+        hintBar = Make("EditHints", canvas, typeof(Image), typeof(HorizontalLayoutGroup));
+        var rect = (RectTransform)hintBar.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
+        rect.sizeDelta = new Vector2(960, HintHeight);
+        rect.anchoredPosition = new Vector2(0, 24);
+        Style(hintBar.GetComponent<Image>(), PanelColor);
+        var h = hintBar.GetComponent<HorizontalLayoutGroup>();
+        h.padding = new RectOffset(6, 6, 5, 5);
+        h.spacing = 4;
+        h.childControlWidth = h.childControlHeight = true;
+        h.childForceExpandWidth = h.childForceExpandHeight = true;
+        HintButton("Rotate", Controls.Act.Rotate, () => room.RotateSelected());
+        HintButton("Lower", Controls.Act.Lower, () => room.NudgeHeight(-0.1f));
+        HintButton("Raise", Controls.Act.Raise, () => room.NudgeHeight(0.1f));
+        HintButton("Shrink", Controls.Act.Shrink, () => room.Resize(1 / 1.1f));
+        HintButton("Grow", Controls.Act.Grow, () => room.Resize(1.1f));
+        HintButton("Remove", Controls.Act.Delete, () => room.DeleteSelected());
+        HintButton("Undo", Controls.Act.Undo, () => room.Undo());
+        HintButton("Done", Controls.Act.Edit, () => room.ToggleEditMode());
+        HintButton("Settings", Controls.Act.Settings, () => FindFirstObjectByType<SettingsUI>()?.Toggle());
+        hintBar.SetActive(false);
+    }
+
+    private void HintButton(string label, Controls.Act key, UnityEngine.Events.UnityAction onClick)
+    {
+        Button b = TextButton(label, hintBar.transform, label, TabColor, CaptionSize);
+        TMP_Text text = b.GetComponentInChildren<TMP_Text>();
+        text.enableAutoSizing = true;
+        text.fontSizeMin = 10;
+        text.fontSizeMax = CaptionSize;
+        KeyHint(text, label, key); // "Rotate  R", kept current when keys are rebound
+        b.onClick.AddListener(onClick);
+    }
 
     private void BuildFitPanel(Transform canvas)
     {
         fitPanel = Make("FitPanel", canvas, typeof(Image), typeof(VerticalLayoutGroup));
         var rect = (RectTransform)fitPanel.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
-        rect.sizeDelta = new Vector2(420, 118);
-        rect.anchoredPosition = new Vector2(0, 24);
+        rect.sizeDelta = new Vector2(520, 160);
+        rect.anchoredPosition = new Vector2(0, 24 + HintHeight + 8);
         Style(fitPanel.GetComponent<Image>(), PanelColor);
         var v = fitPanel.GetComponent<VerticalLayoutGroup>();
         v.padding = new RectOffset(12, 12, 8, 8);
@@ -138,6 +190,19 @@ public class GameHUD : MonoBehaviour
         v.childControlWidth = v.childControlHeight = true;
         v.childForceExpandWidth = true;
         v.childForceExpandHeight = false;
+        GameObject header = Row("Header", fitPanel.transform, 34, 8, false);
+        fitName = MakeText("Name", header.transform, "", BodySize, TextColor, TextAlignmentOptions.Left);
+        fitName.fontStyle = FontStyles.Bold;
+        fitName.overflowMode = TextOverflowModes.Ellipsis;
+        fitName.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+        lightsButton = SmallButton(header.transform, "Lights", TabColor, 90);
+        lightsButton.onClick.AddListener(() => room.ToggleSelectedLights());
+        Button rotate = SmallButton(header.transform, "Rotate", TabColor, 110);
+        KeyHint(rotate.GetComponentInChildren<TMP_Text>(), "Rotate", Controls.Act.Rotate);
+        rotate.onClick.AddListener(() => room.RotateSelected());
+        Button remove = SmallButton(header.transform, "Remove", TabColor, 130);
+        KeyHint(remove.GetComponentInChildren<TMP_Text>(), "Remove", Controls.Act.Delete);
+        remove.onClick.AddListener(() => room.DeleteSelected());
         fitInfo = MakeText("Info", fitPanel.transform, "", LabelSize, MutedText, TextAlignmentOptions.Center);
         fitInfo.gameObject.AddComponent<LayoutElement>().preferredHeight = 22;
         FitRow("Height", Controls.Act.Raise, Controls.Act.Lower, () => room.NudgeHeight(0.1f), () => room.NudgeHeight(-0.1f), () => room.ResetHeight());
@@ -269,6 +334,7 @@ public class GameHUD : MonoBehaviour
         edit.onClick.AddListener(() => { if (room != null) room.ToggleEditMode(); });
 
         if (timer != null) BuildTimerBar(canvas);
+        BuildHintBar(canvas);
         BuildFitPanel(canvas);
 
         // Level-up toast, centred under the clock.

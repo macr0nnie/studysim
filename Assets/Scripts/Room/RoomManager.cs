@@ -43,11 +43,24 @@ public class RoomManager : MonoBehaviour
     private Camera mainCamera;
     private bool isEditMode = false;
 
-    private Stack<GameObject> undoStack = new Stack<GameObject>();
-    private Stack<GameObject> redoStack = new Stack<GameObject>();
+    // One undoable step: a piece put down or removed (states null: flip it back), or pieces moved, turned,
+    // raised or resized (states: swap them back, which also makes the step redo-able).
+    private class Step { public GameObject obj; public PieceState[] states; }
+    private struct PieceState { public GameObject go; public Vector3 position; public Quaternion rotation; public float lift, size; }
+    private Stack<Step> undoStack = new Stack<Step>();
+    private Stack<Step> redoStack = new Stack<Step>();
+    private Step pendingEdit; // the selected piece, and what stands on it, as they were when the current edit began
 
-    private float lastClickTime;
-    private const float doubleClickThreshold = 0.3f;
+    // Pieces standing on the selected one while it's edited (a lamp on a desk): kept relative to it so they move,
+    // turn and scale with it. foot/pivot/rotation are in the selected piece's frame at riderSize.
+    private struct Rider { public GameObject go; public Vector3 foot, pivot; public Quaternion rotation; }
+    private readonly List<Rider> riders = new List<Rider>();
+    private float riderSize;
+    private GameObject selectedSupport, hovered;
+    private bool selectedValid = true;
+    private Color shownTint;
+    static readonly Color HoverTint = new Color(0.85f, 0.95f, 1f, 1f);
+
 
     // Bought pieces and what was paid, so removing one refunds it and the room can be saved and rebuilt.
     private readonly Dictionary<GameObject, FurnitureItem> boughtItems = new Dictionary<GameObject, FurnitureItem>();
@@ -133,11 +146,15 @@ public class RoomManager : MonoBehaviour
         else if (isEditMode)
         {
             HandleEditMode();
-            if (typing) return;
-            HandleRotationAndFlipping();
-            HandleHeightAndSize();
-            if (selectedObject != null && Controls.Pressed(Controls.Act.Delete))
-                DeleteObject(selectedObject);
+            if (!typing)
+            {
+                HandleRotationAndFlipping();
+                HandleHeightAndSize();
+                if (selectedObject != null && Controls.Pressed(Controls.Act.Delete))
+                    DeleteObject(selectedObject);
+            }
+            CarryRiders();
+            RefreshGlow();
         }
 
         else
@@ -148,8 +165,12 @@ public class RoomManager : MonoBehaviour
         if (typing) return;
 
         // Save once a drag or rotation in edit mode is finished, not every frame.
-        if (isEditMode && selectedObject != null && (Controls.ClickUp || Controls.Released(Controls.Act.Rotate) || Controls.Released(Controls.Act.Raise)
-            || Controls.Released(Controls.Act.Lower) || Controls.Released(Controls.Act.Grow) || Controls.Released(Controls.Act.Shrink))) SaveRoom();
+        if (isEditMode && selectedObject != null && (Controls.ClickUp || Controls.Released(Controls.Act.Raise)
+            || Controls.Released(Controls.Act.Lower) || Controls.Released(Controls.Act.Grow) || Controls.Released(Controls.Act.Shrink)))
+        {
+            EndEdit();
+            SaveRoom();
+        }
 
         if (Controls.Pressed(Controls.Act.Undo))
         {
@@ -259,7 +280,7 @@ public class RoomManager : MonoBehaviour
             if (((1 << h.collider.gameObject.layer) & mask) != 0) { hit = h; return true; }
             if (!canStack || h.normal.y < 0.7f) continue;
             GameObject other = FurnitureRoot(h.collider.gameObject);
-            if (!placedObjects.Contains(other) || other == piece) continue;
+            if (!placedObjects.Contains(other) || other == piece || IsRider(other)) continue;
             Bounds top = GetBounds(other);
             if (own.extents.x > top.extents.x + 0.01f || own.extents.z > top.extents.z + 0.01f) continue; // too big to stand on it
             hit = h;
@@ -306,8 +327,7 @@ public class RoomManager : MonoBehaviour
             case Furniture.FurnitureType.Wall:
                 Vector3 n = hit.normal;
                 if (Mathf.Abs(n.y) > 0.3f) return false;
-                float depth = Mathf.Abs(n.x) * b.extents.x + Mathf.Abs(n.y) * b.extents.y + Mathf.Abs(n.z) * b.extents.z;
-                position = t.position + (target + n * depth - b.center);
+                position = t.position + (target + n * Depth(b, n) - b.center);
                 if (useGridPlacement)
                 {
                     Vector3 snapped = SnapToGrid(position);
@@ -327,6 +347,23 @@ public class RoomManager : MonoBehaviour
         t.position = position;
         Physics.SyncTransforms();
         return true;
+    }
+
+    // How far a box reaches from its centre along a direction (half its thickness against a wall with that normal).
+    private static float Depth(Bounds b, Vector3 n) => Mathf.Abs(n.x) * b.extents.x + Mathf.Abs(n.y) * b.extents.y + Mathf.Abs(n.z) * b.extents.z;
+
+    // The wall a hanging piece is on: the nearest wall straight behind one of its four sides. normal points out of it.
+    private bool WallBehind(Bounds b, out Vector3 normal)
+    {
+        normal = Vector3.zero;
+        float best = float.MaxValue;
+        foreach (Vector3 dir in new[] { Vector3.right, Vector3.left, Vector3.forward, Vector3.back })
+            if (Physics.Raycast(b.center, dir, out RaycastHit hit, b.extents.magnitude + 0.5f, wallLayer) && hit.distance < best)
+            {
+                best = hit.distance;
+                normal = hit.normal;
+            }
+        return best < float.MaxValue;
     }
 
     // Decor needs a wall collider on every wall (the scene's WallPlane covers one), and hanging pieces
@@ -389,10 +426,11 @@ public class RoomManager : MonoBehaviour
         int count = Physics.OverlapBoxNonAlloc(bounds.center, bounds.extents, overlapBuffer, Quaternion.identity, furnitureLayer);
         for (int i = 0; i < count; i++)
             if (!overlapBuffer[i].transform.IsChildOf(piece.transform)
-                && (support == null || !overlapBuffer[i].transform.IsChildOf(support.transform))) return false;
+                && (support == null || !overlapBuffer[i].transform.IsChildOf(support.transform))
+                && !IsRider(FurnitureRoot(overlapBuffer[i].gameObject))) return false;
         foreach (GameObject placedObj in placedObjects)
         {
-            if (placedObj != piece && placedObj != support && placedObj.activeInHierarchy && GetBounds(placedObj).Intersects(bounds))
+            if (placedObj != piece && placedObj != support && placedObj.activeInHierarchy && !IsRider(placedObj) && GetBounds(placedObj).Intersects(bounds))
                 return false;
         }
         return true;
@@ -426,25 +464,57 @@ public class RoomManager : MonoBehaviour
                 if (TypeOf(currentPreview) == Furniture.FurnitureType.Wall) previewSpin += 180f;
                 else currentPreview.transform.Rotate(Vector3.up, -90f, Space.World);
             }
-            else if (selectedObject != null)
-            {
-                bool wall = TypeOf(selectedObject) == Furniture.FurnitureType.Wall;
-                selectedObject.transform.Rotate(Vector3.up, wall ? 180f : -90f, Space.World);
-            }
+            else RotateSelected();
         }
 
-        if (alt && Controls.Pressed(Controls.Act.Rotate))
-        {
-            if (selectedObject != null)
-            {
-                selectedObject.transform.Rotate(Vector3.right, 90f);
-            }
-        }
+        if (alt && Controls.Pressed(Controls.Act.Rotate) && currentPreview == null && selectedObject != null)
+            Turn(Quaternion.AngleAxis(90f, selectedObject.transform.right));
     }
+
+    // Floor pieces turn a quarter; wall pieces flip to face the other way (a quarter turn would stick them out of the wall).
+    public void RotateSelected()
+    {
+        if (selectedObject == null) return;
+        Turn(Quaternion.AngleAxis(TypeOf(selectedObject) == Furniture.FurnitureType.Wall ? 180f : -90f, Vector3.up));
+    }
+
+    private void Turn(Quaternion turn)
+    {
+        bool own = pendingEdit == null; // turning mid-drag stays part of that drag's undo step
+        BeginEdit();
+        selectedObject.transform.rotation = turn * selectedObject.transform.rotation;
+        Changed();
+        if (!own) return;
+        EndEdit();
+        SaveRoom();
+    }
+
+    public bool SelectedHasLights => selectedObject != null && HasLights(selectedObject);
+
+    // Edit mode swallows clicks (they select and drag), so a lamp is switched from the panel there.
+    public void ToggleSelectedLights()
+    {
+        if (!SelectedHasLights) return;
+        SetLights(selectedObject, !LightsOn(selectedObject));
+        SaveRoom();
+    }
+
+    public void DeleteSelected()
+    {
+        if (selectedObject != null) DeleteObject(selectedObject);
+    }
+
+    public string SelectedName => selectedObject == null ? ""
+        : boughtItems.TryGetValue(selectedObject, out FurnitureItem item) && !string.IsNullOrEmpty(item.displayName) ? item.displayName : selectedObject.name;
+
+    // False while the selected piece overlaps something after a move, turn or resize (it glows red).
+    public bool SelectedFits => selectedValid;
     // Hold the keys to raise/lower or grow/shrink the selected piece; the buttons in the HUD step it.
     private void HandleHeightAndSize()
     {
         if (selectedObject == null) return;
+        if (Controls.Pressed(Controls.Act.Raise) || Controls.Pressed(Controls.Act.Lower)
+            || Controls.Pressed(Controls.Act.Grow) || Controls.Pressed(Controls.Act.Shrink)) BeginEdit(); // ends when the key is let go
         float dt = Time.deltaTime;
         if (Controls.Held(Controls.Act.Raise)) NudgeHeight(0.6f * dt, false);
         if (Controls.Held(Controls.Act.Lower)) NudgeHeight(-0.6f * dt, false);
@@ -462,9 +532,11 @@ public class RoomManager : MonoBehaviour
         float now = SelectedLift;
         float next = Mathf.Clamp(now + delta, wall ? -MaxLift : 0f, MaxLift);
         if (Mathf.Approximately(next, now)) return;
+        if (save) BeginEdit();
         lifts[selectedObject] = next;
         selectedObject.transform.position += Vector3.up * (next - now);
-        if (save) SaveRoom();
+        Changed();
+        if (save) { EndEdit(); SaveRoom(); }
     }
 
     public void ResetHeight() => NudgeHeight(-SelectedLift);
@@ -473,16 +545,13 @@ public class RoomManager : MonoBehaviour
     public void Resize(float factor, bool save = true)
     {
         if (selectedObject == null) return;
+        if (save) BeginEdit();
         SetSize(selectedObject, SelectedSize * factor);
-        if (save) SaveRoom();
+        Changed();
+        if (save) { EndEdit(); SaveRoom(); }
     }
 
-    public void ResetSize()
-    {
-        if (selectedObject == null) return;
-        SetSize(selectedObject, 1f);
-        SaveRoom();
-    }
+    public void ResetSize() => Resize(1f / SelectedSize);
 
     private void SetSize(GameObject go, float size, bool keepFooting = true)
     {
@@ -499,6 +568,8 @@ public class RoomManager : MonoBehaviour
         Vector3 shift = before.center - after.center;
         if (type == Furniture.FurnitureType.Floor || type == Furniture.FurnitureType.Shelf) shift.y = before.min.y - after.min.y;
         else if (type == Furniture.FurnitureType.Ceiling) shift.y = before.max.y - after.max.y;
+        else if (type == Furniture.FurnitureType.Wall && WallBehind(before, out Vector3 n))
+            shift += n * (Depth(after, n) - Depth(before, n)); // keep its back on the wall instead of growing into it
         go.transform.position += shift;
         Physics.SyncTransforms();
     }
@@ -529,8 +600,6 @@ public class RoomManager : MonoBehaviour
         onPreviewPlaced = null;
         placed?.Invoke();
         SaveRoom();
-
-        Debug.Log("Placed object: " + placedObject.name + "; total placed: " + placedObjects.Count);
     }
     
     private void CancelPlacement()
@@ -583,8 +652,21 @@ public class RoomManager : MonoBehaviour
     {
         if (Controls.ClickUp)
         {
-            // Let go: settle exactly where the drag was heading before the room is saved.
-            if (dragging && grabbed && selectedObject != null) selectedObject.transform.position = dragTarget;
+            // Let go: settle exactly where the drag was heading before the room is saved. A spot where it
+            // overlaps something sends it (and what stands on it) back where the drag started.
+            if (dragging && grabbed && selectedObject != null)
+            {
+                bool moved = pendingEdit != null && pendingEdit.states[0].position != dragTarget;
+                selectedObject.transform.position = dragTarget;
+                Physics.SyncTransforms();
+                CarryRiders();
+                if (!selectedValid)
+                {
+                    EndEdit(true);
+                    UISound.Play(UISound.Cue.Denied);
+                }
+                else if (moved) UISound.Play(UISound.Cue.Place);
+            }
             dragging = false;
         }
         if (Controls.ClickDown)
@@ -594,6 +676,7 @@ public class RoomManager : MonoBehaviour
             // Only a press that starts on the piece drags it, so clicking elsewhere can't teleport it.
             dragging = selectedObject != null;
             grabbed = false;
+            BeginEdit();
         }
         if (dragging && selectedObject != null && Controls.ClickHeld) DragSelected();
     }
@@ -605,13 +688,15 @@ public class RoomManager : MonoBehaviour
         if (grabbed) t.position = dragTarget; // work out the move from where the piece is heading
         MoveSelected(t);
         dragTarget = t.position;
+        Physics.SyncTransforms();
+        selectedValid = IsValidPlacement(selectedObject, selectedSupport);
         if (grabbed) t.position = Vector3.Lerp(shown, dragTarget, Follow);
     }
 
     private void MoveSelected(Transform t)
     {
         Furniture.FurnitureType type = TypeOf(selectedObject);
-        if (!FindSurface(selectedObject, type, out RaycastHit hit, out _)) return;
+        if (!FindSurface(selectedObject, type, out RaycastHit hit, out GameObject support)) return;
 
         Vector3 before = t.position;
         Quaternion beforeRotation = t.rotation;
@@ -629,27 +714,195 @@ public class RoomManager : MonoBehaviour
             ? grabOffset - hit.normal * Vector3.Dot(grabOffset, hit.normal) // slide along the wall
             : new Vector3(grabOffset.x, 0, grabOffset.z);
         if (!Pose(selectedObject, type, hit, offset)) t.SetPositionAndRotation(before, beforeRotation);
-        else dragNormal = hit.normal;
+        else
+        {
+            dragNormal = hit.normal;
+            selectedSupport = support;
+        }
     }
 
     // Warm glow on the selected piece so it's obvious what edit mode will move.
     private void Select(GameObject obj)
     {
         if (selectedObject == obj) return;
-        if (selectedObject != null)
-            foreach (Renderer r in selectedObject.GetComponentsInChildren<Renderer>()) r.SetPropertyBlock(null);
+        EndEdit();
+        if (selectedObject != null) Glow(selectedObject, null);
         selectedObject = obj;
+        selectedValid = true;
+        selectedSupport = obj != null ? SupportOf(obj) : null;
         if (obj == null) return;
-        if (highlight == null)
-        {
-            highlight = new MaterialPropertyBlock();
-            highlight.SetColor("_BaseColor", SelectedTint);
-            highlight.SetColor("_Color", SelectedTint);
-        }
-        foreach (Renderer r in obj.GetComponentsInChildren<Renderer>()) r.SetPropertyBlock(highlight);
+        if (obj == hovered) hovered = null;
+        Glow(obj, shownTint = SelectedTint);
     }
 
-    // Handle normal object selection (supports double-click to trigger edit mode).
+    // Tints a piece with a property block (null clears it), leaving its own materials and paint alone.
+    private void Glow(GameObject obj, Color? tint)
+    {
+        if (tint.HasValue)
+        {
+            if (highlight == null) highlight = new MaterialPropertyBlock();
+            highlight.SetColor("_BaseColor", tint.Value);
+            highlight.SetColor("_Color", tint.Value);
+        }
+        foreach (Renderer r in obj.GetComponentsInChildren<Renderer>()) r.SetPropertyBlock(tint.HasValue ? highlight : null);
+    }
+
+    // Edit mode: a faint glow on the piece under the cursor (what a click would pick up), and the selected
+    // piece glows red while it overlaps something.
+    private void RefreshGlow()
+    {
+        GameObject hover = dragging || IsPointerOverUI() ? null : PlacedObjectUnderCursor();
+        if (hover == selectedObject) hover = null;
+        if (hover != hovered)
+        {
+            if (hovered != null) Glow(hovered, null);
+            hovered = hover;
+            if (hover != null) Glow(hover, HoverTint);
+        }
+        if (selectedObject == null) return;
+        Color tint = selectedValid ? SelectedTint : InvalidTint;
+        if (tint != shownTint) Glow(selectedObject, shownTint = tint);
+    }
+
+    // After the selected piece moved, turned, rose or changed size: bring what stands on it along and re-check the fit.
+    private void Changed()
+    {
+        Physics.SyncTransforms();
+        CarryRiders();
+        selectedValid = IsValidPlacement(selectedObject, selectedSupport);
+    }
+
+    // A floor or shelf piece standing on top of support (a lamp on a desk, books on a shelf). s is support's bounds.
+    private bool StandsOn(GameObject piece, GameObject support, Bounds s)
+    {
+        if (piece == support || !piece.activeInHierarchy) return false;
+        Furniture.FurnitureType type = TypeOf(piece);
+        if (type != Furniture.FurnitureType.Floor && type != Furniture.FurnitureType.Shelf) return false;
+        Bounds b = GetBounds(piece);
+        return b.min.y > s.min.y + 0.05f && b.min.y < s.max.y + 0.05f
+            && b.center.x > s.min.x && b.center.x < s.max.x && b.center.z > s.min.z && b.center.z < s.max.z;
+    }
+
+    // Whatever stood on a piece that is being removed falls to the floor below it instead of hanging in the air.
+    private void DropRiders(GameObject parent)
+    {
+        Bounds s = GetBounds(parent);
+        foreach (GameObject p in new List<GameObject>(placedObjects))
+        {
+            if (p == parent || !StandsOn(p, parent, s)) continue;
+            Bounds b = GetBounds(p);
+            if (Physics.Raycast(new Vector3(b.center.x, s.min.y + 0.1f, b.center.z), Vector3.down, out RaycastHit hit, 5f, placementLayer))
+                p.transform.position += Vector3.up * (hit.point.y - b.min.y);
+        }
+        Physics.SyncTransforms();
+    }
+
+    private GameObject SupportOf(GameObject piece)
+    {
+        foreach (GameObject p in placedObjects)
+            if (p != piece && p.activeInHierarchy && StandsOn(piece, p, GetBounds(p))) return p;
+        return null;
+    }
+
+    private bool IsRider(GameObject go)
+    {
+        foreach (Rider r in riders)
+            if (r.go == go) return true;
+        return false;
+    }
+
+    private PieceState StateOf(GameObject go) => new PieceState
+    {
+        go = go, position = go.transform.position, rotation = go.transform.rotation,
+        lift = lifts.TryGetValue(go, out float l) ? l : 0f, size = sizes.TryGetValue(go, out float z) ? z : 1f,
+    };
+
+    // Puts pieces back as recorded and returns how they were, so the same step can go the other way.
+    private PieceState[] Swap(PieceState[] states)
+    {
+        var was = new PieceState[states.Length];
+        for (int i = 0; i < states.Length; i++)
+        {
+            PieceState s = states[i];
+            was[i] = s;
+            if (s.go == null) continue;
+            was[i] = StateOf(s.go);
+            lifts[s.go] = s.lift;
+            SetSize(s.go, s.size, false);
+            s.go.transform.SetPositionAndRotation(s.position, s.rotation);
+        }
+        Physics.SyncTransforms();
+        return was;
+    }
+
+    // Before the selected piece is moved, turned, raised or resized: remember it, and whatever stands on it, for
+    // undo, and carry those pieces along until EndEdit.
+    private void BeginEdit()
+    {
+        if (pendingEdit != null || selectedObject == null) return;
+        riders.Clear();
+        Physics.SyncTransforms();
+        Transform t = selectedObject.transform;
+        Quaternion inv = Quaternion.Inverse(t.rotation);
+        Bounds s = GetBounds(selectedObject);
+        var states = new List<PieceState> { StateOf(selectedObject) };
+        // Pieces on the piece, then pieces on those (a lamp on a book on a desk).
+        var carriers = new List<GameObject> { selectedObject };
+        for (int c = 0; c < carriers.Count; c++)
+        {
+            Bounds cb = c == 0 ? s : GetBounds(carriers[c]);
+            foreach (GameObject p in placedObjects)
+            {
+                if (p == selectedObject || carriers.Contains(p) || !StandsOn(p, carriers[c], cb)) continue;
+                Bounds b = GetBounds(p);
+                Vector3 foot = new Vector3(b.center.x, b.min.y, b.center.z);
+                riders.Add(new Rider { go = p, foot = inv * (foot - t.position), pivot = inv * (p.transform.position - foot), rotation = inv * p.transform.rotation });
+                states.Add(StateOf(p));
+                carriers.Add(p);
+            }
+        }
+        riderSize = SelectedSize;
+        pendingEdit = new Step { states = states.ToArray() };
+    }
+
+    // Ends the current edit with an undo step if anything changed; revert puts everything back instead.
+    private void EndEdit(bool revert = false)
+    {
+        if (pendingEdit == null) return;
+        Step step = pendingEdit;
+        pendingEdit = null;
+        riders.Clear();
+        if (revert)
+        {
+            Swap(step.states);
+            selectedValid = true;
+            return;
+        }
+        foreach (PieceState s in step.states)
+        {
+            if (s.go == null) continue;
+            PieceState now = StateOf(s.go);
+            if (now.position == s.position && now.rotation == s.rotation && now.lift == s.lift && now.size == s.size) continue;
+            undoStack.Push(step);
+            redoStack.Clear();
+            return;
+        }
+    }
+
+    private void CarryRiders()
+    {
+        if (riders.Count == 0 || selectedObject == null) return;
+        Transform t = selectedObject.transform;
+        float k = SelectedSize / riderSize;
+        foreach (Rider r in riders)
+        {
+            if (r.go == null) continue;
+            Vector3 foot = t.position + t.rotation * (r.foot * k);
+            r.go.transform.SetPositionAndRotation(foot + t.rotation * r.pivot, t.rotation * r.rotation);
+        }
+    }
+
+    // Handle normal object selection: click a lamp to switch it, right-click a piece to delete it.
     private void HandleObjectSelection()
     {
         if (IsPointerOverUI()) return;
@@ -658,20 +911,12 @@ public class RoomManager : MonoBehaviour
             GameObject rootObject = PlacedObjectUnderCursor();
             if (rootObject != null)
             {
-                // Clicking a lamp switches it. A double-click (to edit) switches it twice, so it ends as it was.
+                // Clicking a lamp switches it. Edit mode is entered only with Tab or the Edit button.
                 if (HasLights(rootObject))
                 {
                     SetLights(rootObject, !LightsOn(rootObject));
                     SaveRoom();
                 }
-                // If double-clicked within threshold, enter edit mode.
-                if (Time.time - lastClickTime <= doubleClickThreshold)
-                {
-                    isEditMode = true;
-                    Select(rootObject);
-                    Debug.Log("Entering Edit Mode on object: " + rootObject.name);
-                }
-                lastClickTime = Time.time;
             }
         }
         // Right-click to delete an object.
@@ -683,6 +928,7 @@ public class RoomManager : MonoBehaviour
     }
 
     public bool IsEditMode => isEditMode;
+    public bool IsDragging => dragging && selectedObject != null && Controls.ClickHeld; // a piece is being dragged right now
     public void ToggleEditMode() => EnterEditMode(); // for the HUD's Edit button
 
     // ---------- paint (used by the Paint drawer) ----------
@@ -768,8 +1014,12 @@ public class RoomManager : MonoBehaviour
     private void EnterEditMode()
     {
         isEditMode = !isEditMode; // Toggle edit mode state
-        if (!isEditMode) Select(null);
-        Debug.Log("Edit Mode: " + (isEditMode ? "Enabled" : "Disabled"));
+        if (!isEditMode)
+        {
+            Select(null);
+            if (hovered != null) Glow(hovered, null);
+            hovered = null;
+        }
 
 
     }
@@ -779,6 +1029,7 @@ public class RoomManager : MonoBehaviour
         if (!CanRemove(obj)) return;
         if (placedObjects.Contains(obj))
         {
+            DropRiders(obj);
             obj.SetActive(false);
             placedObjects.Remove(obj);
             if (selectedObject == obj) Select(null);
@@ -789,12 +1040,7 @@ public class RoomManager : MonoBehaviour
     }
 
     // A room always keeps at least one desk and one chair: any piece named or tagged so counts.
-    private bool IsKind(GameObject go, string kind)
-    {
-        if (go.name.IndexOf(kind, StringComparison.OrdinalIgnoreCase) >= 0) return true;
-        return boughtItems.TryGetValue(go, out FurnitureItem item) && item.tags != null
-            && Array.Exists(item.tags, t => t != null && t.IndexOf(kind, StringComparison.OrdinalIgnoreCase) >= 0);
-    }
+    private bool IsKind(GameObject go, string kind) => FurnitureRole.Is(go, ItemOf(go), kind);
 
     private bool CanRemove(GameObject obj)
     {
@@ -813,14 +1059,26 @@ public class RoomManager : MonoBehaviour
 
     public void Undo()
     {
-        if (undoStack.Count > 0 && ToggleActive(undoStack.Peek()))
+        EndEdit();
+        if (undoStack.Count > 0 && Apply(undoStack.Peek()))
             redoStack.Push(undoStack.Pop());
     }
 
     public void Redo()
     {
-        if (redoStack.Count > 0 && ToggleActive(redoStack.Peek()))
+        EndEdit();
+        if (redoStack.Count > 0 && Apply(redoStack.Peek()))
             undoStack.Push(redoStack.Pop());
+    }
+
+    private bool Apply(Step step)
+    {
+        if (step.states == null) return ToggleActive(step.obj);
+        step.states = Swap(step.states);
+        selectedValid = true;
+        if (selectedObject != null) selectedSupport = SupportOf(selectedObject);
+        SaveRoom();
+        return true;
     }
 
     // Every place/delete is reversed by flipping the object's active state; keep placedObjects in sync
@@ -1018,6 +1276,14 @@ public class RoomManager : MonoBehaviour
 
     public IReadOnlyList<GameObject> PlacedPieces => placedObjects;
 
+    // The store entry behind a placed piece: bought ones directly, scene pieces by matching the prefab's name.
+    public FurnitureItem ItemOf(GameObject piece)
+    {
+        if (boughtItems.TryGetValue(piece, out FurnitureItem item)) return item;
+        FurnitureCatalog catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
+        return catalog == null ? null : catalog.items.Find(i => i != null && i.prefab != null && i.prefab.name == piece.name);
+    }
+
     private static bool HasLights(GameObject piece) => piece.GetComponentInChildren<Light>(true) != null;
 
     private static bool LightsOn(GameObject piece)
@@ -1045,7 +1311,7 @@ public class RoomManager : MonoBehaviour
 
     private void RecordAction(GameObject obj)
     {
-        undoStack.Push(obj);
+        undoStack.Push(new Step { obj = obj });
         redoStack.Clear();
     }
 
@@ -1122,6 +1388,5 @@ public class RoomManager : MonoBehaviour
     private void ToggleGridPlacement()
     {
         useGridPlacement = !useGridPlacement;
-        Debug.Log("Grid placement " + (useGridPlacement ? "enabled" : "disabled"));
     }
 }

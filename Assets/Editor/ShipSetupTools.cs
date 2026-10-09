@@ -21,7 +21,7 @@ public static class ShipSetupTools
             new EditorBuildSettingsScene(Scenes + "Protoype_2.unity", true),
         };
         PlayerSettings.productName = "Study Sim";
-        PlayerSettings.bundleVersion = "1.0.0";
+        PlayerSettings.bundleVersion = "0.1.0";
         PlayerSettings.runInBackground = true; // the study timer and the browser extension must keep running when the window loses focus
         AssetDatabase.SaveAssets();
         EditorSceneManager.OpenScene(Scenes + "MainMenu.unity");

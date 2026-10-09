@@ -40,19 +40,22 @@ public class StudyCharacter : MonoBehaviour
         foreach (StudyCharacter c in FindObjectsByType<StudyCharacter>(FindObjectsSortMode.None))
             if (c.GetComponent<Animator>() != null) return;
         GameObject prefab = Resources.Load<GameObject>("Player");
-        GameObject desk = GameObject.Find("desk");
         if (prefab == null) { Debug.LogWarning("No Resources/Player prefab: run Study Sim > Create Player Prefab"); return; }
-        // The desk's meshes can sit on children, so measure them all.
-        if (desk == null || !TryBounds(desk, out Bounds b)) { Debug.LogWarning("No desk with a mesh in this room; not placing the character"); return; }
-
-        // shortcut: seat guessed from the desk bounds (camera side, sized to the desk); drag Player into the scene to place it exactly
-        Vector3 toCamera = Camera.main ? Vector3.ProjectOnPlane(Camera.main.transform.position - b.center, Vector3.up).normalized : Vector3.back;
-        Vector3 seat = new Vector3(b.center.x, b.min.y, b.center.z) + toCamera * Mathf.Max(b.extents.x, b.extents.z);
-        GameObject player = Instantiate(prefab, seat, Quaternion.LookRotation(-toCamera));
+        // Spawn standing mid-floor, sized to the room; CharacterBehaviour then moves it onto a chair or bed (anchored to their bounds).
+        Bounds floor = default; bool any = false;
+        foreach (Renderer r in FindFirstObjectByType<RoomManager>().FloorRenderers) if (r != null) { if (!any) { floor = r.bounds; any = true; } else floor.Encapsulate(r.bounds); }
+        if (!any) { Debug.LogWarning("No floor in this room; not placing the character"); return; }
+        Vector3 spot = new Vector3(floor.center.x, floor.max.y, floor.center.z);
+        Vector3 toCam = Camera.main ? Vector3.ProjectOnPlane(Camera.main.transform.position - spot, Vector3.up) : Vector3.back;
+        GameObject player = Instantiate(prefab, spot, Quaternion.LookRotation(toCam.sqrMagnitude > 0.0001f ? toCam : Vector3.back));
         player.name = "Player";
-        // Size by measurement: the prefab is measured standing (bind pose), and a person is ~2.4x desk height.
+        // shortcut: a person is ~0.9 of the bed's long side (else 2.3 desk heights, else 0.4 of the floor); tune if the models are rescaled
+        GameObject bed = GameObject.Find("Bed"), desk = GameObject.Find("desk");
+        float height = Mathf.Min(floor.size.x, floor.size.z) * 0.4f;
+        if (bed != null && TryBounds(bed, out Bounds bb)) height = Mathf.Max(bb.size.x, bb.size.z) * 0.9f;
+        else if (desk != null && TryBounds(desk, out Bounds db)) height = db.size.y * 2.3f;
         if (TryBounds(player, out Bounds body) && body.size.y > 0.0001f)
-            player.transform.localScale *= b.size.y * 2.4f / body.size.y;
+            player.transform.localScale *= height / body.size.y;
     }
 
     private static bool TryBounds(GameObject go, out Bounds bounds)
@@ -85,6 +88,8 @@ public class StudyCharacter : MonoBehaviour
             Debug.LogWarning("No dialogue events configured.");
         }
         
+        if (GetComponent<CharacterBehaviour>() == null) gameObject.AddComponent<CharacterBehaviour>();
+
         // Start in studying state
         StartStudying();
         timer = FindFirstObjectByType<TimerManager>();
@@ -159,8 +164,7 @@ public class StudyCharacter : MonoBehaviour
             {
                 continue;
             }
-            // TODO: Implement dialogue UI system
-            Debug.Log($"Character says: {line}");
+            if (TryGetComponent(out CharacterBehaviour behaviour)) behaviour.Say(line);
             yield return new WaitForSeconds(2f); // Adjust timing as needed
         }
    

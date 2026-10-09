@@ -107,10 +107,12 @@ public class SettingsUI : MonoBehaviour
         GameObject fillArea = Make("FillArea", root.transform);
         Anchor(fillArea, new Vector2(0, 0.35f), new Vector2(1, 0.65f));
         GameObject fill = Make("Fill", fillArea.transform, typeof(Image));
+        Anchor(fill, Vector2.zero, Vector2.one); // the Slider only drives x, so y must already span the track
         Style(fill.GetComponent<Image>(), AccentButtonColor);
         GameObject handleArea = Make("HandleArea", root.transform);
         Anchor(handleArea, Vector2.zero, Vector2.one);
         GameObject handle = Make("Handle", handleArea.transform, typeof(Image));
+        Anchor(handle, Vector2.zero, Vector2.one);
         ((RectTransform)handle.transform).sizeDelta = new Vector2(24, 0);
         handle.GetComponent<Image>().sprite = Circle;
         handle.GetComponent<Image>().color = TextColor;

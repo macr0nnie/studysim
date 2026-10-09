@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Gravestone_Old_Tower
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Gravestone_Old_Tower
+  description: A gravestone_old_tower to add some personality to your space.
+  category: 1
+  tags:
+  - gravestone
+  - old
+  - tower
+  - halloween
+  price: 15
+  prefab: {fileID: 8862360825952428780, guid: 13b23f35e616a8b45be94a4b9164bcb4, type: 3}
+  icon: {fileID: 0}

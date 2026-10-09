@@ -26,7 +26,7 @@ public static class UIKit
     public const float TitleSize = 30, HeadingSize = 23, BodySize = 19, LabelSize = 16, CaptionSize = 14;
 
     // Room-button row (bottom left, under the drawers): one shared slot per button so they line up.
-    const float NavWidth = 104, NavGap = 8, NavY = 334;
+    const float NavWidth = 96, NavGap = 6, NavY = 334;
 
     public static Button NavButton(Transform canvas, int slot, string label, string key)
     {

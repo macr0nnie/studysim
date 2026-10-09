@@ -62,7 +62,7 @@ public class SettingsUI : MonoBehaviour
     {
         Transform canvas = MakeCanvas("SettingsCanvas", transform, 10).transform;
 
-        Button open = NavButton(canvas, 4, "Settings", null);
+        Button open = NavButton(canvas, 5, "Settings", null);
         open.onClick.AddListener(Toggle);
 
         panel = MakeDrawer("SettingsPanel", canvas);

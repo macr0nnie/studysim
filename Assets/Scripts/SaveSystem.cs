@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 public static class SaveSystem
 {
     public const int SlotCount = 4; // autosave + 3 manual slots
-    private static readonly string[] StringKeys = { "RoomLayout", "TodoTasks", "StudyHabits", "iPodPlayerData" };
+    private static readonly string[] StringKeys = { "RoomLayout", "RoomPaint", "TodoTasks", "StudyHabits", "iPodPlayerData" };
     private static readonly string[] IntKeys = { "PlayerLevel", "PlayerExperience", "PlayerCoins" };
     private static readonly string[] FloatKeys = { "StudySessionSeconds", "BreakSessionSeconds" };
 

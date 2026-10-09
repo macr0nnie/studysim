@@ -187,7 +187,7 @@ public class GameHUD : MonoBehaviour
         Button rotate = SmallButton(header.transform, "Rotate", TabColor, 110);
         KeyHint(rotate.GetComponentInChildren<TMP_Text>(), "Rotate", Controls.Act.Rotate);
         rotate.onClick.AddListener(() => room.RotateSelected());
-        Button remove = SmallButton(header.transform, "Remove", DangerColor, 130);
+        Button remove = SmallButton(header.transform, "Remove", TabColor, 130);
         KeyHint(remove.GetComponentInChildren<TMP_Text>(), "Remove", Controls.Act.Delete);
         remove.onClick.AddListener(() => room.DeleteSelected());
         fitInfo = MakeText("Info", fitPanel.transform, "", LabelSize, MutedText, TextAlignmentOptions.Center);

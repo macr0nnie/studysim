@@ -64,6 +64,8 @@ public class TimerManager : MonoBehaviour
     }
     public void PauseTimer()
     {
+        // Strict focus: a study session can't be paused, only given up (no rewards).
+        if (GameSettings.StrictFocus && isStudySession && isTimerRunning) { ResetTimer(); return; }
         isTimerRunning = false;
     }
     public void ResetTimer()
@@ -82,8 +84,8 @@ public class TimerManager : MonoBehaviour
         }
         isStudySession = !isStudySession;
         ResetTimer();
-        // A finished study session rolls straight into its break; after the break, wait for the player.
-        if (!isStudySession) StartTimer();
+        // Each phase can roll straight into the next (Settings > Focus).
+        if (isStudySession ? GameSettings.AutoStartStudy : GameSettings.AutoStartBreak) StartTimer();
         OnTimerComplete?.Invoke();
     }
 

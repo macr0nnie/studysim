@@ -62,6 +62,7 @@ public class SavesUI : MonoBehaviour
     private void OnSaved(int slot)
     {
         if (panel.activeSelf) Refresh();
+        if (slot == 0 && !GameSettings.AutosaveBadge) return;
         if (flash != null) StopCoroutine(flash); // not StopAllCoroutines: that would freeze the drawer's slide-in
         flash = StartCoroutine(FlashBadge(slot == 0 ? "Autosaved" : $"Saved to slot {slot}"));
     }

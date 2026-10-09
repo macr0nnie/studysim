@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 // The furniture store. Builds its own screen-space UI from a FurnitureCatalog at startup, so it only needs
@@ -37,10 +38,25 @@ public class FurnitureStoreUI : MonoBehaviour
     private Card selected;
     private int shownCategory = -1;
 
+    // Any scene with a RoomManager gets a store, even if nobody added one to the scene.
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+    private static void AddToRoomScenes()
+    {
+        SceneManager.sceneLoaded += (scene, mode) => EnsureStore();
+        EnsureStore();
+    }
+
+    private static void EnsureStore()
+    {
+        if (FindFirstObjectByType<RoomManager>() != null && FindFirstObjectByType<FurnitureStoreUI>() == null)
+            new GameObject("FurnitureStore").AddComponent<FurnitureStoreUI>();
+    }
+
     private void Awake()
     {
         if (roomManager == null) roomManager = FindFirstObjectByType<RoomManager>();
         if (playerCurrency == null) playerCurrency = FindFirstObjectByType<PlayerCurrency>();
+        if (catalog == null) catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
         if (catalog == null)
         {
             Debug.LogError("FurnitureStoreUI: no catalog assigned.", this);

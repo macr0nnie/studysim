@@ -21,6 +21,7 @@ public class GameHUD : MonoBehaviour
     private RoomManager room;
     private TimerManager timer;
     private TMP_Text timerText;
+    private Transform hudCanvas;
     private Color timerStudyColor;
     private AudioSource chime;
     private readonly System.Collections.Generic.Queue<string> toasts = new System.Collections.Generic.Queue<string>();
@@ -67,12 +68,36 @@ public class GameHUD : MonoBehaviour
         }
         GameObject timerGO = GameObject.Find("TimerText");
         if (timerGO != null && timerGO.TryGetComponent(out timerText)) timerStudyColor = timerText.color;
+        if (timerText == null && timer != null) BuildClock(); // the scene's clock text is gone
         GameObject debug = GameObject.Find("Debugging_Text");
         if (debug != null) debugText = debug.GetComponent<TMP_Text>();
 
         Refresh();
         yield return null; // the iPod fills its playlist in Start; theme it after that
         ThemeSceneUI();
+    }
+
+    // Countdown in a panel above the timer controls, used when the scene has no TimerText of its own.
+    private void BuildClock()
+    {
+        GameObject panel = Make("Clock", hudCanvas, typeof(Image));
+        var rect = (RectTransform)panel.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1, 1);
+        rect.sizeDelta = new Vector2(330, 44);
+        rect.anchoredPosition = new Vector2(-24, -4);
+        Style(panel.GetComponent<Image>(), PanelColor);
+        timerText = MakeText("Time", panel.transform, "", 34, TextColor, TextAlignmentOptions.Center, display: true);
+        Stretch((RectTransform)timerText.transform);
+        timerStudyColor = TextColor;
+        timer.OnTimerTick += ShowClock;
+        ShowClock(timer.CurrentTime);
+    }
+
+    private void ShowClock(float seconds)
+    {
+        if (timerText == null) return;
+        int s = Mathf.CeilToInt(Mathf.Max(0, seconds));
+        timerText.text = $"{s / 60:00}:{s % 60:00}";
     }
 
     private void OnEnable()
@@ -94,7 +119,7 @@ public class GameHUD : MonoBehaviour
             experience.OnExperienceChanged -= Refresh;
             experience.PlayerLevelUp?.RemoveListener(ShowLevelUp);
         }
-        if (timer != null) timer.OnTimerComplete -= OnTimerComplete;
+        if (timer != null) { timer.OnTimerComplete -= OnTimerComplete; timer.OnTimerTick -= ShowClock; }
     }
 
     // The Chrome extension status line only matters for a moment; fade it once it stops changing.
@@ -102,7 +127,7 @@ public class GameHUD : MonoBehaviour
     {
         if (timer != null) UpdateTimerBar();
         // Green countdown while on a break, so it's clear which phase is running.
-        if (timerText != null && timer != null) timerText.color = timer.IsStudySession ? timerStudyColor : BreakColor;
+        if (timerText != null && timer != null) timerText.color = timer.IsStudySession ? timerStudyColor : XpColor;
         if (editPill != null && room != null)
         {
             editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
@@ -284,7 +309,7 @@ public class GameHUD : MonoBehaviour
 
     private void BuildUI()
     {
-        Transform canvas = MakeCanvas("HUDCanvas", transform, 9).transform;
+        Transform canvas = hudCanvas = MakeCanvas("HUDCanvas", transform, 9).transform;
 
         // Player card, top left: where the eye starts, and clear of the timer and the music player.
         GameObject card = Make("PlayerCard", canvas, typeof(Image), typeof(Shadow));

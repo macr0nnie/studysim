@@ -278,6 +278,19 @@ public class SettingsUI : MonoBehaviour
         AddSlider(page, "Music", 0, 100, GameSettings.MusicVolume * 100, v => $"{v:0}%", v => GameSettings.MusicVolume = v / 100f, out _);
         AddSlider(page, "Effects (UI sounds, chime)", 0, 100, GameSettings.EffectsVolume * 100, v => $"{v:0}%", v => GameSettings.EffectsVolume = v / 100f, out _);
         Switch(page, "Interface sounds", "Clicks, placing furniture, coins and lamps.", () => GameSettings.UISounds, v => GameSettings.UISounds = v);
+
+        Heading(page, "Lighting");
+        GameObject light = Row("Ambience", page, 48, 12, false);
+        light.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+        MakeText("Label", light.transform, $"Room ambience\n<size={CaptionSize}><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>Warm light, glow and mood. Off keeps the plain look.</color></size>",
+            BodySize, TextColor, TextAlignmentOptions.Left).gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+        Button cycle = SmallButton(light.transform, GameSettings.Ambience.ToString(), CardColor, 110);
+        cycle.onClick.AddListener(() =>
+        {
+            GameSettings.Ambience = (RoomAmbience.Style)(((int)GameSettings.Ambience + 1) % 3);
+            PlayerPrefs.Save();
+            cycle.GetComponentInChildren<TMP_Text>().text = GameSettings.Ambience.ToString();
+        });
     }
 
     private void BuildFocus(Transform page)

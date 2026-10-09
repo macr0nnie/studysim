@@ -45,7 +45,7 @@ public class CharacterBehaviour : MonoBehaviour
         Happiness = Mathf.MoveTowards(Happiness, target, (target < Happiness ? 6f : 1.5f) * Time.deltaTime);
         Mood = Distraction.Reported ? Mood.Stressed : Happiness >= 70f ? Mood.Happy : Happiness < 30f ? Mood.Sad : Mood.Content;
 
-        if (Time.time >= nextCheck) { nextCheck = Time.time + 0.5f; UseFurniture(); }
+        if (Time.time >= nextCheck) { nextCheck = Time.time + 0.25f; UseFurniture(); }
         if (Time.time >= nextSay && !lying) { Say(CharacterDialogue.Line(Mood, CharacterDialogue.Stage)); nextSay = Time.time + SayEvery * Random.Range(0.8f, 1.6f); }
         if (bubbleBack.gameObject.activeSelf && Time.time >= hideBubble) bubbleBack.gameObject.SetActive(false);
         if (usedPiece != null) Hold();
@@ -248,9 +248,20 @@ public class CharacterBehaviour : MonoBehaviour
         }
         else if (Chairs(out List<Transform> chairs))
         {
-            // Several chairs: the one sitting closest to a desk, the newest winning a tie.
-            for (int i = chairs.Count - 1; i >= 0; i--)
-                if (SitSpot(chairs[i], out Vector3 p2, out Quaternion r2, out float dist) && dist < bestDist) { bestDist = dist; best = chairs[i].gameObject; pos = p2; rot = r2; }
+            // Several chairs: one with a desk within reach beats one without, then the most recently placed or moved,
+            // then the closest to a desk.
+            bool bestNear = false; float bestStamp = -1f;
+            foreach (Transform c in chairs)
+            {
+                Distraction.RestPose(c, out Vector3 cp, out Quaternion cr);
+                if (!stamps.TryGetValue(c, out Stamp s) || (s.pos - cp).sqrMagnitude > 0.0001f || Quaternion.Angle(s.rot, cr) > 1f)
+                    stamps[c] = s = new Stamp { pos = cp, rot = cr, time = Time.time };
+                if (!SitSpot(c, out Vector3 p2, out Quaternion r2, out float dist)) continue;
+                bool near = dist <= standingHeight * 0.6f;
+                bool better = best == null || (near != bestNear ? near : s.time != bestStamp ? s.time > bestStamp : dist < bestDist);
+                if (!better) continue;
+                best = c.gameObject; pos = p2; rot = r2; bestDist = dist; bestNear = near; bestStamp = s.time;
+            }
         }
         if (best == null) { if (usedPiece != null) { usedPiece = null; Release(); } return; }
         if (usedPiece == null || wantLie != lying)
@@ -266,6 +277,8 @@ public class CharacterBehaviour : MonoBehaviour
         localRot = Quaternion.Inverse(rest.rotation) * rot;
     }
 
+    private struct Stamp { public Vector3 pos; public Quaternion rot; public float time; }
+    private readonly Dictionary<Transform, Stamp> stamps = new Dictionary<Transform, Stamp>();
     private Vector3 localPos;
     private Quaternion localRot;
     private float standingHeight = 1f;

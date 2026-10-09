@@ -44,6 +44,13 @@ public class RoomManager : MonoBehaviour
     private float lastClickTime;
     private const float doubleClickThreshold = 0.3f;
 
+    // Bought pieces and what was paid, so removing one refunds it and the room can be saved and rebuilt.
+    private readonly Dictionary<GameObject, FurnitureItem> boughtItems = new Dictionary<GameObject, FurnitureItem>();
+    private readonly Dictionary<string, GameObject> sceneFurniture = new Dictionary<string, GameObject>();
+    private FurnitureItem previewItem;
+    private PlayerCurrency currency;
+    private const string SaveKey = "RoomLayout";
+
     private void Start()
     {
         mainCamera = Camera.main;
@@ -68,10 +75,17 @@ public class RoomManager : MonoBehaviour
             return;
         }
 
+        currency = FindFirstObjectByType<PlayerCurrency>();
         // Furniture already in the room at startup can be moved and deleted like bought furniture.
         foreach (Furniture f in FindObjectsByType<Furniture>(FindObjectsSortMode.None))
+        {
             placedObjects.Add(f.gameObject);
+            sceneFurniture[ScenePath(f.transform)] = f.gameObject;
+        }
+        LoadRoom();
     }
+
+    private void OnApplicationQuit() => SaveRoom();
 
     private void Update()
     {
@@ -94,6 +108,9 @@ public class RoomManager : MonoBehaviour
             HandleObjectSelection();
         }
 
+        // Save once a drag or rotation in edit mode is finished, not every frame.
+        if (isEditMode && selectedObject != null && (Input.GetMouseButtonUp(0) || Input.GetKeyUp(KeyCode.R))) SaveRoom();
+
         if (Input.GetKeyDown(KeyCode.Z))
         {
             Undo();
@@ -110,6 +127,14 @@ public class RoomManager : MonoBehaviour
         {
             ToggleGridPlacement();
         }
+    }
+
+    // Store purchases: charged when placed, refunded when removed, and remembered between sessions.
+    public void StartPlacingFurniture(FurnitureItem item)
+    {
+        if (item == null) return;
+        StartPlacingFurniture(item.prefab, null);
+        previewItem = item;
     }
 
     // Kept for the existing store buttons wired in the inspector.
@@ -285,10 +310,14 @@ public class RoomManager : MonoBehaviour
     // Instantiates the preview as a placed object.
     private void PlaceObject()
     {
+        if (previewItem != null && previewItem.price > 0 && (currency == null || !currency.SpendCoins(previewItem.price)))
+            return; // can't afford it (any more): keep the preview so the player can cancel
         Vector3 position = currentPreview.transform.position;
         GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
         placedObject.name = currentPreview.name;
         placedObjects.Add(placedObject);
+        if (previewItem != null) boughtItems[placedObject] = previewItem;
+        previewItem = null;
         RecordAction(placedObject);
         ResetPreviewMaterial(placedObject);
         StartCoroutine(PopIn(placedObject.transform));
@@ -298,6 +327,7 @@ public class RoomManager : MonoBehaviour
         Action placed = onPreviewPlaced;
         onPreviewPlaced = null;
         placed?.Invoke();
+        SaveRoom();
 
         Debug.Log("Placed object: " + placedObject.name + "; total placed: " + placedObjects.Count);
     }
@@ -305,6 +335,7 @@ public class RoomManager : MonoBehaviour
     private void CancelPlacement()
     {
         onPreviewPlaced = null;
+        previewItem = null;
         if (currentPreview != null)
         {
             Destroy(currentPreview);
@@ -440,38 +471,123 @@ public class RoomManager : MonoBehaviour
         {
             obj.SetActive(false);
             placedObjects.Remove(obj);
+            if (selectedObject == obj) selectedObject = null;
+            Refund(obj);
             RecordAction(obj);
+            SaveRoom();
         }
     }
 
     public void Undo()
     {
-        if (undoStack.Count > 0)
-        {
-            GameObject lastObject = undoStack.Pop();
-            redoStack.Push(lastObject);
-            ToggleActive(lastObject);
-        }
+        if (undoStack.Count > 0 && ToggleActive(undoStack.Peek()))
+            redoStack.Push(undoStack.Pop());
     }
 
     public void Redo()
     {
-        if (redoStack.Count > 0)
-        {
-            GameObject lastObject = redoStack.Pop();
-            undoStack.Push(lastObject);
-            ToggleActive(lastObject);
-        }
+        if (redoStack.Count > 0 && ToggleActive(redoStack.Peek()))
+            undoStack.Push(redoStack.Pop());
     }
 
     // Every place/delete is reversed by flipping the object's active state; keep placedObjects in sync
-    // so hidden objects stop blocking placement and restored ones can be selected again.
-    private void ToggleActive(GameObject obj)
+    // so hidden objects stop blocking placement and restored ones can be selected again. Bringing a bought
+    // piece back charges for it again (and fails if the player can't pay); hiding one refunds it.
+    private bool ToggleActive(GameObject obj)
     {
-        obj.SetActive(!obj.activeSelf);
-        if (obj.activeSelf) placedObjects.Add(obj);
+        bool show = !obj.activeSelf;
+        if (show && boughtItems.TryGetValue(obj, out FurnitureItem item) && item.price > 0
+            && (currency == null || !currency.SpendCoins(item.price)))
+            return false;
+        if (!show) Refund(obj);
+        obj.SetActive(show);
+        if (show) placedObjects.Add(obj);
         else placedObjects.Remove(obj);
-        if (selectedObject == obj && !obj.activeSelf) selectedObject = null;
+        if (selectedObject == obj && !show) selectedObject = null;
+        SaveRoom();
+        return true;
+    }
+
+    private void Refund(GameObject obj)
+    {
+        if (currency != null && boughtItems.TryGetValue(obj, out FurnitureItem item)) currency.AddCoins(item.price);
+    }
+
+    // ---------- saving the room ----------
+
+    [Serializable]
+    private class RoomSave
+    {
+        public List<SavedPiece> scene = new List<SavedPiece>();
+        public List<SavedPiece> bought = new List<SavedPiece>();
+    }
+
+    [Serializable]
+    private class SavedPiece
+    {
+        public string id;   // scene path, or the FurnitureItem asset name
+        public int index;   // position in the catalog, to tell apart items that share a name
+        public Vector3 position;
+        public Quaternion rotation;
+        public bool active;
+    }
+
+    private void SaveRoom()
+    {
+        var save = new RoomSave();
+        foreach (var pair in sceneFurniture)
+            if (pair.Value != null)
+                save.scene.Add(Piece(pair.Key, -1, pair.Value));
+        FurnitureCatalog catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
+        foreach (var pair in boughtItems)
+            if (pair.Key != null && pair.Key.activeSelf) // undone purchases were refunded
+                save.bought.Add(Piece(pair.Value.name, catalog != null ? catalog.items.IndexOf(pair.Value) : -1, pair.Key));
+        PlayerPrefs.SetString(SaveKey, JsonUtility.ToJson(save));
+        PlayerPrefs.Save();
+    }
+
+    private static SavedPiece Piece(string id, int index, GameObject go) => new SavedPiece
+    {
+        id = id, index = index, position = go.transform.position, rotation = go.transform.rotation, active = go.activeSelf,
+    };
+
+    private void LoadRoom()
+    {
+        if (!PlayerPrefs.HasKey(SaveKey)) return; // first run: keep the room as designed
+        var save = JsonUtility.FromJson<RoomSave>(PlayerPrefs.GetString(SaveKey));
+        if (save == null) return;
+
+        foreach (SavedPiece piece in save.scene)
+        {
+            if (!sceneFurniture.TryGetValue(piece.id, out GameObject go)) continue;
+            go.transform.SetPositionAndRotation(piece.position, piece.rotation);
+            go.SetActive(piece.active);
+            if (!piece.active) placedObjects.Remove(go);
+        }
+
+        FurnitureCatalog catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
+        if (catalog == null) return;
+        foreach (SavedPiece piece in save.bought)
+        {
+            FurnitureItem item = piece.index >= 0 && piece.index < catalog.items.Count && catalog.items[piece.index] != null
+                && catalog.items[piece.index].name == piece.id
+                ? catalog.items[piece.index]
+                : catalog.items.Find(i => i != null && i.name == piece.id);
+            if (item == null || item.prefab == null) continue; // removed from the store since
+            GameObject go = Instantiate(item.prefab, piece.position, piece.rotation);
+            go.name = item.prefab.name;
+            placedObjects.Add(go);
+            boughtItems[go] = item;
+        }
+    }
+
+    // Stable id for furniture that ships in the scene.
+    private static string ScenePath(Transform t)
+    {
+        // sibling index keeps two same-named pieces (e.g. two candles) apart
+        string path = $"{t.name}#{t.GetSiblingIndex()}";
+        for (Transform p = t.parent; p != null; p = p.parent) path = $"{p.name}#{p.GetSiblingIndex()}/{path}";
+        return path;
     }
 
     private void RecordAction(GameObject obj)

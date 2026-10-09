@@ -32,8 +32,12 @@ public class TimerManager : MonoBehaviour
     public Button plusButton;
     public Button minusButton;
 
+    private const string LengthKey = "StudySessionSeconds";
+
     private void Start()
     {
+        // the player's chosen session length survives restarts
+        studyDuration = PlayerPrefs.GetFloat(LengthKey, studyDuration);
         ResetTimer();
         if (plusButton) plusButton.onClick.AddListener(AddFiveMinutes);
         if (minusButton) minusButton.onClick.AddListener(RemoveFiveMinutes);
@@ -77,21 +81,33 @@ public class TimerManager : MonoBehaviour
         }
         isStudySession = !isStudySession;
         ResetTimer();
+        // A finished study session rolls straight into its break; after the break, wait for the player.
+        if (!isStudySession) StartTimer();
         OnTimerComplete?.Invoke();
     }
-    const int StudySessionExperience = 50; // two sessions is about a level early on
+
+    public int MoneyReward => baseMoneyReward;
+    public int ExperienceReward => baseExperienceReward;
+    public float StudyMinutes => studyDuration / 60f;
+
+    private void SaveLength()
+    {
+        PlayerPrefs.SetFloat(LengthKey, studyDuration);
+        PlayerPrefs.Save();
+    }
 
     public void GrantRewards()
     {
         if (playerCurrency != null) playerCurrency.AddCoins(baseMoneyReward);
         Experience experience = FindFirstObjectByType<Experience>();
-        if (experience != null) experience.GainExperience(StudySessionExperience);
+        if (experience != null) experience.GainExperience(baseExperienceReward);
     }
     public void SetCustomDuration(float minutes)
     {
         if (!isTimerRunning)
         {
-            studyDuration = minutes * 60f;
+            studyDuration = Mathf.Clamp(minutes, 5f, 120f) * 60f;
+            SaveLength();
             ResetTimer();
         }
     }
@@ -101,6 +117,7 @@ public class TimerManager : MonoBehaviour
         {
             studyDuration += 300f; // 5 minutes in seconds
             if (studyDuration > 7200f) studyDuration = 7200f; // Ensure it does not exceed 2 hours
+            SaveLength();
             ResetTimer();
         }
     }
@@ -109,6 +126,7 @@ public class TimerManager : MonoBehaviour
         if (!isTimerRunning && studyDuration > 300f)
         {
             studyDuration -= 300f; // 5 minutes in seconds
+            SaveLength();
             ResetTimer();
         }
     }

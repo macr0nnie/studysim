@@ -135,8 +135,8 @@ public class FurnitureStoreUI : MonoBehaviour
         FurnitureItem item = selected.item;
         if (playerCurrency.GetCoins() < item.price) return;
 
-        // Pay when the item is actually placed; right-click cancel is free.
-        roomManager.StartPlacingFurniture(item.prefab, () => playerCurrency.SpendCoins(item.price));
+        // Pay when the item is actually placed; right-click cancel is free, removing it later refunds it.
+        roomManager.StartPlacingFurniture(item);
         panel.SetActive(false);
     }
 

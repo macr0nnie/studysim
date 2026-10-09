@@ -4,8 +4,8 @@ using UnityEditor;
 using UnityEngine;
 
 // Study Sim > Build Music Library: groups the tracks in Assets/Audio into playlists with cover art, prices
-// and unlock levels. Keeps the first two playlists (the free ambient ones) and replaces the placeholder
-// copies after them. Safe to run again: it rebuilds the same playlists.
+// and unlock levels, replacing whatever was there (the old placeholder playlists pointed at these same files
+// under names like "WhiteNoise"). Safe to run again: it rebuilds the same playlists.
 public static class MusicLibraryTools
 {
     const string LibraryPath = "Assets/Scripts/Audio/PlaylistLibrary.asset", CoverFolder = "Assets/ART/UI/MusicCovers";
@@ -23,10 +23,10 @@ public static class MusicLibraryTools
     // title, price, unlock level, hue, track titles
     static readonly (string title, int price, int level, float hue, string[] songs)[] Lists =
     {
-        ("Calm Piano", 200, 2, 0.60f, new[] { "Emotional Piano", "Cozy Piano", "Evening Glow", "Soft Background Piano", "Pure Love" }),
-        ("Lofi Cafe", 300, 3, 0.08f, new[] { "Good Night", "Whispering Vinyl", "Iced Coffee" }),
-        ("Daydream", 400, 5, 0.42f, new[] { "Once in Paris", "Summer Walk" }),
-        ("Cinematic", 600, 8, 0.78f, new[] { "Mystery of Tension", "Hope Overture", "Yagi Wrath", "Spellcraft" }),
+        ("Calm Piano", 0, 0, 0.60f, new[] { "Emotional Piano", "Cozy Piano", "Evening Glow", "Soft Background Piano", "Pure Love" }),
+        ("Lofi Cafe", 200, 2, 0.08f, new[] { "Good Night", "Whispering Vinyl", "Iced Coffee" }),
+        ("Daydream", 300, 4, 0.42f, new[] { "Once in Paris", "Summer Walk" }),
+        ("Cinematic", 500, 6, 0.78f, new[] { "Mystery of Tension", "Hope Overture", "Yagi Wrath", "Spellcraft" }),
     };
 
     [MenuItem("Study Sim/Build Music Library")]
@@ -38,7 +38,7 @@ public static class MusicLibraryTools
             .Select(g => AssetDatabase.GUIDToAssetPath(g)).Select(p => (path: p, clip: AssetDatabase.LoadAssetAtPath<AudioClip>(p))).ToList();
         Directory.CreateDirectory(CoverFolder);
 
-        if (library.playlists.Count > 2) library.playlists.RemoveRange(2, library.playlists.Count - 2);
+        library.playlists.Clear();
         foreach (var list in Lists)
         {
             Sprite cover = MakeCover(list.title, list.hue);

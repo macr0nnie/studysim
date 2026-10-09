@@ -20,6 +20,13 @@ public class GameHUD : MonoBehaviour
     private Image cover, coverNote, editPill;
     private Sprite coverPlaceholder;
     private RoomManager room;
+    private TimerManager timer;
+    private TMP_Text timerText;
+    private Color timerStudyColor;
+    private AudioSource chime;
+    private readonly System.Collections.Generic.Queue<string> toasts = new System.Collections.Generic.Queue<string>();
+    private bool toastPlaying;
+    static readonly Color BreakColor = new Color(0.55f, 0.85f, 0.65f, 1f);
 
     // The old texts this card replaces.
     static readonly string[] ReplacedObjects = { "money_text", "player_experience", "coinsText" };
@@ -42,7 +49,9 @@ public class GameHUD : MonoBehaviour
         currency = FindFirstObjectByType<PlayerCurrency>();
         experience = FindFirstObjectByType<Experience>();
         room = FindFirstObjectByType<RoomManager>();
+        timer = FindFirstObjectByType<TimerManager>();
         BuildUI();
+        chime = MakeChime();
     }
 
     private IEnumerator Start()
@@ -52,6 +61,8 @@ public class GameHUD : MonoBehaviour
             GameObject old = GameObject.Find(name);
             if (old != null) old.SetActive(false);
         }
+        GameObject timerGO = GameObject.Find("TimerText");
+        if (timerGO != null && timerGO.TryGetComponent(out timerText)) timerStudyColor = timerText.color;
         GameObject debug = GameObject.Find("Debugging_Text");
         if (debug != null) debugText = debug.GetComponent<TMP_Text>();
 
@@ -68,6 +79,7 @@ public class GameHUD : MonoBehaviour
             experience.OnExperienceChanged += Refresh;
             experience.PlayerLevelUp?.AddListener(ShowLevelUp);
         }
+        if (timer != null) timer.OnTimerComplete += OnTimerComplete;
     }
 
     private void OnDisable()
@@ -78,11 +90,14 @@ public class GameHUD : MonoBehaviour
             experience.OnExperienceChanged -= Refresh;
             experience.PlayerLevelUp?.RemoveListener(ShowLevelUp);
         }
+        if (timer != null) timer.OnTimerComplete -= OnTimerComplete;
     }
 
     // The Chrome extension status line only matters for a moment; fade it once it stops changing.
     private void Update()
     {
+        // Green countdown while on a break, so it's clear which phase is running.
+        if (timerText != null && timer != null) timerText.color = timer.IsStudySession ? timerStudyColor : BreakColor;
         if (editPill != null && room != null) editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
         if (cover != null)
         {
@@ -113,25 +128,43 @@ public class GameHUD : MonoBehaviour
         xpFill.anchorMax = new Vector2(Mathf.Clamp01((float)xp / next), 1);
     }
 
-    private void ShowLevelUp(int level)
+    private void ShowLevelUp(int level) => ShowToast($"Level up!  You reached level {level}");
+
+    private void OnTimerComplete()
     {
-        toastText.text = $"Level up!  You reached level {level}";
-        StopCoroutine(nameof(Toast));
-        StartCoroutine(nameof(Toast));
+        // The timer has already flipped: now on a break means a study session just finished.
+        if (!timer.IsStudySession)
+            ShowToast($"Session complete!  +{timer.MoneyReward} coins, +{timer.ExperienceReward} XP.  Break started");
+        else
+            ShowToast("Break's over. Press play when you're ready");
+        if (chime != null) chime.Play();
     }
 
-    // Pops in under the timer, holds, then fades.
-    private IEnumerator Toast()
+    // Toasts queue up so a level-up and a session reward don't overwrite each other.
+    public void ShowToast(string message)
     {
+        toasts.Enqueue(message);
+        if (!toastPlaying) StartCoroutine(PlayToasts());
+    }
+
+    // Each one pops in under the timer, holds, then fades.
+    private IEnumerator PlayToasts()
+    {
+        toastPlaying = true;
         var rect = (RectTransform)toast.transform;
-        for (float t = 0; t < 3f; t += Time.unscaledDeltaTime)
+        while (toasts.Count > 0)
         {
-            float pop = t < 0.25f ? 1 + Mathf.Sin(t / 0.25f * Mathf.PI) * 0.12f : 1;
-            rect.localScale = Vector3.one * pop;
-            toast.alpha = t < 0.15f ? t / 0.15f : t > 2.4f ? (3f - t) / 0.6f : 1;
-            yield return null;
+            toastText.text = toasts.Dequeue();
+            for (float t = 0; t < 3f; t += Time.unscaledDeltaTime)
+            {
+                float pop = t < 0.25f ? 1 + Mathf.Sin(t / 0.25f * Mathf.PI) * 0.12f : 1;
+                rect.localScale = Vector3.one * pop;
+                toast.alpha = t < 0.15f ? t / 0.15f : t > 2.4f ? (3f - t) / 0.6f : 1;
+                yield return null;
+            }
+            toast.alpha = 0;
         }
-        toast.alpha = 0;
+        toastPlaying = false;
     }
 
     private void BuildUI()
@@ -193,7 +226,7 @@ public class GameHUD : MonoBehaviour
         GameObject toastGO = Make("LevelUpToast", canvas, typeof(Image), typeof(CanvasGroup));
         var toastRect = (RectTransform)toastGO.transform;
         toastRect.anchorMin = toastRect.anchorMax = toastRect.pivot = new Vector2(0.5f, 1);
-        toastRect.sizeDelta = new Vector2(460, 56);
+        toastRect.sizeDelta = new Vector2(660, 56);
         toastRect.anchoredPosition = new Vector2(0, -130);
         Style(toastGO.GetComponent<Image>(), AccentButtonColor);
         toast = toastGO.GetComponent<CanvasGroup>();
@@ -202,6 +235,27 @@ public class GameHUD : MonoBehaviour
         toastText = MakeText("Text", toastGO.transform, "", 24, TextColor, TextAlignmentOptions.Center);
         toastText.fontStyle = FontStyles.Bold;
         Stretch((RectTransform)toastText.transform);
+    }
+
+    // Soft two-note chime made in code, so there's an audible cue without adding an audio asset.
+    private AudioSource MakeChime()
+    {
+        const int rate = 44100;
+        var samples = new float[(int)(rate * 0.9f)];
+        for (int i = 0; i < samples.Length; i++)
+        {
+            float t = (float)i / rate;
+            float note = t < 0.3f ? 659.25f : 987.77f; // E5 then B5
+            float local = t < 0.3f ? t : t - 0.3f;
+            samples[i] = Mathf.Sin(2 * Mathf.PI * note * t) * Mathf.Exp(-local * 6f) * 0.25f;
+        }
+        var clip = AudioClip.Create("TimerChime", samples.Length, 1, rate, false);
+        clip.SetData(samples, 0);
+        var source = gameObject.AddComponent<AudioSource>();
+        source.clip = clip;
+        source.playOnAwake = false;
+        source.spatialBlend = 0;
+        return source;
     }
 
     private static void Place(RectTransform rect, Vector2 topLeft, Vector2 size)

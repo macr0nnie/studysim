@@ -101,14 +101,24 @@ public class GameHUD : MonoBehaviour
         if (editPill != null && room != null)
         {
             editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
-            if (room.IsEditMode && !wasEditing) ShowToast($"Edit mode: drag a piece to move it.  {Controls.KeyName(Controls.Act.Rotate)} rotates, {Controls.KeyName(Controls.Act.Delete)} removes, {Controls.KeyName(Controls.Act.Edit)} finishes");
+            if (room.IsEditMode != wasEditing)
+            {
+                hintBar.SetActive(room.IsEditMode);
+                if (room.IsEditMode) hintText.text = EditHints(); // rebuilt each time so rebound keys show
+            }
             wasEditing = room.IsEditMode;
         }
         if (fitPanel != null && room != null)
         {
             bool show = room.IsEditMode && room.SelectedPiece != null;
             if (fitPanel.activeSelf != show) fitPanel.SetActive(show);
-            if (show) fitInfo.text = $"Height +{room.SelectedLift:0.00}   Size {room.SelectedSize:0.00}x";
+            if (show)
+            {
+                fitName.text = room.SelectedName;
+                fitInfo.text = room.SelectedFits
+                    ? $"Height +{room.SelectedLift:0.00}   Size {room.SelectedSize:0.00}x"
+                    : $"<color=#{ColorUtility.ToHtmlStringRGB(DangerColor)}>Overlaps something. Let go somewhere free, or {Controls.KeyName(Controls.Act.Undo)} to undo</color>";
+            }
         }
         if (debugText == null) return;
         if (debugText.text != lastDebug)
@@ -120,17 +130,48 @@ public class GameHUD : MonoBehaviour
         debugText.alpha = age < 4 ? 1 : Mathf.Clamp01(1 - (age - 4));
     }
 
-    // Edit mode, bottom centre: raise/lower and grow/shrink the selected piece (the keys do the same).
-    private GameObject fitPanel;
-    private TMP_Text fitInfo;
+    // Edit mode, bottom centre (clear of the drawers on the left and the music card on the right): a key hint
+    // bar, and above it the selected piece's panel to turn, remove, raise/lower and grow/shrink it.
+    private GameObject fitPanel, hintBar;
+    private TMP_Text fitInfo, fitName, hintText;
+    const float HintHeight = 40;
+
+    private static string EditHints()
+    {
+        string accent = ColorUtility.ToHtmlStringRGB(AccentColor);
+        string K(Controls.Act a) => $"<color=#{accent}>{Controls.KeyName(a)}</color>";
+        return $"Click or drag a piece    {K(Controls.Act.Rotate)} rotate    {K(Controls.Act.Lower)} / {K(Controls.Act.Raise)} height    "
+            + $"{K(Controls.Act.Shrink)} / {K(Controls.Act.Grow)} size    {K(Controls.Act.Delete)} remove    {K(Controls.Act.Undo)} undo    "
+            + $"{K(Controls.Act.Edit)} done    {K(Controls.Act.Settings)} settings";
+    }
+
+    private void BuildHintBar(Transform canvas)
+    {
+        hintBar = Make("EditHints", canvas, typeof(Image));
+        var rect = (RectTransform)hintBar.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
+        rect.sizeDelta = new Vector2(900, HintHeight);
+        rect.anchoredPosition = new Vector2(0, 24);
+        Image image = hintBar.GetComponent<Image>();
+        Style(image, PanelColor);
+        image.raycastTarget = false; // a hint, not a click target: it mustn't block clicks on the room behind it
+        hintText = MakeText("Text", hintBar.transform, "", CaptionSize, MutedText, TextAlignmentOptions.Center);
+        hintText.raycastTarget = false;
+        hintText.enableAutoSizing = true;
+        hintText.fontSizeMin = 11;
+        hintText.fontSizeMax = CaptionSize;
+        Stretch((RectTransform)hintText.transform);
+        hintText.margin = new Vector4(12, 0, 12, 0);
+        hintBar.SetActive(false);
+    }
 
     private void BuildFitPanel(Transform canvas)
     {
         fitPanel = Make("FitPanel", canvas, typeof(Image), typeof(VerticalLayoutGroup));
         var rect = (RectTransform)fitPanel.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
-        rect.sizeDelta = new Vector2(420, 118);
-        rect.anchoredPosition = new Vector2(0, 24);
+        rect.sizeDelta = new Vector2(460, 160);
+        rect.anchoredPosition = new Vector2(0, 24 + HintHeight + 8);
         Style(fitPanel.GetComponent<Image>(), PanelColor);
         var v = fitPanel.GetComponent<VerticalLayoutGroup>();
         v.padding = new RectOffset(12, 12, 8, 8);
@@ -138,6 +179,17 @@ public class GameHUD : MonoBehaviour
         v.childControlWidth = v.childControlHeight = true;
         v.childForceExpandWidth = true;
         v.childForceExpandHeight = false;
+        GameObject header = Row("Header", fitPanel.transform, 34, 8, false);
+        fitName = MakeText("Name", header.transform, "", BodySize, TextColor, TextAlignmentOptions.Left);
+        fitName.fontStyle = FontStyles.Bold;
+        fitName.overflowMode = TextOverflowModes.Ellipsis;
+        fitName.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+        Button rotate = SmallButton(header.transform, "Rotate", TabColor, 110);
+        KeyHint(rotate.GetComponentInChildren<TMP_Text>(), "Rotate", Controls.Act.Rotate);
+        rotate.onClick.AddListener(() => room.RotateSelected());
+        Button remove = SmallButton(header.transform, "Remove", DangerColor, 130);
+        KeyHint(remove.GetComponentInChildren<TMP_Text>(), "Remove", Controls.Act.Delete);
+        remove.onClick.AddListener(() => room.DeleteSelected());
         fitInfo = MakeText("Info", fitPanel.transform, "", LabelSize, MutedText, TextAlignmentOptions.Center);
         fitInfo.gameObject.AddComponent<LayoutElement>().preferredHeight = 22;
         FitRow("Height", Controls.Act.Raise, Controls.Act.Lower, () => room.NudgeHeight(0.1f), () => room.NudgeHeight(-0.1f), () => room.ResetHeight());
@@ -269,6 +321,7 @@ public class GameHUD : MonoBehaviour
         edit.onClick.AddListener(() => { if (room != null) room.ToggleEditMode(); });
 
         if (timer != null) BuildTimerBar(canvas);
+        BuildHintBar(canvas);
         BuildFitPanel(canvas);
 
         // Level-up toast, centred under the clock.

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playlists:
   - title: Calm Piano
-    coverArt: {fileID: 1660977397445691096, guid: ec62212085c6b0b449d6f50c990a4c8f, type: 3}
+    coverArt: {fileID: 21300000, guid: e05849db482326149bb5765593c1cf7c, type: 3}
     price: 0
     unlockLevel: 0
     isUnlocked: 0
@@ -22,25 +22,25 @@ MonoBehaviour:
     - title: Emotional Piano
       artist: 
       audioClip: {fileID: 8300000, guid: 537c58f9572b4174eaf18c765e17f243, type: 3}
-      coverArt: {fileID: 1660977397445691096, guid: ec62212085c6b0b449d6f50c990a4c8f, type: 3}
+      coverArt: {fileID: 21300000, guid: ae2576dd9a9e493479cbe88d6760520d, type: 3}
     - title: Cozy Piano
       artist: 
       audioClip: {fileID: 8300000, guid: 0f10a130dd3b63740b452cb6bed15d15, type: 3}
-      coverArt: {fileID: 1660977397445691096, guid: ec62212085c6b0b449d6f50c990a4c8f, type: 3}
+      coverArt: {fileID: 21300000, guid: d8668a107123d4245bfd629007e0de7a, type: 3}
     - title: Evening Glow
       artist: 
       audioClip: {fileID: 8300000, guid: 7d4620f2c94d3384691f4503eb349e1a, type: 3}
-      coverArt: {fileID: 1660977397445691096, guid: ec62212085c6b0b449d6f50c990a4c8f, type: 3}
+      coverArt: {fileID: 21300000, guid: e05849db482326149bb5765593c1cf7c, type: 3}
     - title: Soft Background Piano
       artist: 
       audioClip: {fileID: 8300000, guid: 435a1c708aec01046a2eb5343d89411d, type: 3}
-      coverArt: {fileID: 1660977397445691096, guid: ec62212085c6b0b449d6f50c990a4c8f, type: 3}
+      coverArt: {fileID: 21300000, guid: 2cf904ae7bb3ce14493655d46892bdf3, type: 3}
     - title: Pure Love
       artist: 
       audioClip: {fileID: 8300000, guid: d757b332022bf4841a615315accb4174, type: 3}
-      coverArt: {fileID: 1660977397445691096, guid: ec62212085c6b0b449d6f50c990a4c8f, type: 3}
+      coverArt: {fileID: 21300000, guid: 0ebd493d0f278ad4ab4d5e8eb3ca8850, type: 3}
   - title: Lofi Cafe
-    coverArt: {fileID: 2853535579334504913, guid: 2d603dd78183ccd4db071b402e90acb3, type: 3}
+    coverArt: {fileID: 21300000, guid: b47100d0ea09b974c9aa9248cda3f838, type: 3}
     price: 200
     unlockLevel: 2
     isUnlocked: 0
@@ -48,17 +48,17 @@ MonoBehaviour:
     - title: Good Night
       artist: 
       audioClip: {fileID: 8300000, guid: 79179ffacf7e83045bf93c2da6630f10, type: 3}
-      coverArt: {fileID: 2853535579334504913, guid: 2d603dd78183ccd4db071b402e90acb3, type: 3}
+      coverArt: {fileID: 21300000, guid: 2a4db565a81c4ff43a350eafe9a61cbb, type: 3}
     - title: Whispering Vinyl
       artist: 
       audioClip: {fileID: 8300000, guid: 7860673bc11bc0d4e870c1bac1f48dc9, type: 3}
-      coverArt: {fileID: 2853535579334504913, guid: 2d603dd78183ccd4db071b402e90acb3, type: 3}
+      coverArt: {fileID: 21300000, guid: e0904258b4eab27428ce4e350e4db518, type: 3}
     - title: Iced Coffee
       artist: moonboy
       audioClip: {fileID: 8300000, guid: 31bc2940b9f402b4baae96e4fb97ad37, type: 3}
-      coverArt: {fileID: 2853535579334504913, guid: 2d603dd78183ccd4db071b402e90acb3, type: 3}
+      coverArt: {fileID: 21300000, guid: 2fde7768c968ee34ab34c0a841dc300d, type: 3}
   - title: Daydream
-    coverArt: {fileID: -2443757592537971086, guid: 7dbc13906d373d548a68508a58a1a59b, type: 3}
+    coverArt: {fileID: 21300000, guid: 967be7654748fa44598661553384c41e, type: 3}
     price: 300
     unlockLevel: 4
     isUnlocked: 0
@@ -66,13 +66,13 @@ MonoBehaviour:
     - title: Once in Paris
       artist: 
       audioClip: {fileID: 8300000, guid: 181b972c31adb434db83fe891082dfe2, type: 3}
-      coverArt: {fileID: -2443757592537971086, guid: 7dbc13906d373d548a68508a58a1a59b, type: 3}
+      coverArt: {fileID: 21300000, guid: a51735b3d935b724fa77b689313f9cbf, type: 3}
     - title: Summer Walk
       artist: 
       audioClip: {fileID: 8300000, guid: 10e51380fa48c8c4dabfb847610a7e0a, type: 3}
-      coverArt: {fileID: -2443757592537971086, guid: 7dbc13906d373d548a68508a58a1a59b, type: 3}
+      coverArt: {fileID: 21300000, guid: 967be7654748fa44598661553384c41e, type: 3}
   - title: Cinematic
-    coverArt: {fileID: 5429803242302916529, guid: 33d9bd0a952d2404aa1c98942f3f3c69, type: 3}
+    coverArt: {fileID: 21300000, guid: d0908a74b528f3143bb5f6a6652a3994, type: 3}
     price: 500
     unlockLevel: 6
     isUnlocked: 0
@@ -80,16 +80,16 @@ MonoBehaviour:
     - title: Mystery of Tension
       artist: 
       audioClip: {fileID: 8300000, guid: 00bd63b80dc8e984c8b6b6b3bec6c208, type: 3}
-      coverArt: {fileID: 5429803242302916529, guid: 33d9bd0a952d2404aa1c98942f3f3c69, type: 3}
+      coverArt: {fileID: 21300000, guid: 2a4db565a81c4ff43a350eafe9a61cbb, type: 3}
     - title: Hope Overture
       artist: 
       audioClip: {fileID: 8300000, guid: c1b2ad712e899d4428f8ec8b0f917f3c, type: 3}
-      coverArt: {fileID: 5429803242302916529, guid: 33d9bd0a952d2404aa1c98942f3f3c69, type: 3}
+      coverArt: {fileID: 21300000, guid: 9ed00ba868431d6449cd80d3956fdd54, type: 3}
     - title: Yagi Wrath
       artist: 
       audioClip: {fileID: 8300000, guid: a1a6d1c48f74b9f4f851279603094643, type: 3}
-      coverArt: {fileID: 5429803242302916529, guid: 33d9bd0a952d2404aa1c98942f3f3c69, type: 3}
+      coverArt: {fileID: 21300000, guid: d0908a74b528f3143bb5f6a6652a3994, type: 3}
     - title: Spellcraft
       artist: 
       audioClip: {fileID: 8300000, guid: 5fe3cd24c64cd7343a6962eddb1fd154, type: 3}
-      coverArt: {fileID: 5429803242302916529, guid: 33d9bd0a952d2404aa1c98942f3f3c69, type: 3}
+      coverArt: {fileID: 21300000, guid: a51735b3d935b724fa77b689313f9cbf, type: 3}

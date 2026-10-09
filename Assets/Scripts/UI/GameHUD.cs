@@ -229,12 +229,12 @@ public class GameHUD : MonoBehaviour
 
         if (timer != null) BuildTimerBar(canvas);
 
-        // Level-up toast, centred under the timer.
+        // Level-up toast, centred under the clock.
         GameObject toastGO = Make("LevelUpToast", canvas, typeof(Image), typeof(CanvasGroup));
         var toastRect = (RectTransform)toastGO.transform;
         toastRect.anchorMin = toastRect.anchorMax = toastRect.pivot = new Vector2(0.5f, 1);
         toastRect.sizeDelta = new Vector2(660, 56);
-        toastRect.anchoredPosition = new Vector2(0, -172); // under the timer controls
+        toastRect.anchoredPosition = new Vector2(0, -124); // under the clock
         Style(toastGO.GetComponent<Image>(), AccentButtonColor);
         toast = toastGO.GetComponent<CanvasGroup>();
         toast.alpha = 0;
@@ -289,9 +289,9 @@ public class GameHUD : MonoBehaviour
     {
         GameObject bar = Make("TimerControls", canvas, typeof(Image), typeof(HorizontalLayoutGroup));
         var rect = (RectTransform)bar.transform;
-        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1);
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1, 1); // top right, clear of the clock text
         rect.sizeDelta = new Vector2(330, 52);
-        rect.anchoredPosition = new Vector2(0, -106);
+        rect.anchoredPosition = new Vector2(-24, -46);
         Style(bar.GetComponent<Image>(), PanelColor);
         var layout = bar.GetComponent<HorizontalLayoutGroup>();
         layout.padding = new RectOffset(10, 10, 6, 6);

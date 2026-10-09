@@ -32,12 +32,13 @@ public class TimerManager : MonoBehaviour
     public Button plusButton;
     public Button minusButton;
 
-    private const string LengthKey = "StudySessionSeconds";
+    private const string LengthKey = "StudySessionSeconds", BreakKey = "BreakSessionSeconds";
 
     private void Start()
     {
         // the player's chosen session length survives restarts
         studyDuration = PlayerPrefs.GetFloat(LengthKey, studyDuration);
+        breakDuration = PlayerPrefs.GetFloat(BreakKey, breakDuration);
         ResetTimer();
         if (plusButton) plusButton.onClick.AddListener(AddFiveMinutes);
         if (minusButton) minusButton.onClick.AddListener(RemoveFiveMinutes);
@@ -89,6 +90,7 @@ public class TimerManager : MonoBehaviour
     public int MoneyReward => baseMoneyReward;
     public int ExperienceReward => baseExperienceReward;
     public float StudyMinutes => studyDuration / 60f;
+    public float BreakMinutes => breakDuration / 60f;
 
     private void SaveLength()
     {
@@ -110,6 +112,14 @@ public class TimerManager : MonoBehaviour
             SaveLength();
             ResetTimer();
         }
+    }
+    public void SetBreakDuration(float minutes)
+    {
+        if (isTimerRunning) return;
+        breakDuration = Mathf.Clamp(minutes, 1f, 30f) * 60f;
+        PlayerPrefs.SetFloat(BreakKey, breakDuration);
+        PlayerPrefs.Save();
+        ResetTimer();
     }
     public void AddFiveMinutes()
     {

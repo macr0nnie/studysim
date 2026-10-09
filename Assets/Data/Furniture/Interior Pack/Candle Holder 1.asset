@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Candle Holder 1
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Candle Holder 1
+  description: A candle holder 1 to keep your study corner warm and bright.
+  category: 2
+  tags:
+  - candle
+  - holder
+  - light
+  - source
+  price: 25
+  prefab: {fileID: 3145622940834242686, guid: d17eb34b666f89343b9f4df64b5e9873, type: 3}
+  icon: {fileID: 0}

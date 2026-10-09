@@ -50,7 +50,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: a6f3f36529aa234489f35498f64cc9af, type: 3}
       propertyPath: m_Name
-      value: Chair 2
+      value: Chair 13
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -65,6 +65,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a6f3f36529aa234489f35498f64cc9af, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3494301850005937132}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a6f3f36529aa234489f35498f64cc9af, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 9139844740621675936}
   m_SourcePrefab: {fileID: 100100000, guid: a6f3f36529aa234489f35498f64cc9af, type: 3}
 --- !u!1 &1505282833266610313 stripped
 GameObject:
@@ -126,3 +129,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hided: 1
+--- !u!114 &9139844740621675936
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1505282833266610313}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee977423c936a1a40b8da5f33554af0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Furniture
+  Type: 0

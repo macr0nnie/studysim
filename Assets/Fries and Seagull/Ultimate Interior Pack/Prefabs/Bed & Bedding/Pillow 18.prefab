@@ -50,7 +50,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: c8849b8ecfd0a994bb6be74e89bc3012, type: 3}
       propertyPath: m_Name
-      value: Pillow 1
+      value: Pillow 18
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -62,6 +62,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c8849b8ecfd0a994bb6be74e89bc3012, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8226040305360300934}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: c8849b8ecfd0a994bb6be74e89bc3012, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8856139937054894543}
   m_SourcePrefab: {fileID: 100100000, guid: c8849b8ecfd0a994bb6be74e89bc3012, type: 3}
 --- !u!1 &7645939850086282846 stripped
 GameObject:
@@ -102,3 +105,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hided: 1
+--- !u!114 &8856139937054894543
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7645939850086282846}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee977423c936a1a40b8da5f33554af0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Furniture
+  Type: 0

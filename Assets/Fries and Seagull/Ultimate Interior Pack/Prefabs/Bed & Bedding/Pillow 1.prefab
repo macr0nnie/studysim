@@ -62,6 +62,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b2917157f7fad8348851876f085af6da, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2662007543573246987}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: b2917157f7fad8348851876f085af6da, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 867203925960332824}
   m_SourcePrefab: {fileID: 100100000, guid: b2917157f7fad8348851876f085af6da, type: 3}
 --- !u!1 &6810255791744680206 stripped
 GameObject:
@@ -102,3 +105,16 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.6786709, y: 0.5664828, z: 0.23462951}
   m_Center: {x: 0, y: 0.2832414, z: -0.0047799945}
+--- !u!114 &867203925960332824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6810255791744680206}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee977423c936a1a40b8da5f33554af0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Furniture
+  Type: 0

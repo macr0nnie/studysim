@@ -50,7 +50,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 2fe76d75b2272414f969f03fa21b2fbf, type: 3}
       propertyPath: m_Name
-      value: Shelf 3 1
+      value: Shelf 10
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -62,6 +62,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2fe76d75b2272414f969f03fa21b2fbf, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4803522245405650531}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 2fe76d75b2272414f969f03fa21b2fbf, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8350510710467613700}
   m_SourcePrefab: {fileID: 100100000, guid: 2fe76d75b2272414f969f03fa21b2fbf, type: 3}
 --- !u!1 &5837303010750711661 stripped
 GameObject:
@@ -103,3 +106,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   hided: 1
+--- !u!114 &8350510710467613700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5837303010750711661}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee977423c936a1a40b8da5f33554af0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Furniture
+  Type: 0

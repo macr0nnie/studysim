@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Blanket 1
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Blanket 1
+  description: A blanket 1 to make your room your own.
+  category: 0
+  tags:
+  - blanket
+  - bed
+  - bedding
+  price: 40
+  prefab: {fileID: 5905222463912050210, guid: 63b626e347d82b647810252e350c36e4, type: 3}
+  icon: {fileID: 0}

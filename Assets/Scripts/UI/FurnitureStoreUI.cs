@@ -35,7 +35,7 @@ public class FurnitureStoreUI : MonoBehaviour
 
     // Tab labels, indexed by StoreCategory.
     private static readonly string[] CategoryNames =
-        { "Seating", "Desks & tables", "Beds", "Storage", "Lighting", "Plants", "Rugs & textiles", "Study", "Decor", "Wall decor", "Tech", "Kitchen & bath", "Spooky" };
+        { "Seating", "Desks & tables", "Beds", "Storage", "Lighting", "Plants & nature", "Rugs & textiles", "Study", "Decor", "Wall decor", "Tech", "Kitchen & bath", "Spooky" };
 
     // Any scene with a RoomManager gets a store, even if nobody added one to the scene.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]

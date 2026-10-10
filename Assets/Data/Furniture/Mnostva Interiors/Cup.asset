@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Cup
   description: A cup to add some personality to your space.
-  category: 8
+  category: 11
   tags:
   - cup
   price: 15

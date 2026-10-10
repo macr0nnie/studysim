@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Stone_F
   description: A stone_f to add some personality to your space.
-  category: 12
+  category: 5
   tags:
   - stone
   - rocks

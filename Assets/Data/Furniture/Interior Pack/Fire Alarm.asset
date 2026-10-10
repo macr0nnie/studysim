@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Fire Alarm
   description: A fire alarm to add some personality to your space.
-  category: 6
+  category: 10
   tags:
   - fire
   - alarm

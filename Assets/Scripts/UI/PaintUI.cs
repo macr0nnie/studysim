@@ -21,7 +21,7 @@ public class PaintUI : MonoBehaviour
         public string backgroundColor = "";
     }
 
-    // 60 paints, 12 to a row: neutrals and woods, reds and pinks, warm and green, blues and teals, purples and darks.
+    // 60 paints, 12 to a row (28px cells fit beside the scrollbar): neutrals and woods, reds and pinks, warm and green, blues and teals, purples and darks.
     static readonly string[] Swatches =
     {
         "FFFFFF", "F4EDE1", "E8D9C4", "D9C2A6", "BFBFBF", "9A9A9A", "7A7A7A", "5A5A5A", "3E3E3E", "1F1F1F", "B89A7A", "5E4636",
@@ -267,8 +267,15 @@ public class PaintUI : MonoBehaviour
         info.textWrappingMode = TextWrappingModes.Normal;
         info.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
 
+        // Materials come first and get two thirds of the free height; colours scroll in the last third.
+        materialsLabel = Label("Materials");
+        materialGrid = Grid(ScrollList(panel.transform, out ScrollRect scroll).gameObject, 56, 6, 8).transform;
+        materialScroll = scroll.gameObject;
+        materialScroll.GetComponent<LayoutElement>().flexibleHeight = 2;
+
         Label("Colours");
-        swatchGrid = Grid(Make("Swatches", panel.transform), 30, 12, 4).transform;
+        swatchGrid = Grid(ScrollList(panel.transform, out ScrollRect swatchScroll).gameObject, 28, 12, 4).transform;
+        swatchScroll.GetComponent<LayoutElement>().minHeight = 60; // two rows
         foreach (string hex in Swatches)
         {
             ColorUtility.TryParseHtmlString("#" + hex, out Color color);
@@ -279,12 +286,6 @@ public class PaintUI : MonoBehaviour
             swatch.GetComponent<Button>().onClick.AddListener(() => Pick(color));
         }
 
-        materialsLabel = Label("Materials");
-        materialGrid = Grid(ScrollList(panel.transform, out ScrollRect scroll).gameObject, 56, 6, 8).transform;
-        materialScroll = scroll.gameObject;
-
-        GameObject spacer = Make("Spacer", panel.transform, typeof(LayoutElement));
-        spacer.GetComponent<LayoutElement>().flexibleHeight = 1;
         resetButton = TextButton("Reset", panel.transform, "Reset colour", TabColor, BodySize);
         resetButton.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
         resetButton.onClick.AddListener(ResetTarget);

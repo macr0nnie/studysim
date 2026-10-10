@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Witch Hat
   description: "A pointy hat for when the studying gets magical."
-  category: 6
+  category: 8
   tags:
   - witchy
   - clothing

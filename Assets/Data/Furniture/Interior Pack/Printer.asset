@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Printer
   description: A printer to add some personality to your space.
-  category: 8
+  category: 10
   tags:
   - printer
   - office

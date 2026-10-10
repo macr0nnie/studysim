@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Rock_A
   description: A rock_a to add some personality to your space.
-  category: 10
+  category: 12
   tags:
   - rock
   - rocks

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Faucet
   description: A faucet to add some personality to your space.
-  category: 9
+  category: 11
   tags:
   - faucet
   price: 15

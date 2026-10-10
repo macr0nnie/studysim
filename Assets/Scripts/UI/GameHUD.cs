@@ -1,6 +1,7 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static UIKit;
@@ -25,6 +26,10 @@ public class GameHUD : MonoBehaviour
     private AudioSource chime;
     private readonly System.Collections.Generic.Queue<string> toasts = new System.Collections.Generic.Queue<string>();
     private bool toastPlaying, wasEditing;
+    // Idle: no mouse or key for a while fades the HUD and music card, so the room is what shows while studying.
+    private const float IdleAfter = 8f, IdleAlpha = 0.35f;
+    private float lastInput;
+    private readonly System.Collections.Generic.List<CanvasGroup> fadeGroups = new System.Collections.Generic.List<CanvasGroup>();
     static readonly Color BreakColor = new Color(0.55f, 0.85f, 0.65f, 1f);
 
     // The old texts this card replaces.
@@ -77,6 +82,13 @@ public class GameHUD : MonoBehaviour
         try { Refresh(); } catch (System.Exception e) { Debug.LogException(e); }
         yield return null; // the iPod fills its playlist in Start; theme it after that
         try { ThemeSceneUI(); } catch (System.Exception e) { Debug.LogException(e); }
+        foreach (string name in new[] { "HUDCanvas", "MusicCanvas" })
+        {
+            GameObject canvas = GameObject.Find(name);
+            if (canvas == null) continue;
+            if (!canvas.TryGetComponent(out CanvasGroup group)) group = canvas.AddComponent<CanvasGroup>();
+            fadeGroups.Add(group);
+        }
     }
 
     private int shownSeconds = -1;
@@ -116,6 +128,7 @@ public class GameHUD : MonoBehaviour
     // The Chrome extension status line only matters for a moment; fade it once it stops changing.
     private void Update()
     {
+        FadeWhenIdle();
         if (timer != null) UpdateTimerBar();
         if (timer != null && Time.unscaledTime >= nextClockPoll) { nextClockPoll = Time.unscaledTime + 0.5f; ShowClock(timer.CurrentTime); } // backs up the tick event
         // Green countdown while on a break, so it's clear which phase is running.
@@ -147,6 +160,17 @@ public class GameHUD : MonoBehaviour
         }
         float age = Time.unscaledTime - debugShownAt;
         debugText.alpha = age < 4 ? 1 : Mathf.Clamp01(1 - (age - 4));
+    }
+
+    private void FadeWhenIdle()
+    {
+        bool input = (Mouse.current != null && (Mouse.current.delta.ReadValue() != Vector2.zero || Mouse.current.scroll.ReadValue() != Vector2.zero))
+            || (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame);
+        if (input || toastPlaying || (room != null && room.IsEditMode)) lastInput = Time.unscaledTime;
+        float target = Time.unscaledTime - lastInput > IdleAfter ? IdleAlpha : 1f;
+        float speed = target > IdleAlpha ? 4f : 0.8f; // back quickly, away slowly
+        foreach (CanvasGroup group in fadeGroups)
+            if (group != null) group.alpha = Mathf.MoveTowards(group.alpha, target, Time.unscaledDeltaTime * speed);
     }
 
     // Edit mode, bottom centre (clear of the drawers on the left and the music card on the right): a key hint

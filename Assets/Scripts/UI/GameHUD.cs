@@ -22,7 +22,6 @@ public class GameHUD : MonoBehaviour
     private TimerManager timer;
     private TMP_Text timerText;
     private Transform hudCanvas;
-    private Color timerStudyColor;
     private AudioSource chime;
     private readonly System.Collections.Generic.Queue<string> toasts = new System.Collections.Generic.Queue<string>();
     private bool toastPlaying, wasEditing;
@@ -61,42 +60,34 @@ public class GameHUD : MonoBehaviour
 
     private IEnumerator Start()
     {
-        foreach (string name in ReplacedObjects)
+        // Each part guarded, so a problem in one can't stop the rest of the HUD from coming up.
+        try
         {
-            GameObject old = GameObject.Find(name);
-            if (old != null) old.SetActive(false);
+            foreach (string name in ReplacedObjects)
+            {
+                GameObject old = GameObject.Find(name);
+                if (old != null) old.SetActive(false);
+            }
+            GameObject oldClock = GameObject.Find("TimerText"); // the scene's own clock, replaced by the one in the timer bar
+            if (oldClock != null) oldClock.SetActive(false);
+            GameObject debug = GameObject.Find("Debugging_Text");
+            if (debug != null) debugText = debug.GetComponent<TMP_Text>();
         }
-        GameObject timerGO = GameObject.Find("TimerText");
-        if (timerGO != null && timerGO.TryGetComponent(out timerText)) timerStudyColor = timerText.color;
-        if (timerText == null && timer != null) BuildClock(); // the scene's clock text is gone
-        GameObject debug = GameObject.Find("Debugging_Text");
-        if (debug != null) debugText = debug.GetComponent<TMP_Text>();
-
-        Refresh();
+        catch (System.Exception e) { Debug.LogException(e); }
+        try { Refresh(); } catch (System.Exception e) { Debug.LogException(e); }
         yield return null; // the iPod fills its playlist in Start; theme it after that
-        ThemeSceneUI();
+        try { ThemeSceneUI(); } catch (System.Exception e) { Debug.LogException(e); }
     }
 
-    // Countdown in a panel above the timer controls, used when the scene has no TimerText of its own.
-    private void BuildClock()
-    {
-        GameObject panel = Make("Clock", hudCanvas, typeof(Image));
-        var rect = (RectTransform)panel.transform;
-        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1, 1);
-        rect.sizeDelta = new Vector2(330, 44);
-        rect.anchoredPosition = new Vector2(-24, -4);
-        Style(panel.GetComponent<Image>(), PanelColor);
-        timerText = MakeText("Time", panel.transform, "", 34, TextColor, TextAlignmentOptions.Center, display: true);
-        Stretch((RectTransform)timerText.transform);
-        timerStudyColor = TextColor;
-        timer.OnTimerTick += ShowClock;
-        ShowClock(timer.CurrentTime);
-    }
+    private int shownSeconds = -1;
+    private float nextClockPoll;
 
     private void ShowClock(float seconds)
     {
         if (timerText == null) return;
         int s = Mathf.CeilToInt(Mathf.Max(0, seconds));
+        if (s == shownSeconds) return;
+        shownSeconds = s;
         timerText.text = $"{s / 60:00}:{s % 60:00}";
     }
 
@@ -108,7 +99,7 @@ public class GameHUD : MonoBehaviour
             experience.OnExperienceChanged += Refresh;
             experience.PlayerLevelUp?.AddListener(ShowLevelUp);
         }
-        if (timer != null) timer.OnTimerComplete += OnTimerComplete;
+        if (timer != null) { timer.OnTimerComplete += OnTimerComplete; timer.OnTimerTick += ShowClock; }
     }
 
     private void OnDisable()
@@ -126,8 +117,9 @@ public class GameHUD : MonoBehaviour
     private void Update()
     {
         if (timer != null) UpdateTimerBar();
+        if (timer != null && Time.unscaledTime >= nextClockPoll) { nextClockPoll = Time.unscaledTime + 0.5f; ShowClock(timer.CurrentTime); } // backs up the tick event
         // Green countdown while on a break, so it's clear which phase is running.
-        if (timerText != null && timer != null) timerText.color = timer.IsStudySession ? timerStudyColor : XpColor;
+        if (timerText != null && timer != null) timerText.color = timer.IsStudySession ? TextColor : XpColor;
         if (editPill != null && room != null)
         {
             editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
@@ -423,14 +415,25 @@ public class GameHUD : MonoBehaviour
         GameObject bar = Make("TimerControls", canvas, typeof(Image), typeof(HorizontalLayoutGroup));
         var rect = (RectTransform)bar.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1, 1); // top right, clear of the clock text
-        rect.sizeDelta = new Vector2(330, 52);
-        rect.anchoredPosition = new Vector2(-24, -46);
+        rect.sizeDelta = new Vector2(330, 96);
+        rect.anchoredPosition = new Vector2(-24, -8);
         Style(bar.GetComponent<Image>(), PanelColor);
         var layout = bar.GetComponent<HorizontalLayoutGroup>();
-        layout.padding = new RectOffset(10, 10, 6, 6);
+        layout.padding = new RectOffset(10, 10, 46, 6); // the countdown takes the top strip
         layout.spacing = 10;
         layout.childAlignment = TextAnchor.MiddleCenter;
         layout.childControlWidth = layout.childControlHeight = false;
+
+        // The countdown: always built with the buttons, never read from the scene.
+        timerText = MakeText("Countdown", bar.transform, "00:00", 38, TextColor, TextAlignmentOptions.Center, display: true);
+        timerText.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
+        var clock = (RectTransform)timerText.transform;
+        clock.anchorMin = new Vector2(0, 1);
+        clock.anchorMax = new Vector2(1, 1);
+        clock.pivot = new Vector2(0.5f, 1);
+        clock.sizeDelta = new Vector2(0, 42);
+        clock.anchoredPosition = new Vector2(0, -4);
+        ShowClock(timer.CurrentTime);
 
         timerMinus = TimerButton(bar.transform, "Minus", 56, 36, TabColor, timer.RemoveFiveMinutes);
         Stretch((RectTransform)MakeText("Label", timerMinus.transform, "-5", BodySize, TextColor, TextAlignmentOptions.Center).transform);

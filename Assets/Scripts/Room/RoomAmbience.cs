@@ -48,7 +48,7 @@ public class RoomAmbience : MonoBehaviour
     public static bool SkyHidden; // set by PaintUI while a background colour is picked
 
     private static RoomAmbience instance;
-    private RawImage skyImage;
+    private RawImage skyImage, skyPhoto;
     private Texture2D skyTexture;
     private float skyClock;
     private ParticleSystem dust;
@@ -132,7 +132,7 @@ public class RoomAmbience : MonoBehaviour
         if (skyImage != null)
         {
             bool showSky = !SkyHidden && !mini; // mini mode's window needs the camera's own clear colour
-            if (skyImage.enabled != showSky) skyImage.enabled = showSky;
+            if (skyImage.enabled != showSky) { skyImage.enabled = showSky; if (skyPhoto != null) skyPhoto.enabled = showSky; }
             if (showSky && (skyClock -= Time.unscaledDeltaTime) <= 0) { skyClock = 30; PaintSky(); }
         }
         if (key == null) return;
@@ -228,6 +228,20 @@ public class RoomAmbience : MonoBehaviour
         skyTexture = new Texture2D(1, 2, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
         skyImage.texture = skyTexture;
         skyImage.uvRect = new Rect(0, 0.25f, 1, 0.5f); // texel centre to texel centre: a full bottom-to-top blend
+
+        // A cloudy daytime sky photo over the gradient, faded out towards night so the gradient's dusk and night show.
+        // One static texture: the photo is never redrawn, only its tint and fade change every 30 seconds.
+        var photo = Resources.Load<Texture2D>("RoomSky");
+        if (photo != null)
+        {
+            skyPhoto = new GameObject("Clouds", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+            skyPhoto.transform.SetParent(canvasGO.transform, false);
+            rect = (RectTransform)skyPhoto.transform;
+            rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = rect.offsetMax = Vector2.zero;
+            skyPhoto.raycastTarget = false;
+            skyPhoto.texture = photo;
+            skyPhoto.uvRect = new Rect(0.3f, 0.48f, 0.4f, 0.4f); // the wispy clouds just above the panorama's horizon
+        }
         PaintSky();
     }
 
@@ -237,9 +251,16 @@ public class RoomAmbience : MonoBehaviour
         int i = 0;
         while (i < SkyKeys.Length - 2 && hour > SkyKeys[i + 1].hour) i++;
         float t = Mathf.InverseLerp(SkyKeys[i].hour, SkyKeys[i + 1].hour, hour);
-        skyTexture.SetPixel(0, 0, Color.Lerp(SkyKeys[i].bottom, SkyKeys[i + 1].bottom, t));
-        skyTexture.SetPixel(0, 1, Color.Lerp(SkyKeys[i].top, SkyKeys[i + 1].top, t));
+        Color bottom = Color.Lerp(SkyKeys[i].bottom, SkyKeys[i + 1].bottom, t), top = Color.Lerp(SkyKeys[i].top, SkyKeys[i + 1].top, t);
+        skyTexture.SetPixel(0, 0, bottom);
+        skyTexture.SetPixel(0, 1, top);
         skyTexture.Apply();
+        if (skyPhoto != null)
+        {
+            Color tint = Color.Lerp(bottom, Color.white, 0.6f); // warm at dawn and dusk, plain by day
+            tint.a = Mathf.InverseLerp(0.15f, 0.8f, top.grayscale); // gone at night, full by day
+            skyPhoto.color = tint;
+        }
     }
 
     // A few slow warm motes over the floor. Cheap: at most 40 particles, no lights or collisions.

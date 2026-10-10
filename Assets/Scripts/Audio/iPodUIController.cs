@@ -30,10 +30,10 @@ public class iPodUIController : MonoBehaviour
     private void Start()
     {
         if (musicPlayer == null)
-            musicPlayer = FindFirstObjectByType<MusicPlayer>();
+            musicPlayer = FindAnyObjectByType<MusicPlayer>();
             
         if (playerCurrency == null)
-            playerCurrency = FindFirstObjectByType<PlayerCurrency>();
+            playerCurrency = FindAnyObjectByType<PlayerCurrency>();
             
         // Setup event listeners
         musicPlayer.OnSongChanged.AddListener(UpdateSongDisplay);

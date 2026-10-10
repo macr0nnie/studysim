@@ -46,14 +46,14 @@ public class SettingsUI : MonoBehaviour
 
     private static void EnsureSettings()
     {
-        if (FindFirstObjectByType<RoomManager>() != null && FindFirstObjectByType<SettingsUI>() == null)
+        if (FindAnyObjectByType<RoomManager>() != null && FindAnyObjectByType<SettingsUI>() == null)
             new GameObject("Settings").AddComponent<SettingsUI>();
     }
 
     private void Awake()
     {
-        timer = FindFirstObjectByType<TimerManager>();
-        bridge = FindFirstObjectByType<ChromeWebEx>();
+        timer = FindAnyObjectByType<TimerManager>();
+        bridge = FindAnyObjectByType<ChromeWebEx>();
         BuildUI();
     }
 
@@ -234,7 +234,7 @@ public class SettingsUI : MonoBehaviour
         save.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
         save.onClick.AddListener(() =>
         {
-            SavesUI saves = FindFirstObjectByType<SavesUI>();
+            SavesUI saves = FindAnyObjectByType<SavesUI>();
             if (saves != null) saves.SaveNow(); else SaveSystem.Save(SaveSystem.CurrentSlot);
         });
         Button menu = TextButton("MainMenu", side.transform, "Main menu", TabColor, BodySize);

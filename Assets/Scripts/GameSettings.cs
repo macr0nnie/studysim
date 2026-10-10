@@ -26,14 +26,14 @@ public static class GameSettings
         set
         {
             PlayerPrefs.SetFloat("MusicVolume", value);
-            MusicPlayer music = Object.FindFirstObjectByType<MusicPlayer>();
+            MusicPlayer music = Object.FindAnyObjectByType<MusicPlayer>();
             if (music != null) music.SetVolume(value);
         }
     }
 
     public static float EffectsVolume { get => PlayerPrefs.GetFloat("EffectsVolume", 1f); set => PlayerPrefs.SetFloat("EffectsVolume", value); }
 
-    public static FocusMode Mode { get => (FocusMode)PlayerPrefs.GetInt("FocusMode", 0); set => PlayerPrefs.SetInt("FocusMode", (int)value); }
+    public static FocusMode Mode { get => (FocusMode)Mathf.Clamp(PlayerPrefs.GetInt("FocusMode", 0), 0, Modes.Length - 1); set => PlayerPrefs.SetInt("FocusMode", (int)value); }
     public static bool StrictFocus { get => Get("StrictFocus", false); set => Set("StrictFocus", value); }
     public static bool AutoStartBreak { get => Get("AutoStartBreak", true); set => Set("AutoStartBreak", value); }
     public static bool AutoStartStudy { get => Get("AutoStartStudy", false); set => Set("AutoStartStudy", value); }

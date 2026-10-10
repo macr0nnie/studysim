@@ -33,6 +33,7 @@ public class MiniMode : MonoBehaviour
     private TimerManager timer;
     private TMP_Text timerText; // the one UI kept while mini: the focus countdown
     private float lastClick = -1, blockUntil;
+    private int shownTimer = -1;
     // Full-mode settings, restored on the way back.
     private int frameRate, vSync;
     private bool shadows;
@@ -47,7 +48,7 @@ public class MiniMode : MonoBehaviour
 
     private static void EnsureMiniMode()
     {
-        if (FindFirstObjectByType<RoomManager>() != null && instance == null)
+        if (FindAnyObjectByType<RoomManager>() != null && instance == null)
             instance = new GameObject("MiniMode").AddComponent<MiniMode>();
     }
 
@@ -64,6 +65,9 @@ public class MiniMode : MonoBehaviour
         if (timerText != null && timer != null)
         {
             int s = Mathf.Max(0, Mathf.CeilToInt(timer.CurrentTime));
+            int key = s * 2 + (timer.IsStudySession ? 1 : 0);
+            if (key == shownTimer) return; // the string only changes once a second
+            shownTimer = key;
             timerText.text = $"{s / 60:00}:{s % 60:00}  <size=60%>{(timer.IsStudySession ? "Focus" : "Break")}</size>";
         }
     }
@@ -90,7 +94,7 @@ public class MiniMode : MonoBehaviour
         Controls.MiniOnly(Active);
 
         // Display only: the room ignores clicks (a right-click would otherwise delete furniture).
-        if (room == null) room = FindFirstObjectByType<RoomManager>();
+        if (room == null) room = FindAnyObjectByType<RoomManager>();
         if (room != null)
         {
             if (Active && room.IsEditMode) room.ToggleEditMode();
@@ -100,7 +104,7 @@ public class MiniMode : MonoBehaviour
         if (Active)
         {
             hidden.Clear();
-            foreach (Canvas c in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
+            foreach (Canvas c in FindObjectsByType<Canvas>())
                 if (c.isRootCanvas && c.enabled) { Show(c, false); hidden.Add(c); }
             ShowTimer();
         }
@@ -120,11 +124,12 @@ public class MiniMode : MonoBehaviour
 
     private void ShowTimer()
     {
-        if (timer == null) timer = FindFirstObjectByType<TimerManager>();
+        if (timer == null) timer = FindAnyObjectByType<TimerManager>();
         if (timer == null) return;
         Canvas canvas = MakeCanvas("MiniTimerCanvas", transform, 50);
         // The mini window is only 360x300, so the 1920x1080 scaling would shrink the text to a few pixels.
         canvas.GetComponent<UnityEngine.UI.CanvasScaler>().uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ConstantPixelSize;
+        shownTimer = -1; // a fresh label starts empty
         timerText = MakeText("MiniTimer", canvas.transform, "", 40, Color.white, TextAlignmentOptions.Top, true);
         Anchor(timerText.gameObject, new Vector2(0, 0.8f), new Vector2(1, 1));
         timerText.outlineWidth = 0.25f; // readable over any background behind the see-through window

@@ -47,7 +47,7 @@ public class Distraction : MonoBehaviour
 
     private static void Ensure()
     {
-        if (FindFirstObjectByType<RoomManager>() != null && FindFirstObjectByType<Distraction>() == null)
+        if (FindAnyObjectByType<RoomManager>() != null && FindAnyObjectByType<Distraction>() == null)
             new GameObject("Distraction").AddComponent<Distraction>();
     }
 
@@ -72,9 +72,9 @@ public class Distraction : MonoBehaviour
     private void Awake()
     {
         instance = this;
-        room = FindFirstObjectByType<RoomManager>();
-        timer = FindFirstObjectByType<TimerManager>();
-        currency = FindFirstObjectByType<PlayerCurrency>();
+        room = FindAnyObjectByType<RoomManager>();
+        timer = FindAnyObjectByType<TimerManager>();
+        currency = FindAnyObjectByType<PlayerCurrency>();
     }
 
     private void Update()
@@ -120,7 +120,7 @@ public class Distraction : MonoBehaviour
                         wall = piece.TryGetComponent(out Furniture f) && f.Type == Furniture.FurnitureType.Wall,
                     };
                 }
-            foreach (Light light in FindObjectsByType<Light>(FindObjectsSortMode.None))
+            foreach (Light light in FindObjectsByType<Light>())
                 if (light.type != LightType.Directional) lights[light] = light.intensity;
         }
         UISound.Play(UISound.Cue.Warning);
@@ -177,7 +177,7 @@ public class Distraction : MonoBehaviour
 
     private static void Toast(string message)
     {
-        GameHUD hud = FindFirstObjectByType<GameHUD>();
+        GameHUD hud = FindAnyObjectByType<GameHUD>();
         if (hud != null) hud.ShowToast(message);
     }
 }

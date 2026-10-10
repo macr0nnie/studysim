@@ -27,8 +27,8 @@ public class CharacterBehaviour : MonoBehaviour
 
     private void Start()
     {
-        room = FindFirstObjectByType<RoomManager>();
-        timer = FindFirstObjectByType<TimerManager>();
+        room = FindAnyObjectByType<RoomManager>();
+        timer = FindAnyObjectByType<TimerManager>();
         animator = GetComponent<Animator>();
         renderers = GetComponentsInChildren<Renderer>();
         icons = Resources.Load<MoodIcons>("MoodIcons");
@@ -57,7 +57,7 @@ public class CharacterBehaviour : MonoBehaviour
         Camera cam = Camera.main;
         if (cam == null || icon == null) return;
         Bounds b = default; bool found = false;
-        foreach (Renderer r in renderers) if (r != null && r.enabled && !(r is SpriteRenderer) && !(r is TextMeshPro)) { if (!found) { b = r.bounds; found = true; } else b.Encapsulate(r.bounds); }
+        foreach (Renderer r in renderers) if (r != null && r.enabled && !(r is SpriteRenderer)) { if (!found) { b = r.bounds; found = true; } else b.Encapsulate(r.bounds); }
         if (!found) return;
         float h = b.size.magnitude * 0.2f;
         Vector3 top = new Vector3(b.center.x, b.max.y + h * 0.5f, b.center.z);

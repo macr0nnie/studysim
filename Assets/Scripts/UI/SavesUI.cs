@@ -24,7 +24,7 @@ public class SavesUI : MonoBehaviour
 
     private static void EnsureSaves()
     {
-        if (FindFirstObjectByType<RoomManager>() != null && FindFirstObjectByType<SavesUI>() == null)
+        if (FindAnyObjectByType<RoomManager>() != null && FindAnyObjectByType<SavesUI>() == null)
             new GameObject("Saves").AddComponent<SavesUI>();
     }
 

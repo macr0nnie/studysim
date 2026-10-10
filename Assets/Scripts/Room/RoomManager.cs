@@ -12,7 +12,6 @@ public class RoomManager : MonoBehaviour
     [SerializeField] private LayerMask furnitureLayer;
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private LayerMask shelfLayer;
-    [SerializeField] private float snapThreshold = 0.5f;
     [SerializeField] private float gridSize = 1.0f;
     [SerializeField] private bool useGridPlacement = true;
 
@@ -113,11 +112,11 @@ public class RoomManager : MonoBehaviour
         // so neither missing asset should switch off building and edit mode.
         if (placementParticlePrefab == null) Debug.LogWarning("RoomManager: no placement particle effect assigned.");
 
-        currency = FindFirstObjectByType<PlayerCurrency>();
+        currency = FindAnyObjectByType<PlayerCurrency>();
         SetUpSurfaces();
         StudyCharacter.EnsurePlayer(); // the sceneLoaded call runs before the floor exists
         // Furniture already in the room at startup can be moved and deleted like bought furniture.
-        foreach (Furniture f in FindObjectsByType<Furniture>(FindObjectsSortMode.None))
+        foreach (Furniture f in FindObjectsByType<Furniture>())
         {
             placedObjects.Add(f.gameObject);
             sceneFurniture[ScenePath(f.transform)] = f.gameObject;
@@ -390,17 +389,17 @@ public class RoomManager : MonoBehaviour
         }
 
         ceilingY = float.MinValue;
-        foreach (Collider c in FindObjectsByType<Collider>(FindObjectsSortMode.None))
+        foreach (Collider c in FindObjectsByType<Collider>())
             if (((1 << c.gameObject.layer) & wallLayer) != 0) ceilingY = Mathf.Max(ceilingY, c.bounds.max.y);
         if (ceilingY == float.MinValue) ceilingY = 3f; // shortcut: no walls found, so assume a 3 m room; assign wallMeshes to fix
 
         if (floorMeshes.Length == 0)
         {
             var floors = new List<Renderer>();
-            foreach (Renderer r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+            foreach (Renderer r in FindObjectsByType<Renderer>())
                 if (((1 << r.gameObject.layer) & placementLayer) != 0 && r.GetComponent<Collider>() == null) floors.Add(r);
             if (floors.Count == 0) // every floor has a collider: use the visible ones anyway
-                foreach (Renderer r in FindObjectsByType<Renderer>(FindObjectsSortMode.None))
+                foreach (Renderer r in FindObjectsByType<Renderer>())
                     if (((1 << r.gameObject.layer) & placementLayer) != 0 && r.enabled) floors.Add(r);
             floorMeshes = floors.ToArray();
         }
@@ -430,7 +429,7 @@ public class RoomManager : MonoBehaviour
         if (!hasRoomFloor) // floor deleted too: use the placement colliders, or a 6 x 6 m room at the origin
         {
             bool any = false;
-            foreach (Collider c in FindObjectsByType<Collider>(FindObjectsSortMode.None))
+            foreach (Collider c in FindObjectsByType<Collider>())
                 if (((1 << c.gameObject.layer) & placementLayer) != 0) { if (!any) floor = c.bounds; else floor.Encapsulate(c.bounds); any = true; }
             if (!any) floor = new Bounds(Vector3.zero, new Vector3(6, 0, 6));
         }
@@ -1139,7 +1138,7 @@ public class RoomManager : MonoBehaviour
             foreach (GameObject other in placedObjects)
                 if (other != obj && other.activeInHierarchy && IsKind(other, kind)) { another = true; break; }
             if (another) continue;
-            FindFirstObjectByType<GameHUD>()?.ShowToast($"Your room needs a {kind}. Put another one down first, then you can remove this one.");
+            FindAnyObjectByType<GameHUD>()?.ShowToast($"Your room needs a {kind}. Put another one down first, then you can remove this one.");
             return false;
         }
         return true;
@@ -1406,7 +1405,9 @@ public class RoomManager : MonoBehaviour
             if (PlayerPrefs.GetInt("EmptyRoom", 0) == 1) EmptyRoom(); // new game: a bare bedroom to decorate
             return; // otherwise keep the room as designed
         }
-        var save = JsonUtility.FromJson<RoomSave>(PlayerPrefs.GetString(SaveKey));
+        RoomSave save;
+        try { save = JsonUtility.FromJson<RoomSave>(PlayerPrefs.GetString(SaveKey)); }
+        catch (ArgumentException) { Debug.LogWarning("RoomManager: saved room layout is unreadable; keeping the room as designed."); return; }
         if (save == null) return;
 
         foreach (SavedPiece piece in save.scene)
@@ -1454,9 +1455,14 @@ public class RoomManager : MonoBehaviour
     public FurnitureItem ItemOf(GameObject piece)
     {
         if (boughtItems.TryGetValue(piece, out FurnitureItem item)) return item;
-        FurnitureCatalog catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
-        return catalog == null ? null : catalog.items.Find(i => i != null && i.prefab != null && i.prefab.name == piece.name);
+        // Called every frame per piece (character mood), so no lambda and the catalog is looked up once.
+        if (itemCatalog == null) itemCatalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
+        if (itemCatalog == null) return null;
+        foreach (FurnitureItem i in itemCatalog.items)
+            if (i != null && i.prefab != null && i.prefab.name == piece.name) return i;
+        return null;
     }
+    private FurnitureCatalog itemCatalog;
 
     private static bool HasLights(GameObject piece) => piece.GetComponentInChildren<Light>(true) != null;
 

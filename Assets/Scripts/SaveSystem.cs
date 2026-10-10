@@ -21,7 +21,7 @@ public static class SaveSystem
         public string savedAt;
         public int level, coins;
         public List<string> keys = new List<string>(), values = new List<string>();
-        public DateTime SavedAt => DateTime.Parse(savedAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+        public DateTime SavedAt => DateTime.TryParse(savedAt, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime t) ? t : DateTime.MinValue; // a hand-edited or old slot must not break the menu
     }
 
     public static event Action<int> Saved;

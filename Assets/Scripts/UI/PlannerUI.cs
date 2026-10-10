@@ -39,15 +39,15 @@ public class PlannerUI : MonoBehaviour
 
     private static void EnsurePlanner()
     {
-        if (FindFirstObjectByType<RoomManager>() != null && FindFirstObjectByType<PlannerUI>() == null)
+        if (FindAnyObjectByType<RoomManager>() != null && FindAnyObjectByType<PlannerUI>() == null)
             new GameObject("Planner").AddComponent<PlannerUI>();
     }
 
     private void Awake()
     {
-        taskList = FindFirstObjectByType<TaskList>() ?? gameObject.AddComponent<TaskList>();
-        habits = FindFirstObjectByType<HabitTracker>() ?? gameObject.AddComponent<HabitTracker>();
-        experience = FindFirstObjectByType<Experience>();
+        taskList = FindAnyObjectByType<TaskList>() ?? gameObject.AddComponent<TaskList>();
+        habits = FindAnyObjectByType<HabitTracker>() ?? gameObject.AddComponent<HabitTracker>();
+        experience = FindAnyObjectByType<Experience>();
         BuildUI();
     }
 
@@ -131,7 +131,7 @@ public class PlannerUI : MonoBehaviour
             {
                 xp += MilestoneExperience;
                 text = $"{habit.currentStreak}-day streak!  +{xp} XP";
-                GameHUD hud = FindFirstObjectByType<GameHUD>();
+                GameHUD hud = FindAnyObjectByType<GameHUD>();
                 if (hud != null) hud.ShowToast($"{habit.currentStreak}-day streak on \"{habit.habitName}\"! Keep the chain going.");
             }
             if (experience != null) experience.GainExperience(xp);

@@ -39,16 +39,16 @@ public class GameHUD : MonoBehaviour
 
     private static void EnsureHUD()
     {
-        if (FindFirstObjectByType<RoomManager>() != null && FindFirstObjectByType<GameHUD>() == null)
+        if (FindAnyObjectByType<RoomManager>() != null && FindAnyObjectByType<GameHUD>() == null)
             new GameObject("GameHUD").AddComponent<GameHUD>();
     }
 
     private void Awake()
     {
-        currency = FindFirstObjectByType<PlayerCurrency>();
-        experience = FindFirstObjectByType<Experience>();
-        room = FindFirstObjectByType<RoomManager>();
-        timer = FindFirstObjectByType<TimerManager>();
+        currency = FindAnyObjectByType<PlayerCurrency>();
+        experience = FindAnyObjectByType<Experience>();
+        room = FindAnyObjectByType<RoomManager>();
+        timer = FindAnyObjectByType<TimerManager>();
         BuildUI();
         if (PlayerPrefs.GetInt("SeenWelcome", 0) == 0)
         {
@@ -178,7 +178,7 @@ public class GameHUD : MonoBehaviour
         HintButton("Remove", Controls.Act.Delete, () => room.DeleteSelected());
         HintButton("Undo", Controls.Act.Undo, () => room.Undo());
         HintButton("Done", Controls.Act.Edit, () => room.ToggleEditMode());
-        HintButton("Settings", Controls.Act.Settings, () => FindFirstObjectByType<SettingsUI>()?.Toggle());
+        HintButton("Settings", Controls.Act.Settings, () => FindAnyObjectByType<SettingsUI>()?.Toggle());
         hintBar.SetActive(false);
     }
 
@@ -500,9 +500,9 @@ public class GameHUD : MonoBehaviour
     private void ThemeSceneUI()
     {
         // Scene canvases scale the same way as the built ones, so nothing slides off on other aspect ratios.
-        foreach (CanvasScaler scaler in FindObjectsByType<CanvasScaler>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (CanvasScaler scaler in FindObjectsByType<CanvasScaler>(FindObjectsInactive.Include))
             if (scaler.uiScaleMode == CanvasScaler.ScaleMode.ScaleWithScreenSize) scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
-        var ipod = FindFirstObjectByType<iPodUIController>();
+        var ipod = FindAnyObjectByType<iPodUIController>();
         if (ipod != null) ThemeTree(ipod.transform.root);
 
         // The scene's timer buttons are replaced by the control bar built in BuildTimerBar.

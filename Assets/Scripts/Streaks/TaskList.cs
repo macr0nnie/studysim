@@ -13,7 +13,9 @@ public class TaskList : MonoBehaviour
     {
         if (PlayerPrefs.HasKey(SaveKey))
         {
-            var saved = JsonUtility.FromJson<TaskListWrapper>(PlayerPrefs.GetString(SaveKey));
+            TaskListWrapper saved = null;
+            try { saved = JsonUtility.FromJson<TaskListWrapper>(PlayerPrefs.GetString(SaveKey)); }
+            catch (System.ArgumentException) { Debug.LogWarning("TaskList: saved tasks are unreadable; starting empty."); }
             if (saved != null && saved.tasks != null) tasks = saved.tasks;
         }
     }

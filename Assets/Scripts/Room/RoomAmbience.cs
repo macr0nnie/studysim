@@ -57,7 +57,7 @@ public class RoomAmbience : MonoBehaviour
 
     private static void Ensure()
     {
-        if (FindFirstObjectByType<RoomManager>() != null && instance == null)
+        if (FindAnyObjectByType<RoomManager>() != null && instance == null)
             instance = new GameObject("RoomAmbience").AddComponent<RoomAmbience>();
     }
 
@@ -65,8 +65,8 @@ public class RoomAmbience : MonoBehaviour
 
     private void Start()
     {
-        timer = FindFirstObjectByType<TimerManager>();
-        foreach (Light light in FindObjectsByType<Light>(FindObjectsSortMode.None))
+        timer = FindAnyObjectByType<TimerManager>();
+        foreach (Light light in FindObjectsByType<Light>())
             if (light.type == LightType.Directional && (key == null || light.intensity > key.intensity)) key = light;
         if (key != null) { keyColor = key.color; keyIntensity = key.intensity; keyShadows = key.shadows; }
         ambientMode = RenderSettings.ambientMode;
@@ -146,7 +146,7 @@ public class RoomAmbience : MonoBehaviour
         Look look = GameSettings.Ambience == Style.Bright ? Bright : Cozy;
         bool restyle = GameSettings.Ambience != lampStyle;
         lampStyle = GameSettings.Ambience;
-        foreach (Light light in FindObjectsByType<Light>(FindObjectsSortMode.None))
+        foreach (Light light in FindObjectsByType<Light>())
         {
             if (light.type == LightType.Directional || light.GetComponentInParent<Furniture>() == null) continue;
             lamps.Add(light);

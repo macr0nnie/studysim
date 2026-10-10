@@ -54,13 +54,13 @@ public class PaintUI : MonoBehaviour
 
     private static void EnsurePaint()
     {
-        if (FindFirstObjectByType<RoomManager>() != null && FindFirstObjectByType<PaintUI>() == null)
+        if (FindAnyObjectByType<RoomManager>() != null && FindAnyObjectByType<PaintUI>() == null)
             new GameObject("Paint").AddComponent<PaintUI>();
     }
 
     private void Awake()
     {
-        room = FindFirstObjectByType<RoomManager>();
+        room = FindAnyObjectByType<RoomManager>();
         surfaces = Resources.Load<RoomSurfaces>("RoomSurfaces");
         BuildUI();
     }

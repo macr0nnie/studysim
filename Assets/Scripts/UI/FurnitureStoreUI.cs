@@ -47,14 +47,14 @@ public class FurnitureStoreUI : MonoBehaviour
 
     private static void EnsureStore()
     {
-        if (FindFirstObjectByType<RoomManager>() != null && FindFirstObjectByType<FurnitureStoreUI>() == null)
+        if (FindAnyObjectByType<RoomManager>() != null && FindAnyObjectByType<FurnitureStoreUI>() == null)
             new GameObject("FurnitureStore").AddComponent<FurnitureStoreUI>();
     }
 
     private void Awake()
     {
-        if (roomManager == null) roomManager = FindFirstObjectByType<RoomManager>();
-        if (playerCurrency == null) playerCurrency = FindFirstObjectByType<PlayerCurrency>();
+        if (roomManager == null) roomManager = FindAnyObjectByType<RoomManager>();
+        if (playerCurrency == null) playerCurrency = FindAnyObjectByType<PlayerCurrency>();
         if (catalog == null) catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
         if (catalog == null)
         {

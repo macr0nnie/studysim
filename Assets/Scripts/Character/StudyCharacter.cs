@@ -36,14 +36,14 @@ public class StudyCharacter : MonoBehaviour
     public static void EnsurePlayer()
     {
         // Protoype_2 has a leftover StudyCharacter on GameManager with no model, so only a rigged one counts as placed.
-        if (FindFirstObjectByType<RoomManager>() == null) return;
-        foreach (StudyCharacter c in FindObjectsByType<StudyCharacter>(FindObjectsSortMode.None))
+        if (FindAnyObjectByType<RoomManager>() == null) return;
+        foreach (StudyCharacter c in FindObjectsByType<StudyCharacter>())
             if (c.GetComponent<Animator>() != null) return;
         GameObject prefab = Resources.Load<GameObject>("Player");
         if (prefab == null) { Debug.LogWarning("No Resources/Player prefab: run Study Sim > Create Player Prefab"); return; }
         // Spawn standing mid-floor, sized to the room; CharacterBehaviour then moves it onto a chair or bed (anchored to their bounds).
         Bounds floor = default; bool any = false;
-        foreach (Renderer r in FindFirstObjectByType<RoomManager>().FloorRenderers) if (r != null) { if (!any) { floor = r.bounds; any = true; } else floor.Encapsulate(r.bounds); }
+        foreach (Renderer r in FindAnyObjectByType<RoomManager>().FloorRenderers) if (r != null) { if (!any) { floor = r.bounds; any = true; } else floor.Encapsulate(r.bounds); }
         if (!any) { Debug.LogWarning("No floor in this room; not placing the character"); return; }
         Vector3 spot = new Vector3(floor.center.x, floor.max.y, floor.center.z);
         Vector3 toCam = Camera.main ? Vector3.ProjectOnPlane(Camera.main.transform.position - spot, Vector3.up) : Vector3.back;
@@ -92,7 +92,7 @@ public class StudyCharacter : MonoBehaviour
 
         // Start in studying state
         StartStudying();
-        timer = FindFirstObjectByType<TimerManager>();
+        timer = FindAnyObjectByType<TimerManager>();
         if (timer != null) timer.OnTimerComplete += OnTimerComplete;
     }
 
@@ -155,6 +155,7 @@ public class StudyCharacter : MonoBehaviour
             yield break;
         }
 
+        bool wasStudying = isStudying; // StopStudying clears it
         StopStudying();
         animator.SetBool(InteractingParam, true);
         
@@ -171,7 +172,7 @@ public class StudyCharacter : MonoBehaviour
         animator.SetBool(InteractingParam, false);
         dialogueEvent.hasOccurred = true;
         
-        if (isStudying)
+        if (wasStudying)
         {
             StartStudying();
         }

@@ -204,7 +204,9 @@ public class MusicPlayer : MonoBehaviour
         }
         else
         {
-            playerData = JsonUtility.FromJson<PlayerData>(savedData);
+            try { playerData = JsonUtility.FromJson<PlayerData>(savedData); }
+            catch (System.ArgumentException) { playerData = null; }
+            if (playerData == null || playerData.unlockedPlaylistTitles == null) { PlayerPrefs.DeleteKey("iPodPlayerData"); LoadPlayerData(); } // unreadable: start over with the defaults
         }
     }
     

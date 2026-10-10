@@ -59,9 +59,9 @@ public class UIManager : MonoBehaviour
 
     private void InitializeManagers()
     {
-        timerManager = FindFirstObjectByType<TimerManager>();
-        roomManager = FindFirstObjectByType<RoomManager>();
-        audioManager = FindFirstObjectByType<AudioManager>();
+        timerManager = FindAnyObjectByType<TimerManager>();
+        roomManager = FindAnyObjectByType<RoomManager>();
+        audioManager = FindAnyObjectByType<AudioManager>();
 
         if (timerManager == null || roomManager == null || audioManager == null)
         {

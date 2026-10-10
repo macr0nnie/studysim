@@ -108,7 +108,7 @@ public class TimerManager : MonoBehaviour
     public void GrantRewards()
     {
         if (playerCurrency != null) playerCurrency.AddCoins(baseMoneyReward);
-        Experience experience = FindFirstObjectByType<Experience>();
+        Experience experience = FindAnyObjectByType<Experience>();
         if (experience != null) experience.GainExperience(baseExperienceReward);
     }
     public void SetCustomDuration(float minutes)

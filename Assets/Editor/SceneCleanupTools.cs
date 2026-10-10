@@ -46,7 +46,7 @@ public static class SceneCleanupTools
         {
             if (go == null) continue; // already gone with a parent
             var referrers = new List<string>();
-            foreach (MonoBehaviour script in Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+            foreach (MonoBehaviour script in Object.FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Include))
             {
                 if (script == null || script.transform.IsChildOf(go.transform)) continue;
                 var so = new SerializedObject(script);
@@ -71,7 +71,7 @@ public static class SceneCleanupTools
 
     private static GameObject FindIncludingInactive(string name)
     {
-        foreach (Transform t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (Transform t in Object.FindObjectsByType<Transform>(FindObjectsInactive.Include))
             if (t.name == name && t.gameObject.scene.IsValid()) return t.gameObject;
         return null;
     }

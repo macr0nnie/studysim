@@ -147,7 +147,9 @@ public class HabitTracker : MonoBehaviour
         if (PlayerPrefs.HasKey(SaveKey))
         {
             string json = PlayerPrefs.GetString(SaveKey);
-            var wrapper = JsonUtility.FromJson<HabitListWrapper>(json);
+            HabitListWrapper wrapper = null;
+            try { wrapper = JsonUtility.FromJson<HabitListWrapper>(json); }
+            catch (ArgumentException) { Debug.LogWarning("HabitTracker: saved habits are unreadable; starting empty."); }
             if (wrapper != null && wrapper.habits != null)
                 habits = wrapper.habits;
         }

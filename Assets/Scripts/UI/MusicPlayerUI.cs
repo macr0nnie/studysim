@@ -17,6 +17,7 @@ public class MusicPlayerUI : MonoBehaviour
     private TMP_Text title, artist, elapsed, total, nowLabel;
     private RectTransform progressFill;
     private RectTransform[] eqBars;
+    private int shownTime = -1, shownLength = -1;
     private GameObject library;
     private Transform libraryRows;
 
@@ -29,15 +30,15 @@ public class MusicPlayerUI : MonoBehaviour
 
     private static void EnsurePlayer()
     {
-        if (FindFirstObjectByType<RoomManager>() != null && FindFirstObjectByType<MusicPlayer>() != null
-            && FindFirstObjectByType<MusicPlayerUI>() == null)
+        if (FindAnyObjectByType<RoomManager>() != null && FindAnyObjectByType<MusicPlayer>() != null
+            && FindAnyObjectByType<MusicPlayerUI>() == null)
             new GameObject("MusicPlayerUI").AddComponent<MusicPlayerUI>();
     }
 
     private void Awake()
     {
-        music = FindFirstObjectByType<MusicPlayer>();
-        currency = FindFirstObjectByType<PlayerCurrency>();
+        music = FindAnyObjectByType<MusicPlayer>();
+        currency = FindAnyObjectByType<PlayerCurrency>();
         BuildUI();
         // The old iPod screens stay in the scene (iPodUIController still references them) but out of sight.
         foreach (string old in new[] { "IPOD", "MusicStore", "HomeButton" })
@@ -58,8 +59,9 @@ public class MusicPlayerUI : MonoBehaviour
 
         float length = music.SongLength, time = music.SongTime;
         progressFill.anchorMax = new Vector2(length > 0 ? Mathf.Clamp01(time / length) : 0, 1);
-        elapsed.text = Clock(time);
-        total.text = length > 0 ? Clock(length) : "--:--";
+        // Only rebuild the strings when the shown second changes, not every frame.
+        if ((int)time != shownTime) { shownTime = (int)time; elapsed.text = Clock(time); }
+        if ((int)length != shownLength) { shownLength = (int)length; total.text = length > 0 ? Clock(length) : "--:--"; }
 
         // Little equalizer next to "Now playing": bounces while music plays, rests when paused.
         for (int i = 0; i < eqBars.Length; i++)
@@ -157,7 +159,7 @@ public class MusicPlayerUI : MonoBehaviour
             // Pay first so a failed payment never unlocks anything.
             if (playlist.price > 0 && (currency == null || !currency.SpendCoins(playlist.price))) return;
             music.PurchasePlaylist(playlist, int.MaxValue);
-            FindFirstObjectByType<GameHUD>()?.ShowToast($"Unlocked {playlist.title}");
+            FindAnyObjectByType<GameHUD>()?.ShowToast($"Unlocked {playlist.title}");
             RefreshLibrary();
         });
     }

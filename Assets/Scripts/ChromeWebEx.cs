@@ -124,14 +124,7 @@ public class ChromeWebEx : MonoBehaviour
                 response.OutputStream.Write(buffer, 0, buffer.Length);
                 response.OutputStream.Close();
             }
-            catch (HttpListenerException ex)
-            {
-               // Debug.LogWarning($"HttpListenerException: {ex.Message}");
-            }
-            catch (System.Exception ex)
-            {
-               // Debug.LogError($"Exception: {ex.Message}");
-            }
+            catch (Exception) { } // closed listener or a dropped connection: the loop condition decides whether to go on
         }
     }
 
@@ -147,7 +140,7 @@ public class ChromeWebEx : MonoBehaviour
         if (Time.unscaledTime >= _nextStatus)
         {
             _nextStatus = Time.unscaledTime + 0.5f;
-            TimerManager timer = FindFirstObjectByType<TimerManager>();
+            TimerManager timer = FindAnyObjectByType<TimerManager>();
             _status = JsonUtility.ToJson(new Status
             {
                 running = timer != null && timer.IsTimerRunning,
@@ -166,7 +159,7 @@ public class ChromeWebEx : MonoBehaviour
         if (command == null) return "Extension sent something unrecognised";
         if (command.action == "ping") return "Extension: connection works";
         LastExtensionMessageAt = Time.unscaledTime;
-        TimerManager timer = FindFirstObjectByType<TimerManager>();
+        TimerManager timer = FindAnyObjectByType<TimerManager>();
         switch (command.action)
         {
             case "start":
@@ -196,7 +189,7 @@ public class ChromeWebEx : MonoBehaviour
                 Distraction.Clear();
                 if (Time.unscaledTime - _lastFocusReward < FocusCooldown) return "Extension: focus noted";
                 _lastFocusReward = Time.unscaledTime;
-                Experience experience = FindFirstObjectByType<Experience>();
+                Experience experience = FindAnyObjectByType<Experience>();
                 if (experience != null) experience.GainExperience(1);
                 return "Extension: +1 XP for staying focused";
         }

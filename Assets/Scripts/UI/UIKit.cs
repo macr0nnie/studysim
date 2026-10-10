@@ -83,7 +83,7 @@ public static class UIKit
         else PlayerPrefs.DeleteKey(MenuColorKey);
         PlayerPrefs.Save();
         Color[] after = Palette();
-        foreach (Graphic g in UnityEngine.Object.FindObjectsByType<Graphic>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+        foreach (Graphic g in UnityEngine.Object.FindObjectsByType<Graphic>(FindObjectsInactive.Include))
             for (int i = 0; i < before.Length; i++)
             {
                 Color c = g.color;

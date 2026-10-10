@@ -21,9 +21,9 @@ public class MenuUI : MonoBehaviour
 
     private void Awake()
     {
-        if (FindFirstObjectByType<EventSystem>() == null)
+        if (FindAnyObjectByType<EventSystem>() == null)
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
-        Camera cam = Camera.main != null ? Camera.main : FindFirstObjectByType<Camera>();
+        Camera cam = Camera.main != null ? Camera.main : FindAnyObjectByType<Camera>();
         if (cam != null)
         {
             cam.clearFlags = CameraClearFlags.SolidColor;

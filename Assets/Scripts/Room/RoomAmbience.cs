@@ -18,12 +18,12 @@ public class RoomAmbience : MonoBehaviour
     private static readonly Look Cozy = new Look
     {
         key = new Color(1f, 0.82f, 0.62f), sky = new Color(0.55f, 0.62f, 0.8f), ground = new Color(0.22f, 0.17f, 0.14f),
-        keyFocus = 0.75f, keyBreak = 1.0f, exposure = 0f, bloom = 0.2f, vignette = 0.28f, lampIntensity = 0.4f, lampRange = 0.65f,
+        keyFocus = 0.75f, keyBreak = 1.0f, exposure = 0f, bloom = 0.1f, vignette = 0.28f, lampIntensity = 0.1f, lampRange = 0.4f,
     };
     private static readonly Look Bright = new Look
     {
         key = new Color(1f, 0.94f, 0.84f), sky = new Color(0.75f, 0.8f, 0.9f), ground = new Color(0.35f, 0.3f, 0.26f),
-        keyFocus = 1.0f, keyBreak = 1.2f, exposure = 0.2f, bloom = 0.12f, vignette = 0.12f, lampIntensity = 0.7f, lampRange = 0.85f,
+        keyFocus = 1.0f, keyBreak = 1.2f, exposure = 0.2f, bloom = 0.15f, vignette = 0.12f, lampIntensity = 0.5f, lampRange = 0.75f,
     };
 
     private const float LampScan = 2f, Fade = 1.5f, LampsOffDim = 0.65f;

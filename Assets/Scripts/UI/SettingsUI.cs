@@ -217,7 +217,9 @@ public class SettingsUI : MonoBehaviour
 
         // Left: page tabs; saving and leaving at the bottom.
         GameObject side = Column("Tabs", body.transform, 6);
-        side.AddComponent<LayoutElement>().preferredWidth = 210;
+        var sideSize = side.AddComponent<LayoutElement>();
+        sideSize.preferredWidth = 210;
+        sideSize.flexibleWidth = 0; // otherwise the column's layout group asks for flexible width and takes half the window from the pages
         tabs = new Image[PageNames.Length];
         for (int i = 0; i < PageNames.Length; i++)
         {
@@ -298,7 +300,7 @@ public class SettingsUI : MonoBehaviour
             Style(card.GetComponent<Image>(), CardColor);
             card.GetComponent<Button>().onClick.AddListener(() => PickMode(mode));
             TMP_Text label = MakeText("Label", card.transform,
-                $"<b>{preset.name}</b>\n<size={CaptionSize}><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>{preset.detail}</color></size>",
+                $"<b>{preset.name}</b>\n<size={CaptionSize}><alpha=#B0>{preset.detail}</size>", // alpha, not MutedText: stays readable on the selected card
                 BodySize, TextColor, TextAlignmentOptions.Left);
             Stretch((RectTransform)label.transform);
             ((RectTransform)label.transform).offsetMin = new Vector2(14, 0);

@@ -27,6 +27,7 @@ public class IsometricCameraController : MonoBehaviour
         }
 
         cam.orthographic = true;
+        targetOrthoSize *= 0.85f; // a little closer than authored, so the room fills more of the screen
         initialOrthoSize = targetOrthoSize;
 
         // Set initial position and rotation

@@ -109,7 +109,7 @@ public static class UIKit
     public static Button NavButton(Transform canvas, int slot, string label, Controls.Act? key)
     {
         Button button = TextButton(label + "Button", canvas, label, TabColor, LabelSize + 1);
-        if (key.HasValue) KeyHint(button.GetComponentInChildren<TMP_Text>(), label, key.Value);
+        if (key.HasValue) KeyHint(button.GetComponentInChildren<TMP_Text>(), label, key.Value, onHover: true); // a calmer dock
         button.gameObject.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.25f);
         var rect = (RectTransform)button.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
@@ -119,12 +119,24 @@ public static class UIKit
     }
 
     // "Label  KEY", kept up to date when the key is rebound in Settings.
-    public static void KeyHint(TMP_Text text, string label, Controls.Act key)
+    // onHover: the key shows only while the pointer is over the button.
+    public static void KeyHint(TMP_Text text, string label, Controls.Act key, bool onHover = false)
     {
+        bool show = !onHover;
         void Refresh()
         {
             if (text == null) { Controls.Rebound -= Refresh; return; } // button destroyed
-            text.text = $"{label}  <size={CaptionSize}><alpha=#99>{Controls.KeyName(key)}</size>";
+            text.text = show ? $"{label}  <size={CaptionSize}><alpha=#99>{Controls.KeyName(key)}</size>" : label;
+        }
+        if (onHover)
+        {
+            var trigger = text.GetComponentInParent<Selectable>().gameObject.AddComponent<EventTrigger>();
+            foreach (var (type, on) in new[] { (EventTriggerType.PointerEnter, true), (EventTriggerType.PointerExit, false) })
+            {
+                var entry = new EventTrigger.Entry { eventID = type };
+                entry.callback.AddListener(_ => { show = on; Refresh(); });
+                trigger.triggers.Add(entry);
+            }
         }
         Controls.Rebound += Refresh;
         Refresh();

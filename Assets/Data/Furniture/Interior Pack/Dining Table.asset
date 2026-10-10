@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Dining Table
   description: A dining table to make your room your own.
-  category: 0
+  category: 1
   tags:
   - dining
   - table

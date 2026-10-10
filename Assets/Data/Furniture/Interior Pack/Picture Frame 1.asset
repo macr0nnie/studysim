@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Picture Frame 1
   description: A picture frame 1 to add some personality to your space.
-  category: 1
+  category: 7
   tags:
   - picture
   - frame

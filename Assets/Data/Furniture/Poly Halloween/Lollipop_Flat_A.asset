@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Lollipop_Flat_A
   description: A lollipop_flat_a to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - lollipop
   - flat

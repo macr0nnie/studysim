@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Plant Pot 1
   description: A plant pot 1 to bring a little life into the room.
-  category: 3
+  category: 5
   tags:
   - plant
   - pot

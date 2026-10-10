@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Wardrobe 1
   description: A wardrobe 1 to make your room your own.
-  category: 0
+  category: 3
   tags:
   - wardrobe
   - shelf

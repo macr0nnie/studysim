@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Candle_Stick_C_Unlit
   description: A candle_stick_c_unlit to keep your study corner warm and bright.
-  category: 2
+  category: 4
   tags:
   - candle
   - stick

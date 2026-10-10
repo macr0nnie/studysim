@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Flower
   description: A flower to bring a little life into the room.
-  category: 3
+  category: 5
   tags:
   - flower
   price: 20

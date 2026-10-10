@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Broom_Old
   description: A broom_old to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - broom
   - old

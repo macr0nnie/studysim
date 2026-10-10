@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Nightstand
   description: A nightstand to make your room your own.
-  category: 0
+  category: 3
   tags:
   - nightstand
   - shelf

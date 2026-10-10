@@ -413,7 +413,7 @@ public class PlannerUI : MonoBehaviour
     {
         Transform canvas = MakeCanvas("PlannerCanvas", transform, 10).transform;
 
-        // Sits next to the Shop button in the room-button row.
+        // Fourth in the dock, after Paint.
         Button open = NavButton(canvas, 3, "Planner", Controls.Act.Planner);
         open.onClick.AddListener(Toggle);
 

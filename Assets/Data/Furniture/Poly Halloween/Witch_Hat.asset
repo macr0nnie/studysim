@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Witch_Hat
   description: A witch_hat to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - witch
   - hat

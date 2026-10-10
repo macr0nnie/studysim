@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Books
   description: A few well-loved books to scatter across a desk or shelf.
-  category: 1
+  category: 6
   tags:
   - books
   - study

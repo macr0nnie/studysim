@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Candles
   description: "A cluster of candles that gives off a warm, flickering light."
-  category: 2
+  category: 4
   tags:
   - witchy
   - light

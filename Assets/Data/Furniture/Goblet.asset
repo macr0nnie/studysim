@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Goblet
   description: "A little goblet for your desk. Fill it with tea, coffee or something more mysterious."
-  category: 1
+  category: 6
   tags:
   - witchy
   - small

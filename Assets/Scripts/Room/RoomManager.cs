@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -81,6 +82,8 @@ public class RoomManager : MonoBehaviour
     private float ceilingY;
     private Quaternion previewBase;
     private float previewSpin; // wall pieces: turn about the wall normal (R flips them)
+    private float rotateHeld; // how long R has been down: a short tap turns a quarter, longer spins freely
+    private const float TapTime = 0.25f, SpinSpeed = 120f; // seconds, degrees per second
     private Vector3 dragNormal;
     private GameObject previewSupport; // the desk, counter or shelf the preview stands on, if any
     private Bounds roomFloor;
@@ -166,7 +169,7 @@ public class RoomManager : MonoBehaviour
         if (typing) return;
 
         // Save once a drag or rotation in edit mode is finished, not every frame.
-        if (isEditMode && selectedObject != null && (Controls.ClickUp || Controls.Released(Controls.Act.Raise)
+        if (isEditMode && selectedObject != null && (Controls.ClickUp || Controls.Released(Controls.Act.Rotate) || Controls.Released(Controls.Act.Raise)
             || Controls.Released(Controls.Act.Lower) || Controls.Released(Controls.Act.Grow) || Controls.Released(Controls.Act.Shrink)))
         {
             EndEdit();
@@ -507,23 +510,53 @@ public class RoomManager : MonoBehaviour
             CancelPlacement();
         }
     }
-    // Handles rotation for the preview or selected object.
+    // Handles rotation for the preview or selected object. Tapping R turns a floor piece a quarter (flips a
+    // wall piece); holding R spins it freely and the mouse wheel turns it in 15° steps, so any angle works.
     private void HandleRotationAndFlipping()
     {
+        GameObject target = currentPreview != null ? currentPreview : selectedObject;
+        if (target == null) return;
         bool alt = Controls.Alt;
+        bool wall = TypeOf(target) == Furniture.FurnitureType.Wall;
         if (Controls.Pressed(Controls.Act.Rotate) && !alt)
+        {
+            rotateHeld = 0f;
+            if (currentPreview == null) BeginEdit(); // the whole tap or spin is one undo step, ended when R is let go
+        }
+        if (Controls.Held(Controls.Act.Rotate) && !alt && !wall)
+        {
+            rotateHeld += Time.deltaTime;
+            if (rotateHeld > TapTime) Spin(-SpinSpeed * Time.deltaTime);
+        }
+        if (Controls.Released(Controls.Act.Rotate) && !alt && (wall || rotateHeld <= TapTime))
         {
             // Wall pieces flip to face the other way; a quarter turn would stick them out of the wall.
             if (currentPreview != null)
             {
-                if (TypeOf(currentPreview) == Furniture.FurnitureType.Wall) previewSpin += 180f;
+                if (wall) previewSpin += 180f;
                 else currentPreview.transform.Rotate(Vector3.up, -90f, Space.World);
             }
             else RotateSelected();
         }
 
-        if (alt && Controls.Pressed(Controls.Act.Rotate) && currentPreview == null && selectedObject != null)
+        float wheel = Mouse.current != null && !wall && !IsPointerOverUI() ? Mouse.current.scroll.ReadValue().y : 0f;
+        if (wheel != 0f)
+        {
+            if (currentPreview == null) BeginEdit();
+            Spin(Mathf.Sign(wheel) * 15f);
+            if (currentPreview == null && !Controls.Held(Controls.Act.Rotate)) { EndEdit(); SaveRoom(); }
+        }
+
+        if (alt && Controls.Pressed(Controls.Act.Rotate) && currentPreview == null)
             Turn(Quaternion.AngleAxis(90f, selectedObject.transform.right));
+    }
+
+    private void Spin(float degrees)
+    {
+        if (currentPreview != null) { currentPreview.transform.Rotate(Vector3.up, degrees, Space.World); return; }
+        if (selectedObject == null) return;
+        selectedObject.transform.rotation = Quaternion.AngleAxis(degrees, Vector3.up) * selectedObject.transform.rotation;
+        Changed();
     }
 
     // Floor pieces turn a quarter; wall pieces flip to face the other way (a quarter turn would stick them out of the wall).

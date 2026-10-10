@@ -88,7 +88,10 @@ public class PaintUI : MonoBehaviour
     private void ApplyBackground()
     {
         if (backgroundCamera == null) return;
-        if (paint.backgroundColor.Length > 0 && ColorUtility.TryParseHtmlString("#" + paint.backgroundColor, out Color c))
+        Color c = default;
+        bool painted = paint.backgroundColor.Length > 0 && ColorUtility.TryParseHtmlString("#" + paint.backgroundColor, out c);
+        RoomAmbience.SkyHidden = painted; // a picked colour replaces the time-of-day sky; Reset brings it back
+        if (painted)
         {
             backgroundCamera.clearFlags = CameraClearFlags.SolidColor; // a skybox would hide the colour
             backgroundCamera.backgroundColor = c;

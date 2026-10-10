@@ -20,6 +20,8 @@ public class MusicPlayerUI : MonoBehaviour
     private int shownTime = -1, shownLength = -1;
     private GameObject library;
     private Transform libraryRows;
+    private Song lastSong;
+    private bool showingSpotify;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void AddToRoomScenes()
@@ -51,8 +53,20 @@ public class MusicPlayerUI : MonoBehaviour
     private void OnEnable() => music.OnSongChanged.AddListener(ShowSong);
     private void OnDisable() => music.OnSongChanged.RemoveListener(ShowSong);
 
+    // Spotify takes the card while it plays, or while it's open and the built-in music is stopped.
+    private bool UseSpotify => SpotifyLink.Playing || (SpotifyLink.Running && !music.IsPlaying);
+
     private void Update()
     {
+        SpotifyLink.Poll();
+        if (UseSpotify) { ShowSpotify(); return; }
+        if (showingSpotify)
+        {
+            showingSpotify = false;
+            if (lastSong != null) ShowSong(lastSong);
+            else { title.text = "Nothing playing"; artist.text = "Open the library to pick a playlist"; nowLabel.text = "NOW PLAYING"; }
+        }
+
         bool playing = music.IsPlaying;
         playIcon.enabled = !playing;
         pauseLeft.enabled = pauseRight.enabled = playing;
@@ -64,6 +78,32 @@ public class MusicPlayerUI : MonoBehaviour
         if ((int)length != shownLength) { shownLength = (int)length; total.text = length > 0 ? Clock(length) : "--:--"; }
 
         // Little equalizer next to "Now playing": bounces while music plays, rests when paused.
+        AnimateEq(playing);
+    }
+
+    private void ShowSpotify()
+    {
+        if (!showingSpotify)
+        {
+            showingSpotify = true;
+            nowLabel.text = "SPOTIFY";
+            art.sprite = null;
+            art.color = CardColor;
+            artNote.enabled = artNote.sprite != null;
+            progressFill.anchorMax = new Vector2(0, 1);
+            elapsed.text = total.text = "";
+            shownTime = shownLength = -1;
+        }
+        bool playing = SpotifyLink.Playing;
+        title.text = SpotifyLink.Title.Length > 0 ? SpotifyLink.Title : "Spotify is open";
+        artist.text = SpotifyLink.Artist.Length > 0 ? SpotifyLink.Artist : "Press play to start it";
+        playIcon.enabled = !playing;
+        pauseLeft.enabled = pauseRight.enabled = playing;
+        AnimateEq(playing);
+    }
+
+    private void AnimateEq(bool playing)
+    {
         for (int i = 0; i < eqBars.Length; i++)
         {
             float h = playing ? 0.35f + 0.65f * Mathf.Abs(Mathf.Sin(Time.unscaledTime * (5.1f + i * 1.7f) + i)) : 0.25f;
@@ -74,6 +114,7 @@ public class MusicPlayerUI : MonoBehaviour
     // Play with nothing loaded starts the first playlist you own instead of doing nothing.
     private void PlayOrPause()
     {
+        if (UseSpotify) { SpotifyLink.PlayPause(); return; }
         if (music.CurrentPlaylist != null) { music.TogglePlayPause(); return; }
         Playlist first = music.GetUnlockedPlaylists().Find(p => p.songs.Count > 0);
         if (first != null) music.PlayPlaylist(first);
@@ -85,6 +126,8 @@ public class MusicPlayerUI : MonoBehaviour
     private void ShowSong(Song song)
     {
         if (song == null) return;
+        lastSong = song;
+        if (showingSpotify) return; // remembered for when Spotify lets go of the card
         title.text = song.title;
         artist.text = string.IsNullOrEmpty(song.artist) ? (music.CurrentPlaylist?.title ?? "") : song.artist;
         nowLabel.text = music.CurrentPlaylist != null ? music.CurrentPlaylist.title.ToUpperInvariant() : "NOW PLAYING";
@@ -134,7 +177,12 @@ public class MusicPlayerUI : MonoBehaviour
         if (playlist.isUnlocked)
         {
             SmallButton(row.transform, current ? "Restart" : "Play", current ? TabColor : AccentButtonColor, 76)
-                .onClick.AddListener(() => { music.PlayPlaylist(playlist); RefreshLibrary(); });
+                .onClick.AddListener(() =>
+                {
+                    if (SpotifyLink.Playing) SpotifyLink.PlayPause(); // don't play over Spotify
+                    music.PlayPlaylist(playlist);
+                    RefreshLibrary();
+                });
             return;
         }
         bool affordable = currency != null && currency.GetCoins() >= playlist.price;
@@ -237,12 +285,12 @@ public class MusicPlayerUI : MonoBehaviour
         // Transport, centred.
         GameObject controls = Row("Controls", info.transform, 38, 18, false);
         controls.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleCenter;
-        Transport(controls.transform, "Previous", 30, TabColor, music.PlayPreviousSong, flip: true);
+        Transport(controls.transform, "Previous", 30, TabColor, () => { if (UseSpotify) SpotifyLink.Previous(); else music.PlayPreviousSong(); }, flip: true);
         Button play = Transport(controls.transform, "PlayPause", 38, AccentButtonColor, PlayOrPause, flip: false);
         playIcon = play.transform.Find("Glyph").GetComponent<Image>();
         pauseLeft = Bar(play.transform, -5);
         pauseRight = Bar(play.transform, 5);
-        Transport(controls.transform, "Next", 30, TabColor, music.PlayNextSong, flip: false);
+        Transport(controls.transform, "Next", 30, TabColor, () => { if (UseSpotify) SpotifyLink.Next(); else music.PlayNextSong(); }, flip: false);
 
         // Library, floating just above the card.
         library = Make("Library", canvas, typeof(Image), typeof(VerticalLayoutGroup), typeof(Shadow));

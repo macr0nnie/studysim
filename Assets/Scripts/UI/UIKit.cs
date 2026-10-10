@@ -9,14 +9,14 @@ using UnityEngine.UI;
 // uses the same palette, fonts, rounded corners and motion.
 public static class UIKit
 {
-    // The default theme is light: white panels, dark text, one blue accent. Picking a menu colour (Paint > Menus)
+    // The default theme is light and warm: cream panels, brown text, one terracotta accent, to match the room. Picking a menu colour (Paint > Menus)
     // switches to a dark theme built from that colour (saved under MenuColor); Reset goes back to light.
-    // Gold accent, XP green and danger red are darker on the light theme so they stay readable on white.
+    // Gold accent, XP green and danger red are darker on the light theme so they stay readable on cream.
     public static Color PanelColor, CardColor, SelectedColor, TabColor, MutedText, AccentButtonColor;
     public static Color TextColor, AccentColor, XpColor, DangerColor;
 
     // Shown on the Paint > Menus swatch while no colour is picked.
-    public static readonly Color DefaultMenuColor = new Color(0.97f, 0.97f, 0.98f, 1f);
+    public static readonly Color DefaultMenuColor = new Color(0.98f, 0.95f, 0.90f, 1f);
     private const string MenuColorKey = "MenuColor";
     public static bool MenuColorChanged => PlayerPrefs.HasKey(MenuColorKey);
     private const float DarkBase = 0.43f; // saturation of the original purple the dark shades are scaled from
@@ -35,16 +35,16 @@ public static class UIKit
     {
         if (!menu.HasValue)
         {
-            PanelColor = new Color(0.98f, 0.98f, 0.99f, 0.97f);
-            CardColor = new Color(0.91f, 0.92f, 0.94f, 1f);
-            SelectedColor = new Color(0.74f, 0.80f, 0.92f, 1f);
-            TabColor = new Color(0.87f, 0.89f, 0.93f, 1f);
-            AccentButtonColor = new Color(0.66f, 0.78f, 0.96f, 1f);
-            MutedText = new Color(0.36f, 0.39f, 0.45f, 1f);
-            TextColor = new Color(0.10f, 0.12f, 0.16f, 1f);
-            AccentColor = new Color(0.76f, 0.48f, 0.04f, 1f);
-            XpColor = new Color(0.18f, 0.60f, 0.36f, 1f);
-            DangerColor = new Color(0.78f, 0.24f, 0.30f, 1f);
+            PanelColor = new Color(0.98f, 0.95f, 0.90f, 0.94f);
+            CardColor = new Color(0.94f, 0.89f, 0.82f, 1f);
+            SelectedColor = new Color(0.93f, 0.79f, 0.67f, 1f);
+            TabColor = new Color(0.92f, 0.87f, 0.80f, 1f);
+            AccentButtonColor = new Color(0.91f, 0.68f, 0.55f, 1f);
+            MutedText = new Color(0.47f, 0.40f, 0.34f, 1f);
+            TextColor = new Color(0.24f, 0.18f, 0.14f, 1f);
+            AccentColor = new Color(0.72f, 0.45f, 0.10f, 1f);
+            XpColor = new Color(0.36f, 0.56f, 0.32f, 1f);
+            DangerColor = new Color(0.76f, 0.30f, 0.28f, 1f);
             return;
         }
         // Dark shades keep the original theme's saturation and brightness steps, on the picked colour's hue.

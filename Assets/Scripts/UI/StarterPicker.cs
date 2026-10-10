@@ -11,7 +11,7 @@ public class StarterPicker : MonoBehaviour
     private RoomManager room;
     private FurnitureCatalog catalog;
     private GameObject panel;
-    private TMP_Text title;
+    private TMP_Text title, nextLabel;
     private Transform grid;
     private bool choosingChair;
 
@@ -39,6 +39,7 @@ public class StarterPicker : MonoBehaviour
         Button next = TextButton("Next", panel.transform, "Next", AccentButtonColor, BodySize);
         next.gameObject.AddComponent<LayoutElement>().preferredHeight = 44;
         next.onClick.AddListener(Next);
+        nextLabel = next.GetComponentInChildren<TMP_Text>();
         panel.SetActive(true);
         Fill();
     }
@@ -53,6 +54,7 @@ public class StarterPicker : MonoBehaviour
     private void Fill()
     {
         title.text = choosingChair ? "Choose your chair" : "Choose your desk";
+        nextLabel.text = choosingChair ? "Done" : "Next";
         foreach (Transform card in grid) Destroy(card.gameObject);
         string role = choosingChair ? "chair" : "desk";
         int n = 0;

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Woman_Witch_Halloween
   description: A woman_witch_halloween to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - woman
   - witch

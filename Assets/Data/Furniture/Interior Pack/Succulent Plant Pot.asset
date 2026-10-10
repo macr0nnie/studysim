@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Succulent Plant Pot
   description: A succulent plant pot to bring a little life into the room.
-  category: 3
+  category: 5
   tags:
   - succulent
   - plant

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Book_Magical_Eye
   description: A book_magical_eye to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - book
   - magical

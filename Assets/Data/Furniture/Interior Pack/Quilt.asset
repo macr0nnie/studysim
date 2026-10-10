@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Quilt
   description: A quilt to make your room your own.
-  category: 0
+  category: 6
   tags:
   - quilt
   - bed

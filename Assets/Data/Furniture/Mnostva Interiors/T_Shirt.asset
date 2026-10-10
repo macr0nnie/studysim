@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: T_Shirt
   description: A t_shirt to add some personality to your space.
-  category: 1
+  category: 6
   tags:
   - shirt
   price: 15

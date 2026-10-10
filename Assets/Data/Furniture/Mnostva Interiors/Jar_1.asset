@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Jar_1
   description: A jar_1 to add some personality to your space.
-  category: 1
+  category: 9
   tags:
   - jar
   price: 15

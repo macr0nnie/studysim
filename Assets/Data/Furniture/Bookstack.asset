@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Stack of Books
   description: "A tidy stack of books for the floor, a desk or a shelf."
-  category: 1
+  category: 6
   tags:
   - books
   - study

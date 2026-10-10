@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Pumpkin_A
   description: A pumpkin_a to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - pumpkin
   - halloween

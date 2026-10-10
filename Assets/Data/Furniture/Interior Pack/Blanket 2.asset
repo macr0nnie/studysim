@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Blanket 2
   description: A blanket 2 to make your room your own.
-  category: 0
+  category: 6
   tags:
   - blanket
   - bed

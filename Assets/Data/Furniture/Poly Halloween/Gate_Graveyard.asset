@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Gate_Graveyard
   description: A gate_graveyard to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - gate
   - graveyard

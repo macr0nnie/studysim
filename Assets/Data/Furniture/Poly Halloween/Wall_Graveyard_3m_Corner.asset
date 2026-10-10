@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Wall_Graveyard_3m_Corner
   description: A wall_graveyard_3m_corner to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - wall
   - graveyard

@@ -163,7 +163,7 @@ public class GameHUD : MonoBehaviour
         var rect = (RectTransform)hintBar.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
         rect.sizeDelta = new Vector2(960, HintHeight);
-        rect.anchoredPosition = new Vector2(0, 24);
+        rect.anchoredPosition = new Vector2(0, DockTop + 12); // above the dock
         Style(hintBar.GetComponent<Image>(), PanelColor);
         var h = hintBar.GetComponent<HorizontalLayoutGroup>();
         h.padding = new RectOffset(6, 6, 5, 5);
@@ -199,7 +199,7 @@ public class GameHUD : MonoBehaviour
         var rect = (RectTransform)fitPanel.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
         rect.sizeDelta = new Vector2(520, 160);
-        rect.anchoredPosition = new Vector2(0, 24 + HintHeight + 8);
+        rect.anchoredPosition = new Vector2(0, DockTop + 12 + HintHeight + 8);
         Style(fitPanel.GetComponent<Image>(), PanelColor);
         var v = fitPanel.GetComponent<VerticalLayoutGroup>();
         v.padding = new RectOffset(12, 12, 8, 8);
@@ -345,7 +345,7 @@ public class GameHUD : MonoBehaviour
         coinsLabel = MakeText("Coins", card.transform, "0", HeadingSize, AccentColor, TextAlignmentOptions.Left, display: true);
         Place(coinsLabel.rectTransform, new Vector2(110, -60), new Vector2(200, 24));
 
-        // Edit-mode toggle, first in the room-button row (Shop and Planner follow it).
+        // Edit-mode toggle, first in the dock (Shop, Paint, Planner and Settings follow it).
         Button edit = NavButton(canvas, 0, "Edit", Controls.Act.Edit); // Edit toggles edit mode; Cancel only leaves it
         editPill = edit.GetComponent<Image>();
         edit.onClick.AddListener(() => { if (room != null) room.ToggleEditMode(); });

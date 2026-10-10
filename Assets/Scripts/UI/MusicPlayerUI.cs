@@ -1,6 +1,7 @@
 using System.Collections;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static UIKit;
@@ -21,7 +22,9 @@ public class MusicPlayerUI : MonoBehaviour
     private GameObject library;
     private Transform libraryRows;
     private Song lastSong;
-    private bool showingSpotify;
+    private bool showingSpotify, spotifyWasPlaying;
+    private string spotifyArtKey;
+    private Sprite spotifyArt;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void AddToRoomScenes()
@@ -59,12 +62,15 @@ public class MusicPlayerUI : MonoBehaviour
     private void Update()
     {
         SpotifyLink.Poll();
+        // Spotify starting pauses the game's music; it only comes back when started again.
+        if (SpotifyLink.Playing && !spotifyWasPlaying && music.IsPlaying) music.PausePlayback();
+        spotifyWasPlaying = SpotifyLink.Playing;
         if (UseSpotify) { ShowSpotify(); return; }
         if (showingSpotify)
         {
             showingSpotify = false;
             if (lastSong != null) ShowSong(lastSong);
-            else { title.text = "Nothing playing"; artist.text = "Open the library to pick a playlist"; nowLabel.text = "NOW PLAYING"; }
+            else { SetArt(null); title.text = "Nothing playing"; artist.text = "Open the library to pick a playlist"; nowLabel.text = "NOW PLAYING"; }
         }
 
         bool playing = music.IsPlaying;
@@ -87,12 +93,17 @@ public class MusicPlayerUI : MonoBehaviour
         {
             showingSpotify = true;
             nowLabel.text = "SPOTIFY";
-            art.sprite = null;
-            art.color = CardColor;
-            artNote.enabled = artNote.sprite != null;
+            spotifyArtKey = null; // re-apply the cover below
             progressFill.anchorMax = new Vector2(0, 1);
             elapsed.text = total.text = "";
             shownTime = shownLength = -1;
+        }
+        string key = SpotifyLink.Artist + "\n" + SpotifyLink.Title;
+        if (key != spotifyArtKey)
+        {
+            spotifyArtKey = key;
+            SetArt(null);
+            if (SpotifyLink.Title.Length > 0) StartCoroutine(FetchSpotifyArt(key));
         }
         bool playing = SpotifyLink.Playing;
         title.text = SpotifyLink.Title.Length > 0 ? SpotifyLink.Title : "Spotify is open";
@@ -100,6 +111,41 @@ public class MusicPlayerUI : MonoBehaviour
         playIcon.enabled = !playing;
         pauseLeft.enabled = pauseRight.enabled = playing;
         AnimateEq(playing);
+    }
+
+    private void SetArt(Sprite cover)
+    {
+        art.sprite = cover;
+        art.color = cover != null ? Color.white : CardColor;
+        artNote.enabled = cover == null && artNote.sprite != null;
+    }
+
+    [System.Serializable] private class ArtSearch { public ArtResult[] results; }
+    [System.Serializable] private class ArtResult { public string artworkUrl100; }
+
+    // The window title has no cover, so look the song up in the iTunes Search API (free, no key or account).
+    // shortcut: matches by artist + title text, so a cover can occasionally be the wrong edition; the Spotify Web API would be exact.
+    private IEnumerator FetchSpotifyArt(string key)
+    {
+        string term = UnityWebRequest.EscapeURL(SpotifyLink.Artist + " " + SpotifyLink.Title);
+        string url = null;
+        using (var search = UnityWebRequest.Get($"https://itunes.apple.com/search?media=music&entity=song&limit=1&term={term}"))
+        {
+            yield return search.SendWebRequest();
+            if (search.result != UnityWebRequest.Result.Success || key != spotifyArtKey) yield break;
+            ArtSearch found = JsonUtility.FromJson<ArtSearch>(search.downloadHandler.text);
+            if (found?.results == null || found.results.Length == 0 || string.IsNullOrEmpty(found.results[0].artworkUrl100)) yield break;
+            url = found.results[0].artworkUrl100.Replace("100x100", "300x300");
+        }
+        using (var image = UnityWebRequestTexture.GetTexture(url))
+        {
+            yield return image.SendWebRequest();
+            if (image.result != UnityWebRequest.Result.Success || key != spotifyArtKey || !showingSpotify) yield break;
+            if (spotifyArt != null) { Destroy(spotifyArt.texture); Destroy(spotifyArt); } // one cover in memory at a time
+            Texture2D texture = DownloadHandlerTexture.GetContent(image);
+            spotifyArt = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+            SetArt(spotifyArt);
+        }
     }
 
     private void AnimateEq(bool playing)

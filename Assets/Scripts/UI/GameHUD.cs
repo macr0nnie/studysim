@@ -170,7 +170,7 @@ public class GameHUD : MonoBehaviour
         h.spacing = 4;
         h.childControlWidth = h.childControlHeight = true;
         h.childForceExpandWidth = h.childForceExpandHeight = true;
-        HintButton("Rotate", Controls.Act.Rotate, () => room.RotateSelected());
+        HintButton("Rotate / spin", Controls.Act.Rotate, () => room.RotateSelected());
         HintButton("Lower", Controls.Act.Lower, () => room.NudgeHeight(-0.1f));
         HintButton("Raise", Controls.Act.Raise, () => room.NudgeHeight(0.1f));
         HintButton("Shrink", Controls.Act.Shrink, () => room.Resize(1 / 1.1f));

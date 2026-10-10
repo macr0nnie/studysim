@@ -33,7 +33,7 @@ public class StudyCharacter : MonoBehaviour
         EnsurePlayer();
     }
 
-    private static void EnsurePlayer()
+    public static void EnsurePlayer()
     {
         // Protoype_2 has a leftover StudyCharacter on GameManager with no model, so only a rigged one counts as placed.
         if (FindFirstObjectByType<RoomManager>() == null) return;

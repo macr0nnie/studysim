@@ -112,6 +112,7 @@ public class RoomManager : MonoBehaviour
 
         currency = FindFirstObjectByType<PlayerCurrency>();
         SetUpSurfaces();
+        StudyCharacter.EnsurePlayer(); // the sceneLoaded call runs before the floor exists
         // Furniture already in the room at startup can be moved and deleted like bought furniture.
         foreach (Furniture f in FindObjectsByType<Furniture>(FindObjectsSortMode.None))
         {

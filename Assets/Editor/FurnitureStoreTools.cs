@@ -40,10 +40,68 @@ public static class FurnitureStoreTools
             "Plants", "Clock & Alarms", "Picture Frame", "Racks" }.Select(g => $"{InteriorPack}/{g}").ToArray()),
         ("Mnostva Interiors", new[] { "Assets/Mnostva_Art" }),
         ("Poly Halloween", new[] { "Assets/polyperfect/Poly Halloween" }),
+        ("Cute Furniture", new[] { $"{CuteFurniture}/Prefabs" }),
     };
     // Pack prefabs under these paths are demo scenes, characters, terrain or effects, not furniture.
+    // Doors, lids and Cute Furniture's lone frame are parts of other pieces.
     static readonly string[] SkipFolders = { "/demo", "/scene", "/render_pipeline", "/character", "/fx", "/particle", "/vfx", "/effect",
-        "/terrain", "first person" };
+        "/terrain", "first person", "_door", "_cover", "/frame/" };
+
+    // ithappy's Cute Furniture ships an icon per piece and names like "Kitchen_D_08", so its store details are
+    // written out here instead of guessed. (asset name, display name, category, price, tags, description)
+    const string CuteFurniture = "Assets/ithappy/Cute_Furniture_Free";
+    static readonly (string key, string name, StoreCategory category, int price, string[] tags, string description)[] CutePieces =
+    {
+        ("Armchair_02", "Comfy Blue Armchair", StoreCategory.Seating, 55, new[] { "armchair", "comfy", "cute" }, "A squishy blue armchair for reading breaks."),
+        ("Armchair_18", "Red Wingback Armchair", StoreCategory.Seating, 60, new[] { "armchair", "comfy", "cute" }, "A cosy red armchair with wooden arms."),
+        ("Chair_17", "Wooden Stool", StoreCategory.Seating, 25, new[] { "chair", "stool", "wood", "cute" }, "A simple wooden stool that tucks under any table."),
+        ("Chair_PC_04", "Desk Chair", StoreCategory.Seating, 50, new[] { "chair", "office", "cute" }, "A rolling desk chair for long study sessions."),
+        ("Couch_08", "Blue Sofa", StoreCategory.Seating, 80, new[] { "sofa", "couch", "comfy", "cute" }, "A roomy three-seater sofa for well-earned breaks."),
+        ("Couch_11", "Pink Loveseat", StoreCategory.Seating, 70, new[] { "sofa", "couch", "pink", "cute" }, "A curvy pink loveseat with round cushions."),
+        ("Coffee_Table_03", "Round Coffee Table", StoreCategory.Tables, 35, new[] { "table", "coffee", "round", "cute" }, "A low round table for snacks and a mug of tea."),
+        ("Kitchen_Table_09", "Long Wooden Table", StoreCategory.Tables, 50, new[] { "table", "wood", "cute" }, "A long dark-wood table with turned legs."),
+        ("Kitchen_D_06", "Skirted Side Table", StoreCategory.Tables, 30, new[] { "table", "side", "cute" }, "A little side table with a frilly cloth."),
+        ("Work_Table_06", "Study Desk", StoreCategory.Tables, 55, new[] { "desk", "table", "study", "cute" }, "A tidy wooden desk with metal legs, just right for studying."),
+        ("Bed_02", "Teal Storage Bed", StoreCategory.Beds, 90, new[] { "bed", "double", "storage", "cute" }, "A double bed with drawers underneath for the clutter."),
+        ("Bed_07", "Wooden Single Bed", StoreCategory.Beds, 75, new[] { "bed", "single", "wood", "cute" }, "A snug wooden bed with a pink quilt."),
+        ("Closet_01", "Open Bookcase", StoreCategory.Storage, 45, new[] { "shelf", "bookcase", "storage", "cute" }, "A tall wooden bookcase with a drawer at the bottom."),
+        ("Closet_02", "Teal Wardrobe", StoreCategory.Storage, 55, new[] { "wardrobe", "closet", "storage", "cute" }, "A rounded teal wardrobe with pink doors."),
+        ("Nightstand_02", "Nightstand", StoreCategory.Storage, 25, new[] { "nightstand", "drawer", "bedside", "cute" }, "A small bedside drawer for your phone and a glass of water."),
+        ("Kitchen_D_01", "Draped Sideboard", StoreCategory.Storage, 45, new[] { "cabinet", "sideboard", "storage", "cute" }, "A wooden sideboard with a red scalloped cloth."),
+        ("Kitchen_D_08", "Wooden Cupboard", StoreCategory.Storage, 30, new[] { "cabinet", "cupboard", "storage", "cute" }, "A chunky little cupboard with one round door."),
+        ("Kitchen_D_09", "Low Shelf Cabinet", StoreCategory.Storage, 35, new[] { "cabinet", "shelf", "storage", "cute" }, "A low cabinet with an open shelf and a door."),
+        ("Kitchen_D_10", "Double Cabinet", StoreCategory.Storage, 35, new[] { "cabinet", "storage", "cute" }, "A low wooden cabinet with two doors."),
+        ("Light_05", "Tripod Floor Lamp", StoreCategory.Lighting, 30, new[] { "lamp", "floor", "light", "cute" }, "A tall tripod lamp to keep your study corner warm and bright."),
+        ("Plants_05", "Potted Daisy", StoreCategory.Plants, 15, new[] { "plant", "flower", "pot", "cute" }, "A cheerful pink flower in a terracotta pot."),
+        ("Plants_15", "Leafy Sprout", StoreCategory.Plants, 15, new[] { "plant", "pot", "cute" }, "A young leafy plant in a dark pot."),
+        ("Plants_19", "Banana Plant", StoreCategory.Plants, 20, new[] { "plant", "tall", "pot", "cute" }, "A tall banana-leaf plant to bring a little life into the room."),
+        ("Book_03", "Row of Books", StoreCategory.Study, 15, new[] { "books", "study", "small", "cute" }, "A colourful row of books for a desk or shelf."),
+        ("Book_08", "Book Stack", StoreCategory.Study, 10, new[] { "books", "study", "small", "cute" }, "A stack of well-thumbed textbooks."),
+        ("Paper_01", "Loose Notes", StoreCategory.Study, 5, new[] { "paper", "notes", "study", "small", "cute" }, "A couple of loose pages of notes."),
+        ("Paper_02", "Sheet of Paper", StoreCategory.Study, 5, new[] { "paper", "study", "small", "cute" }, "A blank sheet, ready for the next idea."),
+        ("Clock_03", "Grandfather Clock", StoreCategory.Decor, 60, new[] { "clock", "tall", "wood", "cute" }, "A tall pendulum clock that keeps every session on time."),
+        ("ExerciseBike_01", "Exercise Bike", StoreCategory.Decor, 70, new[] { "exercise", "bike", "fitness", "cute" }, "For stretching your legs between study sessions."),
+        ("Guitar_01", "Acoustic Guitar", StoreCategory.Decor, 40, new[] { "guitar", "music", "cute" }, "A little guitar for strumming on breaks."),
+        ("Toy_02", "Toy Car", StoreCategory.Decor, 10, new[] { "toy", "car", "small", "cute" }, "A chunky red toy car."),
+        ("Toy_03", "Spinning Top", StoreCategory.Decor, 10, new[] { "toy", "small", "cute" }, "A bright spinning top to fidget with."),
+        ("Picture_08", "Flower Print", StoreCategory.WallDecor, 20, new[] { "picture", "art", "frame", "cute" }, "A framed print of a stylised flower."),
+        ("Picture_17", "Abstract Print", StoreCategory.WallDecor, 20, new[] { "picture", "art", "frame", "cute" }, "A framed print of soft circles and lines."),
+        ("Picture_21", "Triangle Print", StoreCategory.WallDecor, 20, new[] { "picture", "art", "frame", "cute" }, "A wide framed print with a bold pink triangle."),
+        ("Computer_01", "Desktop Computer", StoreCategory.Electronics, 60, new[] { "computer", "monitor", "pc", "cute" }, "A cute desktop computer with a keyboard and mouse."),
+        ("GameConsole_01", "Game Controller", StoreCategory.Electronics, 25, new[] { "game", "controller", "small", "cute" }, "A controller for a reward round after a long session."),
+        ("Keyboard_01", "Keyboard", StoreCategory.Electronics, 15, new[] { "keyboard", "computer", "small", "cute" }, "A spare keyboard for the desk."),
+        ("Mouse_01", "Computer Mouse", StoreCategory.Electronics, 10, new[] { "mouse", "computer", "small", "cute" }, "A little computer mouse."),
+        ("Fridge_01", "Mini Fridge", StoreCategory.KitchenBath, 60, new[] { "fridge", "kitchen", "snacks", "cute" }, "A pastel fridge to keep study snacks cold."),
+        ("Microwave_01", "Microwave", StoreCategory.KitchenBath, 35, new[] { "microwave", "kitchen", "cute" }, "A pink microwave for late-night noodles."),
+        ("Cutting_board_02", "Cutting Board", StoreCategory.KitchenBath, 10, new[] { "kitchen", "board", "small", "cute" }, "A wooden chopping board."),
+        ("Utensils_01", "Rolling Pin", StoreCategory.KitchenBath, 10, new[] { "kitchen", "baking", "small", "cute" }, "A rolling pin for study-break baking."),
+        ("Bath_03", "Bathtub", StoreCategory.KitchenBath, 80, new[] { "bath", "bathtub", "bathroom", "cute" }, "A bathtub with a rain shower for a long soak."),
+        ("Toilet_03", "Toilet", StoreCategory.KitchenBath, 40, new[] { "toilet", "bathroom", "cute" }, "Every home needs one."),
+        ("Wash_Basin_07", "Pedestal Sink", StoreCategory.KitchenBath, 40, new[] { "sink", "basin", "bathroom", "cute" }, "A pink pedestal sink with a golden tap."),
+        ("Mixer_08", "Tap", StoreCategory.KitchenBath, 10, new[] { "tap", "faucet", "bathroom", "small", "cute" }, "A shiny tap for a sink or tub."),
+        ("Toothbrush_01", "Toothbrush", StoreCategory.KitchenBath, 5, new[] { "toothbrush", "bathroom", "small", "cute" }, "A red toothbrush."),
+        ("Toothpaste_01", "Toothpaste", StoreCategory.KitchenBath, 5, new[] { "toothpaste", "bathroom", "small", "cute" }, "A tube of minty toothpaste."),
+    };
 
     static FurnitureStoreTools()
     {
@@ -170,6 +228,7 @@ public static class FurnitureStoreTools
         {
             item = ScriptableObject.CreateInstance<FurnitureItem>();
             Describe(item, prefab.name, sourcePath);
+            DescribeCute(item, prefab.name, sourcePath);
             AssetDatabase.CreateAsset(item, itemPath);
         }
         item.prefab = prefab;
@@ -237,6 +296,33 @@ public static class FurnitureStoreTools
         };
     }
 
+    // Hand-written details and the pack's own icon for Cute Furniture pieces; other items keep their guesses.
+    static void DescribeCute(FurnitureItem item, string assetName, string sourcePath)
+    {
+        if (!sourcePath.StartsWith(CuteFurniture)) return;
+        var piece = CutePieces.FirstOrDefault(p => p.key == assetName);
+        if (piece.key == null) return;
+        item.displayName = piece.name;
+        item.category = piece.category;
+        item.price = piece.price;
+        item.tags = piece.tags;
+        item.description = piece.description;
+        item.colorable = piece.category != StoreCategory.WallDecor; // prints get their look from the texture
+
+        // The icons import as plain textures; the store wants sprites.
+        string iconPath = $"{CuteFurniture}/Icons/{assetName}.png";
+        if (AssetImporter.GetAtPath(iconPath) is TextureImporter importer)
+        {
+            if (importer.textureType != TextureImporterType.Sprite)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                importer.spriteImportMode = SpriteImportMode.Single;
+                importer.SaveAndReimport();
+            }
+            item.icon = AssetDatabase.LoadAssetAtPath<Sprite>(iconPath);
+        }
+    }
+
     // Models get a prefab variant in the furniture folder; prefabs are fixed up in place.
     // Either way the result has a Furniture component and a collider RoomManager can place with.
     static GameObject PrepareFurniturePrefab(GameObject source, string sourcePath)
@@ -280,8 +366,9 @@ public static class FurnitureStoreTools
     {
         string lower = assetName.ToLowerInvariant().Replace('_', ' ').Replace('-', ' ');
         if (CeilingWords.Any(lower.Contains)) return Furniture.FurnitureType.Ceiling;
-        // Alarm and table clocks stand on desks; other clocks hang.
-        bool clock = lower.Contains("clock") && !lower.Contains("alarm") && !lower.Contains("table") && !lower.Contains("desk");
+        // Alarm, table and grandfather clocks (Cute Furniture's "Clock_03") stand; other clocks hang.
+        bool clock = lower.Contains("clock") && !lower.Contains("alarm") && !lower.Contains("table") && !lower.Contains("desk")
+            && lower != "clock 03";
         if (clock || WallWords.Any(lower.Contains)) return Furniture.FurnitureType.Wall;
         return Furniture.FurnitureType.Floor;
     }

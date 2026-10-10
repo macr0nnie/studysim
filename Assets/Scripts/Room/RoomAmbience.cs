@@ -10,7 +10,7 @@ using UnityEngine.UI;
 // warm soft lamps, and a light URP Volume (bloom, vignette, grading). The room dims and warms while a study
 // session runs or every lamp is off, and brightens on a break. Settings > Sound > Lighting picks Off / Cozy / Bright.
 // Behind the room is a sky gradient that follows the clock (hidden while Paint > Background has a colour), and a few
-// dust motes drift in the room.
+// dust motes drift in the room, with a soft shadow under it so it doesn't float.
 // Mini mode owns shadows and post-processing while it is active, so this only turns the Volume off there.
 public class RoomAmbience : MonoBehaviour
 {
@@ -52,6 +52,7 @@ public class RoomAmbience : MonoBehaviour
     private Texture2D skyTexture;
     private float skyClock;
     private ParticleSystem dust;
+    private Material shadowMaterial;
     private RoomManager room;
     private readonly List<Light> lamps = new List<Light>();
     private readonly Dictionary<Light, Vector2> lampBase = new Dictionary<Light, Vector2>(); // authored (intensity, range)
@@ -120,6 +121,7 @@ public class RoomAmbience : MonoBehaviour
     {
         if (volume != null) Destroy(volume.sharedProfile);
         if (skyTexture != null) Destroy(skyTexture);
+        if (shadowMaterial != null) Destroy(shadowMaterial);
         if (dust != null) { Destroy(dust.GetComponent<ParticleSystemRenderer>().sharedMaterial.mainTexture); Destroy(dust.GetComponent<ParticleSystemRenderer>().sharedMaterial); }
         if (instance == this) instance = null;
     }
@@ -306,5 +308,26 @@ public class RoomAmbience : MonoBehaviour
         particleRenderer.sharedMaterial = material;
         particleRenderer.shadowCastingMode = ShadowCastingMode.Off;
         particleRenderer.receiveShadows = false;
+
+        // Soft dark disc just under the floor, a child of the motes so both hide together.
+        GameObject shadow = GameObject.CreatePrimitive(PrimitiveType.Quad);
+        Destroy(shadow.GetComponent<Collider>()); // never catch room clicks
+        shadow.name = "RoomShadow";
+        shadow.transform.SetParent(go.transform, false);
+        shadow.transform.SetPositionAndRotation(new Vector3(floor.center.x, floor.min.y - size * 0.02f, floor.center.z), Quaternion.Euler(90, 0, 0));
+        shadow.transform.localScale = Vector3.one * size * 1.6f / go.transform.lossyScale.x;
+        Mesh quad = shadow.GetComponent<MeshFilter>().mesh;
+        var white = new Color[quad.vertexCount];
+        for (int i = 0; i < white.Length; i++) white[i] = Color.white; // the particle shader multiplies by vertex colour
+        quad.colors = white;
+        shadowMaterial = new Material(material);
+        shadowMaterial.SetFloat("_Blend", 0);
+        shadowMaterial.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
+        shadowMaterial.SetColor("_BaseColor", new Color(0.12f, 0.08f, 0.1f, 0.35f));
+        shadowMaterial.renderQueue = (int)RenderQueue.Transparent - 10;
+        var shadowRenderer = shadow.GetComponent<MeshRenderer>();
+        shadowRenderer.sharedMaterial = shadowMaterial;
+        shadowRenderer.shadowCastingMode = ShadowCastingMode.Off;
+        shadowRenderer.receiveShadows = false;
     }
 }

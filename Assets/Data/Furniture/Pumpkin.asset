@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Pumpkin
   description: "A plump autumn pumpkin for a cozy seasonal touch."
-  category: 8
+  category: 12
   tags:
   - seasonal
   - autumn

@@ -48,7 +48,7 @@ public class RoomAmbience : MonoBehaviour
     public static bool SkyHidden; // set by PaintUI while a background colour is picked
 
     private static RoomAmbience instance;
-    private RawImage sky;
+    private RawImage skyImage;
     private Texture2D skyTexture;
     private float skyClock;
     private ParticleSystem dust;
@@ -127,10 +127,10 @@ public class RoomAmbience : MonoBehaviour
     private void Update()
     {
         bool mini = MiniMode.Active;
-        if (sky != null)
+        if (skyImage != null)
         {
             bool showSky = !SkyHidden && !mini; // mini mode's window needs the camera's own clear colour
-            if (sky.enabled != showSky) sky.enabled = showSky;
+            if (skyImage.enabled != showSky) skyImage.enabled = showSky;
             if (showSky && (skyClock -= Time.unscaledDeltaTime) <= 0) { skyClock = 30; PaintSky(); }
         }
         if (key == null) return;
@@ -218,14 +218,14 @@ public class RoomAmbience : MonoBehaviour
         canvas.worldCamera = cam;
         canvas.planeDistance = cam.farClipPlane * 0.95f;
         canvas.sortingOrder = -100;
-        sky = new GameObject("Gradient", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
-        sky.transform.SetParent(canvasGO.transform, false);
-        var rect = (RectTransform)sky.transform;
+        skyImage = new GameObject("Gradient", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+        skyImage.transform.SetParent(canvasGO.transform, false);
+        var rect = (RectTransform)skyImage.transform;
         rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = rect.offsetMax = Vector2.zero;
-        sky.raycastTarget = false;
+        skyImage.raycastTarget = false;
         skyTexture = new Texture2D(1, 2, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
-        sky.texture = skyTexture;
-        sky.uvRect = new Rect(0, 0.25f, 1, 0.5f); // texel centre to texel centre: a full bottom-to-top blend
+        skyImage.texture = skyTexture;
+        skyImage.uvRect = new Rect(0, 0.25f, 1, 0.5f); // texel centre to texel centre: a full bottom-to-top blend
         PaintSky();
     }
 

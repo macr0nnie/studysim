@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
@@ -29,6 +30,8 @@ public class MiniMode : MonoBehaviour
 
     private readonly List<Canvas> hidden = new List<Canvas>();
     private RoomManager room;
+    private TimerManager timer;
+    private TMP_Text timerText; // the one UI kept while mini: the focus countdown
     private float lastClick = -1, blockUntil;
     // Full-mode settings, restored on the way back.
     private int frameRate, vSync;
@@ -58,6 +61,11 @@ public class MiniMode : MonoBehaviour
         // Leaving mini mode re-enables the key action, which can report the same key press once more.
         if (!Active && Time.unscaledTime > blockUntil && Controls.Pressed(Controls.Act.MiniMode) && !Typing()) Toggle();
         else if (Active) Overlay();
+        if (timerText != null && timer != null)
+        {
+            int s = Mathf.Max(0, Mathf.CeilToInt(timer.CurrentTime));
+            timerText.text = $"{s / 60:00}:{s % 60:00}  <size=60%>{(timer.IsStudySession ? "Focus" : "Break")}</size>";
+        }
     }
 
     // Wants to leave mini mode: the (editor-only) key, or a double-click / right-click while unlocked.
@@ -94,9 +102,11 @@ public class MiniMode : MonoBehaviour
             hidden.Clear();
             foreach (Canvas c in FindObjectsByType<Canvas>(FindObjectsSortMode.None))
                 if (c.isRootCanvas && c.enabled) { Show(c, false); hidden.Add(c); }
+            ShowTimer();
         }
         else
         {
+            if (timerText != null) Destroy(timerText.canvas.gameObject);
             foreach (Canvas c in hidden) if (c != null) Show(c, true);
             hidden.Clear();
         }
@@ -106,6 +116,20 @@ public class MiniMode : MonoBehaviour
 #if UNITY_STANDALONE_WIN && !UNITY_EDITOR
         if (Active) StartCoroutine(EnterWindow()); else ExitWindow();
 #endif
+    }
+
+    private void ShowTimer()
+    {
+        if (timer == null) timer = FindFirstObjectByType<TimerManager>();
+        if (timer == null) return;
+        Canvas canvas = MakeCanvas("MiniTimerCanvas", transform, 50);
+        // The mini window is only 360x300, so the 1920x1080 scaling would shrink the text to a few pixels.
+        canvas.GetComponent<UnityEngine.UI.CanvasScaler>().uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ConstantPixelSize;
+        timerText = MakeText("MiniTimer", canvas.transform, "", 40, Color.white, TextAlignmentOptions.Top, true);
+        Anchor(timerText.gameObject, new Vector2(0, 0.8f), new Vector2(1, 1));
+        timerText.outlineWidth = 0.25f; // readable over any background behind the see-through window
+        timerText.outlineColor = Color.black;
+        timerText.raycastTarget = false;
     }
 
     private static void Show(Canvas c, bool on)

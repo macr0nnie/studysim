@@ -1,7 +1,8 @@
 using UnityEngine;
 
 // What the store shows and sells. Placement rules (floor/wall/shelf) live on the prefab's Furniture component.
-// Store tabs, in display order. Saved as numbers in every item asset, so add new ones at the end.
+// Store tabs, in display order. Saved as numbers in every item asset: inserting one means renumbering those assets.
+// The first four are big furniture (see FurnitureRole.Is).
 public enum StoreCategory
 {
     Seating,
@@ -10,6 +11,8 @@ public enum StoreCategory
     Storage,
     Lighting,
     Plants,
+    Textiles, // rugs, pillows, blankets
+    Study, // books, notebooks, stationery
     Decor,
     WallDecor,
     Electronics,

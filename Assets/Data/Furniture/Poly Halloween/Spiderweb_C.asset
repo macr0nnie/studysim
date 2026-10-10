@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Spiderweb_C
   description: A spiderweb_c to add some personality to your space.
-  category: 10
+  category: 12
   tags:
   - spiderweb
   - halloween

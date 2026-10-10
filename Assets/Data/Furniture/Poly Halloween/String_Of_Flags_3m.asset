@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: String_Of_Flags_3m
   description: A string_of_flags_3m to add some personality to your space.
-  category: 10
+  category: 12
   tags:
   - string
   - of

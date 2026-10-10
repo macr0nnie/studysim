@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Washing Sink
   description: A washing sink to make your room your own.
-  category: 9
+  category: 11
   tags:
   - washing
   - sink

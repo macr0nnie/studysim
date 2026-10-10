@@ -272,6 +272,8 @@ public class CharacterBehaviour : MonoBehaviour
             // A different chair: walk there instead of snapping (but not while a piece is being dragged).
             if (room.IsDragging) return;
             if (walking && best == walkChair) { sitPos = pos; sitRot = rot; return; }
+            // The first seat after loading is taken straight away, so the game opens with the character already at the desk.
+            if (!seatedOnce) { seatedOnce = true; Assign(best, false, pos, rot); return; }
             BeginWalk(best, pos, rot);
             return;
         }
@@ -298,7 +300,7 @@ public class CharacterBehaviour : MonoBehaviour
     // ---------- walking to a chair ----------
 
     private const float WalkSpeed = 1.5f, MaxWalkSeconds = 8f, TurnDegreesPerSecond = 360f;
-    private bool walking;
+    private bool walking, seatedOnce;
     private GameObject walkChair;
     private Vector3 sitPos;
     private Quaternion sitRot;

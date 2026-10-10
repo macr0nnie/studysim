@@ -167,7 +167,8 @@ public class GameHUD : MonoBehaviour
         bool input = (Mouse.current != null && (Mouse.current.delta.ReadValue() != Vector2.zero || Mouse.current.scroll.ReadValue() != Vector2.zero))
             || (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame);
         if (input || toastPlaying || (room != null && room.IsEditMode)) lastInput = Time.unscaledTime;
-        float target = Time.unscaledTime - lastInput > IdleAfter ? IdleAlpha : 1f;
+        float idleAfter = timer != null && timer.IsTimerRunning && timer.IsStudySession ? IdleAfter / 2 : IdleAfter; // step back sooner while studying
+        float target = Time.unscaledTime - lastInput > idleAfter ? IdleAlpha : 1f;
         float speed = target > IdleAlpha ? 4f : 0.8f; // back quickly, away slowly
         foreach (CanvasGroup group in fadeGroups)
             if (group != null) group.alpha = Mathf.MoveTowards(group.alpha, target, Time.unscaledDeltaTime * speed);

@@ -246,7 +246,10 @@ public class CharacterBehaviour : MonoBehaviour
                 if (p != null && p.activeInHierarchy && Usable(p, out Interaction d) && Spot(p, d, out pos, out rot)) best = p;
             }
         }
-        else if (Chairs(out List<Transform> chairs))
+        // Nothing to lie on (a new game has only a desk and chair): stay seated at the desk instead of standing where it
+        // spawned, which faces the camera.
+        if (best == null) wantLie = false;
+        if (!wantLie && Chairs(out List<Transform> chairs))
         {
             // Several chairs: one with a desk within reach beats one without, then the most recently placed or moved,
             // then the closest to a desk.

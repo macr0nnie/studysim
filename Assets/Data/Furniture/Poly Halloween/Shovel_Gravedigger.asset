@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Shovel_Gravedigger
   description: A shovel_gravedigger to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - shovel
   - gravedigger

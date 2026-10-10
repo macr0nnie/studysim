@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Drawer Unit 3
   description: A drawer unit 3 to make your room your own.
-  category: 0
+  category: 3
   tags:
   - drawer
   - unit

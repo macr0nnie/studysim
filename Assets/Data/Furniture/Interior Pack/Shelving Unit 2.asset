@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Shelving Unit 2
   description: A shelving unit 2 to make your room your own.
-  category: 0
+  category: 3
   tags:
   - shelving
   - unit

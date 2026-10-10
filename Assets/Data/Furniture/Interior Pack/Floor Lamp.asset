@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Floor Lamp
   description: A floor lamp to keep your study corner warm and bright.
-  category: 2
+  category: 4
   tags:
   - floor
   - lamp

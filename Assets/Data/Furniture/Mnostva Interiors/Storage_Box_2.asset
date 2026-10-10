@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Storage_Box_2
   description: A storage_box_2 to add some personality to your space.
-  category: 1
+  category: 3
   tags:
   - storage
   - box

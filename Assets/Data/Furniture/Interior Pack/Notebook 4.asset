@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Notebook 4
   description: A notebook 4 to add some personality to your space.
-  category: 1
+  category: 6
   tags:
   - notebook
   - office

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Witchy Bookshelf
   description: "A tall shelf for spellbooks, textbooks and the occasional potion bottle."
-  category: 0
+  category: 3
   tags:
   - witchy
   - books

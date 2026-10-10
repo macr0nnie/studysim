@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Retro TV
   description: "A chunky retro TV for well-earned breaks between study sessions."
-  category: 0
+  category: 8
   tags:
   - electronics
   - retro

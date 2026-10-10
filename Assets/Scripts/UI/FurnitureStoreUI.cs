@@ -31,6 +31,11 @@ public class FurnitureStoreUI : MonoBehaviour
     private Card selected;
     private readonly Queue<(Image image, FurnitureItem item)> pendingIcons = new Queue<(Image, FurnitureItem)>();
     private int shownCategory = -1;
+    private readonly List<(int category, Image image)> tabs = new List<(int, Image)>();
+
+    // Tab labels, indexed by StoreCategory.
+    private static readonly string[] CategoryNames =
+        { "Seating", "Desks & tables", "Beds", "Storage", "Lighting", "Plants", "Decor", "Wall decor", "Electronics", "Kitchen & bath", "Spooky" };
 
     // Any scene with a RoomManager gets a store, even if nobody added one to the scene.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -103,6 +108,7 @@ public class FurnitureStoreUI : MonoBehaviour
         shownCategory = category;
         foreach (Card c in cards)
             c.root.SetActive(category < 0 || (int)c.item.category == category);
+        foreach (var (tabCategory, image) in tabs) image.color = tabCategory == category ? SelectedColor : TabColor;
     }
 
     private int Coins => playerCurrency != null ? playerCurrency.GetCoins() : 0;
@@ -145,7 +151,7 @@ public class FurnitureStoreUI : MonoBehaviour
     {
         GameObject canvasGO = MakeCanvas("FurnitureStoreCanvas", transform, 10).gameObject;
 
-        // Shop button sits in the row with the existing colour/edit-mode buttons on the left.
+        // Shop button, second in the dock.
         Button shop = NavButton(canvasGO.transform, 1, "Shop", Controls.Act.Store);
         shop.onClick.AddListener(Toggle);
 
@@ -162,11 +168,17 @@ public class FurnitureStoreUI : MonoBehaviour
         close.gameObject.AddComponent<LayoutElement>().preferredWidth = 40;
         close.onClick.AddListener(Toggle);
 
-        // Category tabs.
-        GameObject tabs = Row("Tabs", panel.transform, 34, 6, true);
-        AddTab(tabs.transform, "All", -1);
+        // Category tabs, wrapping onto as many rows as they need; categories with nothing in them are left out.
+        GameObject tabGrid = Make("Tabs", panel.transform, typeof(GridLayoutGroup));
+        var tabLayout = tabGrid.GetComponent<GridLayoutGroup>();
+        tabLayout.cellSize = new Vector2(97, 30); // four across the drawer
+        tabLayout.spacing = new Vector2(5, 5);
+        tabLayout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+        tabLayout.constraintCount = 4;
+        AddTab(tabGrid.transform, "All", -1);
         foreach (StoreCategory c in Enum.GetValues(typeof(StoreCategory)))
-            AddTab(tabs.transform, c.ToString(), (int)c);
+            if (catalog.items.Exists(i => i != null && i.prefab != null && i.category == c))
+                AddTab(tabGrid.transform, CategoryNames[(int)c], (int)c);
 
         // Scrollable grid of cards.
         Transform content = ScrollList(panel.transform, out _);
@@ -199,12 +211,15 @@ public class FurnitureStoreUI : MonoBehaviour
         buyLabel = buyButton.GetComponentInChildren<TMP_Text>();
         buyButton.onClick.AddListener(Buy);
 
+        ShowCategory(-1);
         Refresh(Coins);
     }
 
     private void AddTab(Transform parent, string label, int category)
     {
-        TextButton(label, parent, label, TabColor, CaptionSize).onClick.AddListener(() => ShowCategory(category));
+        Button tab = TextButton(label, parent, label, TabColor, CaptionSize);
+        tab.onClick.AddListener(() => ShowCategory(category));
+        tabs.Add((category, tab.GetComponent<Image>()));
     }
 
     private void AddCard(Transform parent, FurnitureItem item)

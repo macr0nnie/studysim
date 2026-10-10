@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Cabinet 7
   description: A cabinet 7 to make your room your own.
-  category: 0
+  category: 3
   tags:
   - cabinet
   - shelf

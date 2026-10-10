@@ -8,8 +8,9 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static UIKit;
 
-// Game settings window (the gear next to the player card, or Esc): Sound, Focus, Notifications, Controls, the
-// browser extension and Credits, plus Save and quit. Values live in GameSettings and Controls.
+// Game settings window (Settings in the dock, or Esc): Sound, Focus, Display, Notifications, Controls, the browser
+// extension and Credits, plus Save now, Main menu and Save and quit. Every page scrolls, so nothing runs off the
+// window. Values live in GameSettings and Controls.
 public class SettingsUI : MonoBehaviour
 {
 
@@ -29,8 +30,8 @@ public class SettingsUI : MonoBehaviour
     private Image statusDot;
     private TMP_Text statusText, testResult;
 
-    private static readonly string[] PageNames = { "Sound", "Focus", "Notifications", "Controls", "Browser extension", "Credits" };
-    private const int ExtensionPage = 4;
+    private static readonly string[] PageNames = { "Sound", "Focus", "Display", "Notifications", "Controls", "Browser extension", "Credits" };
+    private const int ExtensionPage = 5;
 
     // Controls page
     private TMP_Text[] keyLabels;
@@ -184,19 +185,7 @@ public class SettingsUI : MonoBehaviour
     {
         Transform canvas = MakeCanvas("SettingsCanvas", transform, 20).transform;
 
-        // Next to the player card, top left.
-        Button open = TextButton("SettingsButton", canvas, "", TabColor, LabelSize);
-        open.GetComponent<Image>().sprite = Circle;
-        Destroy(open.GetComponentInChildren<TMP_Text>().gameObject);
-        GameObject gear = Make("Gear", open.transform, typeof(Image));
-        gear.GetComponent<Image>().sprite = Gear;
-        gear.GetComponent<Image>().raycastTarget = false;
-        Anchor(gear, new Vector2(0.18f, 0.18f), new Vector2(0.82f, 0.82f));
-        var openRect = (RectTransform)open.transform;
-        openRect.anchorMin = openRect.anchorMax = openRect.pivot = new Vector2(0, 1);
-        openRect.sizeDelta = new Vector2(36, 36);
-        openRect.anchoredPosition = new Vector2(24 + 380 + 12, -24);
-        open.onClick.AddListener(Toggle);
+        NavButton(canvas, 4, "Settings", Controls.Act.Settings).onClick.AddListener(Toggle);
 
         // Dimmed backdrop (click to close) with the window centred on it. They are siblings so a click
         // inside the window doesn't bubble up to the backdrop's button.
@@ -210,7 +199,7 @@ public class SettingsUI : MonoBehaviour
 
         GameObject frame = Make("Frame", window.transform, typeof(Image), typeof(VerticalLayoutGroup), typeof(Shadow));
         var frameRect = (RectTransform)frame.transform;
-        frameRect.sizeDelta = new Vector2(900, 620);
+        frameRect.sizeDelta = new Vector2(900, 660);
         Style(frame.GetComponent<Image>(), PanelColor);
         frame.GetComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.4f);
         frame.GetComponent<Shadow>().effectDistance = new Vector2(0, -8);
@@ -226,46 +215,57 @@ public class SettingsUI : MonoBehaviour
         body.GetComponent<LayoutElement>().flexibleHeight = 1;
         body.GetComponent<HorizontalLayoutGroup>().childForceExpandHeight = true;
 
-        // Left: page tabs, Save and quit at the bottom.
-        GameObject side = Column("Tabs", body.transform, 8);
+        // Left: page tabs; saving and leaving at the bottom.
+        GameObject side = Column("Tabs", body.transform, 6);
         side.AddComponent<LayoutElement>().preferredWidth = 210;
         tabs = new Image[PageNames.Length];
         for (int i = 0; i < PageNames.Length; i++)
         {
             int index = i;
             Button tab = TextButton(PageNames[i], side.transform, PageNames[i], TabColor, BodySize);
-            tab.gameObject.AddComponent<LayoutElement>().preferredHeight = 44;
+            tab.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
             tab.onClick.AddListener(() => ShowPage(index));
             tabs[i] = tab.GetComponent<Image>();
         }
         Make("Spacer", side.transform, typeof(LayoutElement)).GetComponent<LayoutElement>().flexibleHeight = 1;
+        Button save = TextButton("SaveNow", side.transform, "Save now", AccentButtonColor, BodySize);
+        save.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
+        save.onClick.AddListener(() =>
+        {
+            SavesUI saves = FindFirstObjectByType<SavesUI>();
+            if (saves != null) saves.SaveNow(); else SaveSystem.Save(SaveSystem.CurrentSlot);
+        });
         Button menu = TextButton("MainMenu", side.transform, "Main menu", TabColor, BodySize);
-        menu.gameObject.AddComponent<LayoutElement>().preferredHeight = 44;
+        menu.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
         menu.onClick.AddListener(() =>
         {
             if (!Application.CanStreamedLevelBeLoaded(SaveSystem.MenuScene)) return; // not in the build yet
-            SaveSystem.Save(0);
+            SaveSystem.Save(SaveSystem.CurrentSlot);
             SceneManager.LoadScene(SaveSystem.MenuScene);
         });
         Button quit = TextButton("Quit", side.transform, "Save and quit", DangerColor, BodySize);
-        quit.gameObject.AddComponent<LayoutElement>().preferredHeight = 44;
+        quit.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
         quit.onClick.AddListener(Quit);
 
-        // Right: one page per tab.
+        // Right: one scrolling page per tab.
         GameObject content = Make("Pages", body.transform, typeof(LayoutElement));
         content.GetComponent<LayoutElement>().flexibleWidth = 1;
         pages = new GameObject[PageNames.Length];
+        var lists = new Transform[PageNames.Length];
         for (int i = 0; i < pages.Length; i++)
         {
-            pages[i] = Column(PageNames[i] + "Page", content.transform, 10);
+            pages[i] = Column(PageNames[i] + "Page", content.transform, 0);
             Stretch((RectTransform)pages[i].transform);
+            lists[i] = ScrollList(pages[i].transform, out _);
+            StackChildren(lists[i], 10);
         }
-        BuildSound(pages[0].transform);
-        BuildFocus(pages[1].transform);
-        BuildNotifications(pages[2].transform);
-        BuildControls(pages[3].transform);
-        BuildExtension(pages[ExtensionPage].transform);
-        BuildCredits(pages[5].transform);
+        BuildSound(lists[0]);
+        BuildFocus(lists[1]);
+        BuildDisplay(lists[2]);
+        BuildNotifications(lists[3]);
+        BuildControls(lists[4]);
+        BuildExtension(lists[ExtensionPage]);
+        BuildCredits(lists[6]);
 
         ShowPage(0);
         window.SetActive(false);
@@ -278,19 +278,6 @@ public class SettingsUI : MonoBehaviour
         AddSlider(page, "Music", 0, 100, GameSettings.MusicVolume * 100, v => $"{v:0}%", v => GameSettings.MusicVolume = v / 100f, out _);
         AddSlider(page, "Effects (UI sounds, chime)", 0, 100, GameSettings.EffectsVolume * 100, v => $"{v:0}%", v => GameSettings.EffectsVolume = v / 100f, out _);
         Switch(page, "Interface sounds", "Clicks, placing furniture, coins and lamps.", () => GameSettings.UISounds, v => GameSettings.UISounds = v);
-
-        Heading(page, "Lighting");
-        GameObject light = Row("Ambience", page, 48, 12, false);
-        light.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
-        MakeText("Label", light.transform, $"Room ambience\n<size={CaptionSize}><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>Warm light, glow and mood. Off keeps the plain look.</color></size>",
-            BodySize, TextColor, TextAlignmentOptions.Left).gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
-        Button cycle = SmallButton(light.transform, GameSettings.Ambience.ToString(), CardColor, 110);
-        cycle.onClick.AddListener(() =>
-        {
-            GameSettings.Ambience = (RoomAmbience.Style)(((int)GameSettings.Ambience + 1) % 3);
-            PlayerPrefs.Save();
-            cycle.GetComponentInChildren<TMP_Text>().text = GameSettings.Ambience.ToString();
-        });
     }
 
     private void BuildFocus(Transform page)
@@ -298,7 +285,7 @@ public class SettingsUI : MonoBehaviour
         Heading(page, "Focus mode");
         GameObject grid = Make("Modes", page, typeof(GridLayoutGroup));
         var layout = grid.GetComponent<GridLayoutGroup>();
-        layout.cellSize = new Vector2(298, 64);
+        layout.cellSize = new Vector2(290, 64); // two across the page, beside the scrollbar
         layout.spacing = new Vector2(10, 10);
         layout.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
         layout.constraintCount = 2;
@@ -335,18 +322,34 @@ public class SettingsUI : MonoBehaviour
             () => GameSettings.AutoStartBreak, v => GameSettings.AutoStartBreak = v);
         Switch(page, "Start the next session automatically", "After a break, the next session starts by itself.",
             () => GameSettings.AutoStartStudy, v => GameSettings.AutoStartStudy = v);
+    }
 
-        GameObject mini = Row("Mini mode", page, 48, 12, false);
-        mini.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
-        MakeText("Label", mini.transform, $"Mini mode\n<size={CaptionSize}><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>" +
-            $"Just the room, like a game overlay: top right, on top, click-through. F10 unlocks it to drag, F9 comes back.</color></size>",
-            BodySize, TextColor, TextAlignmentOptions.Left).gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
-        Button key = SmallButton(mini.transform, "", CardColor, 150);
+    // Look of the room and the window: lighting and mini mode.
+    private void BuildDisplay(Transform page)
+    {
+        Heading(page, "Room");
+        GameObject light = Row("Ambience", page, 48, 12, false);
+        light.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+        Label(light.transform, "Room ambience", "Warm light, glow and mood. Off keeps the plain look.");
+        Button cycle = SmallButton(light.transform, GameSettings.Ambience.ToString(), CardColor, 110);
+        cycle.GetComponent<LayoutElement>().preferredHeight = 36;
+        cycle.onClick.AddListener(() =>
+        {
+            GameSettings.Ambience = (RoomAmbience.Style)(((int)GameSettings.Ambience + 1) % 3);
+            PlayerPrefs.Save();
+            cycle.GetComponentInChildren<TMP_Text>().text = GameSettings.Ambience.ToString();
+        });
+
+        Heading(page, "Mini mode");
+        Note(page, "Just the room, like a game overlay: top right, on top of other windows and click-through. "
+            + "F10 unlocks it to drag, F9 comes back.");
+        GameObject mini = Row("Mini mode", page, 40, 10, false);
+        SmallButton(mini.transform, "Go mini", AccentButtonColor, 140).onClick.AddListener(() => { Toggle(); MiniMode.Set(true); });
+        Button key = SmallButton(mini.transform, "", CardColor, 190);
         TMP_Text keyLabel = key.GetComponentInChildren<TMP_Text>();
-        void ShowKey() => keyLabel.text = MiniMode.ColorKey ? "Mode: color key" : "Mode: alpha";
+        void ShowKey() => keyLabel.text = MiniMode.ColorKey ? "Transparency: color key" : "Transparency: alpha";
         key.onClick.AddListener(() => { MiniMode.ColorKey = !MiniMode.ColorKey; ShowKey(); });
         ShowKey();
-        SmallButton(mini.transform, "Go mini", CardColor, 110).onClick.AddListener(() => { Toggle(); MiniMode.Set(true); });
         AddSlider(page, "Mini mode opacity", 20, 100, MiniMode.Opacity * 100, v => $"{v:0}%", v => MiniMode.Opacity = v / 100f, out _);
     }
 
@@ -356,7 +359,7 @@ public class SettingsUI : MonoBehaviour
         Switch(page, "Session messages", "When a session or break ends.", () => GameSettings.SessionToasts, v => GameSettings.SessionToasts = v);
         Switch(page, "Session chime", "A soft chime when a session or break ends.", () => GameSettings.SessionChime, v => GameSettings.SessionChime = v);
         Switch(page, "Level-up messages", "When you reach a new level.", () => GameSettings.LevelUpToasts, v => GameSettings.LevelUpToasts = v);
-        Switch(page, "Autosave note", "The small \"Autosaved\" note, bottom right.", () => GameSettings.AutosaveBadge, v => GameSettings.AutosaveBadge = v);
+        Switch(page, "Autosave note", "The small \"Autosaved\" note under the timer.", () => GameSettings.AutosaveBadge, v => GameSettings.AutosaveBadge = v);
     }
 
     private void BuildExtension(Transform page)
@@ -364,8 +367,11 @@ public class SettingsUI : MonoBehaviour
         Heading(page, "Browser extension");
         GameObject statusRow = Row("Status", page, 64, 12, false);
         Style(statusRow.AddComponent<Image>(), CardColor);
+        statusRow.GetComponent<LayoutElement>().preferredHeight = -1; // grows with a long error
+        statusRow.GetComponent<LayoutElement>().minHeight = 64;
         statusRow.GetComponent<HorizontalLayoutGroup>().padding = new RectOffset(14, 14, 8, 8);
         statusRow.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+        statusRow.GetComponent<HorizontalLayoutGroup>().childForceExpandHeight = false; // keeps the dot round
         GameObject dot = Make("Dot", statusRow.transform, typeof(Image), typeof(LayoutElement));
         dot.GetComponent<LayoutElement>().preferredWidth = 14;
         dot.GetComponent<LayoutElement>().preferredHeight = 14;
@@ -373,12 +379,13 @@ public class SettingsUI : MonoBehaviour
         statusDot.sprite = Circle;
         statusText = MakeText("Text", statusRow.transform, "", LabelSize, TextColor, TextAlignmentOptions.Left);
         statusText.textWrappingMode = TextWrappingModes.Normal;
+        statusText.enableAutoSizing = false;
         statusText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
 
         GameObject buttons = Row("Buttons", page, 42, 10, false);
-        SmallButton(buttons.transform, "Test connection", AccentButtonColor, 170).onClick.AddListener(() => StartCoroutine(Test()));
+        SmallButton(buttons.transform, "Test connection", AccentButtonColor, 160).onClick.AddListener(() => StartCoroutine(Test()));
         SmallButton(buttons.transform, "Reconnect", TabColor, 120).onClick.AddListener(() => { if (bridge != null) bridge.Restart(); });
-        SmallButton(buttons.transform, "Copy setup info", TabColor, 160).onClick.AddListener(() =>
+        SmallButton(buttons.transform, "Copy setup info", TabColor, 150).onClick.AddListener(() =>
         {
             GUIUtility.systemCopyBuffer = SetupInfo;
             testResult.text = "Setup info copied.";
@@ -391,23 +398,18 @@ public class SettingsUI : MonoBehaviour
         AddSlider(page, "Coins lost per minute while distracted", 0, 30, GameSettings.DistractionCoinsPerMinute, v => $"{v:0}",
             v => GameSettings.DistractionCoinsPerMinute = Mathf.RoundToInt(v), out _);
 
-        TMP_Text help = MakeText("Help", page,
+        Note(page,
             "Install the extension from the game's BrowserExtension folder (Chrome: Extensions, Developer mode, Load unpacked), "
             + "keep the game running, and it connects by itself. It talks to the game at "
             + $"<color=#{ColorUtility.ToHtmlStringRGB(AccentColor)}>{ChromeWebEx.Address}</color>: it can start, pause and reset the timer, "
             + "set the session length, earn focus XP on study sites, and tell the game when you're on a distracting one. "
-            + "Copy setup info gives the full message list.",
-            LabelSize, MutedText, TextAlignmentOptions.TopLeft);
-        help.textWrappingMode = TextWrappingModes.Normal;
-        help.enableAutoSizing = false;
-        help.gameObject.AddComponent<LayoutElement>().preferredHeight = 90;
+            + "Copy setup info gives the full message list.");
     }
 
     private void BuildControls(Transform page)
     {
         Heading(page, "Controls");
-        Transform list = ScrollList(page, out _);
-        StackChildren(list, 6);
+        Transform list = page;
         var labels = Controls.Labels;
         keyLabels = new TMP_Text[labels.Length];
         for (int i = 0; i < labels.Length; i++)
@@ -427,11 +429,8 @@ public class SettingsUI : MonoBehaviour
                 Controls.Rebind(act, RefreshControls);
             });
         }
-        TMP_Text mouse = MakeText("Mouse", list,
-            "Mouse: click to place or pick up, drag to move, right-click to cancel or remove. Click a lamp to switch it on or off; double-click a piece to edit it.",
-            LabelSize, MutedText, TextAlignmentOptions.TopLeft);
-        mouse.textWrappingMode = TextWrappingModes.Normal;
-        mouse.enableAutoSizing = false;
+        Note(list, "Mouse: click to place or pick up, drag to move, right-click to cancel or remove. Click a lamp to switch it "
+            + "on or off; double-click a piece to edit it.");
 
         GameObject footer = Row("Footer", page, 40, 12, false);
         footer.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
@@ -451,13 +450,8 @@ public class SettingsUI : MonoBehaviour
     private static void BuildCredits(Transform page)
     {
         Heading(page, "Credits");
-        Transform list = ScrollList(page, out _);
-        StackChildren(list, 0);
         TextAsset file = Resources.Load<TextAsset>("Credits");
-        TMP_Text text = MakeText("Text", list, file != null ? file.text.Replace(" [CHECK]", "") : "Credits file missing.",
-            LabelSize, TextColor, TextAlignmentOptions.TopLeft);
-        text.textWrappingMode = TextWrappingModes.Normal;
-        text.enableAutoSizing = false;
+        Note(page, file != null ? file.text.Replace(" [CHECK]", "") : "Credits file missing.").color = TextColor;
     }
 
     // ---------- widgets ----------
@@ -490,15 +484,40 @@ public class SettingsUI : MonoBehaviour
         heading.gameObject.AddComponent<LayoutElement>().preferredHeight = 32;
     }
 
+    // Wrapped paragraph that takes the height its text needs.
+    private static TMP_Text Note(Transform page, string text)
+    {
+        TMP_Text note = MakeText("Note", page, text, LabelSize, MutedText, TextAlignmentOptions.TopLeft);
+        note.textWrappingMode = TextWrappingModes.Normal;
+        note.enableAutoSizing = false;
+        note.overflowMode = TextOverflowModes.Overflow;
+        return note;
+    }
+
+    // Title over a muted description, filling the row beside its control. The row grows to fit long descriptions
+    // instead of shrinking the text.
+    private static void Label(Transform row, string title, string description)
+    {
+        TMP_Text label = MakeText("Label", row, $"{title}\n<size={CaptionSize}><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>{description}</color></size>",
+            BodySize, TextColor, TextAlignmentOptions.Left);
+        label.textWrappingMode = TextWrappingModes.Normal;
+        label.enableAutoSizing = false;
+        label.overflowMode = TextOverflowModes.Overflow;
+        label.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+        var element = row.GetComponent<LayoutElement>();
+        element.minHeight = element.preferredHeight;
+        element.preferredHeight = -1;
+        var h = row.GetComponent<HorizontalLayoutGroup>();
+        h.padding = new RectOffset(0, 0, 4, 4);
+        h.childForceExpandHeight = false; // controls keep their own height, centred, however tall the row gets
+    }
+
     // Title and description on the left, an on/off switch on the right.
     private static void Switch(Transform page, string title, string description, Func<bool> get, Action<bool> set)
     {
         GameObject row = Row(title, page, 48, 12, false);
         row.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
-        TMP_Text label = MakeText("Label", row.transform,
-            $"{title}\n<size={CaptionSize}><color=#{ColorUtility.ToHtmlStringRGB(MutedText)}>{description}</color></size>",
-            BodySize, TextColor, TextAlignmentOptions.Left);
-        label.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+        Label(row.transform, title, description);
 
         GameObject track = Make("Switch", row.transform, typeof(Image), typeof(Button), typeof(LayoutElement));
         track.GetComponent<LayoutElement>().preferredWidth = 56;

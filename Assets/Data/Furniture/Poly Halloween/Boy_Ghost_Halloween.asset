@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Boy_Ghost_Halloween
   description: A boy_ghost_halloween to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - boy
   - ghost

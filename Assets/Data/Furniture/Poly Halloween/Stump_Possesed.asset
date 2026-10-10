@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Stump_Possesed
   description: A stump_possesed to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - stump
   - possesed

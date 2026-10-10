@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Leaf Pile
   description: A crunchy pile of autumn leaves for a seasonal corner.
-  category: 3
+  category: 5
   tags:
   - autumn
   - seasonal

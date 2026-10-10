@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Storage Rack 1
   description: A storage rack 1 to add some personality to your space.
-  category: 1
+  category: 3
   tags:
   - storage
   - rack

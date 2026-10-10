@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Plant_2
   description: A plant_2 to bring a little life into the room.
-  category: 3
+  category: 5
   tags:
   - plant
   price: 20

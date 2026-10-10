@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Tree_Poplar_Dead_A
   description: A tree_poplar_dead_a to bring a little life into the room.
-  category: 12
+  category: 5
   tags:
   - tree
   - poplar

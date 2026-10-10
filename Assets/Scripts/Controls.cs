@@ -10,7 +10,7 @@ public static class Controls
 
     public static readonly string[] Labels =
     {
-        "Edit mode", "Shop", "Planner", "Save now", "Settings", "Undo", "Redo", "Rotate / flip", "Delete piece", "Grid snap", "Raise piece", "Lower piece", "Enlarge piece", "Shrink piece", "Mini mode",
+        "Edit mode", "Shop", "Planner", "Save now", "Settings", "Undo", "Redo", "Rotate / flip (hold to spin, mouse wheel 15°)", "Delete piece", "Grid snap", "Raise piece", "Lower piece", "Enlarge piece", "Shrink piece", "Mini mode",
     };
 
     private static readonly string[] Defaults =

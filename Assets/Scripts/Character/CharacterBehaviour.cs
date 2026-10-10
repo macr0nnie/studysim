@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
 // Everything the character does besides animate: uses furniture (sit when studying, lie on a break), keeps a hidden
-// happiness index, shows a mood icon over its head and says occasional lines in a speech bubble.
+// happiness index, shows a Sims-style bubble over its head: the mood icon, plus a short line when it speaks.
 // Added to the character by StudyCharacter, so a hand-placed Player gets it too.
 public class CharacterBehaviour : MonoBehaviour
 {
@@ -17,9 +18,12 @@ public class CharacterBehaviour : MonoBehaviour
     private TimerManager timer;
     private Animator animator;
     private Renderer[] renderers;
-    private SpriteRenderer icon, backdrop;
-    private SpriteRenderer bubbleBack;
-    private TextMeshPro bubbleText;
+    private Canvas overlay;
+    private RectTransform head, bubble, tail;
+    private Image icon;
+    private TMP_Text bubbleText;
+    private string line;
+    private float pop = 1f;
     private MoodIcons icons;
     private float nextSay, hideBubble, nextCheck;
     private GameObject usedPiece;
@@ -47,7 +51,7 @@ public class CharacterBehaviour : MonoBehaviour
 
         if (Time.time >= nextCheck) { nextCheck = Time.time + 0.25f; UseFurniture(); }
         if (Time.time >= nextSay && !lying) { Say(CharacterDialogue.Line(Mood, CharacterDialogue.Stage)); nextSay = Time.time + SayEvery * Random.Range(0.8f, 1.6f); }
-        if (bubbleBack.gameObject.activeSelf && Time.time >= hideBubble) bubbleBack.gameObject.SetActive(false);
+        if (line != null && Time.time >= hideBubble) { line = null; Layout(); }
         if (walking) Walk();
         else if (usedPiece != null) Hold();
     }
@@ -59,17 +63,13 @@ public class CharacterBehaviour : MonoBehaviour
         Bounds b = default; bool found = false;
         foreach (Renderer r in renderers) if (r != null && r.enabled && !(r is SpriteRenderer)) { if (!found) { b = r.bounds; found = true; } else b.Encapsulate(r.bounds); }
         if (!found) return;
-        float h = b.size.magnitude * 0.2f;
-        Vector3 top = new Vector3(b.center.x, b.max.y + h * 0.5f, b.center.z);
-        Place(icon.transform, top, h * 0.6f, cam);
-        Place(bubbleBack.transform, top + Vector3.up * h * 1.1f, h * 0.35f, cam);
-    }
-
-    private static void Place(Transform t, Vector3 pos, float size, Camera cam)
-    {
-        t.position = pos;
-        t.rotation = cam.transform.rotation;
-        t.localScale = Vector3.one * size;
+        // Screen space, so the bubble stays the same readable size at any zoom; it sits just above the head.
+        Vector3 p = cam.WorldToScreenPoint(new Vector3(b.center.x, b.max.y, b.center.z));
+        head.gameObject.SetActive(p.z > 0 && (icon.sprite != null || line != null));
+        head.position = new Vector3(p.x, p.y + 12f * overlay.scaleFactor, 0f);
+        pop = Mathf.MoveTowards(pop, 1f, Time.unscaledDeltaTime * 5f);
+        float t = pop - 1f;
+        head.localScale = Vector3.one * (1f + 2.7f * t * t * t + 1.7f * t * t); // ease-out-back: pops in with a small overshoot
     }
 
     // Happiness the room currently deserves: a baseline plus each piece's comfort, minus a big hit while distracted.
@@ -90,9 +90,10 @@ public class CharacterBehaviour : MonoBehaviour
     public void Say(string line)
     {
         if (string.IsNullOrEmpty(line) || bubbleText == null) return;
-        bubbleText.text = line;
-        bubbleBack.gameObject.SetActive(true);
+        this.line = line;
         hideBubble = Time.time + SayFor;
+        Layout();
+        pop = 0f;
     }
 
     // ---------- furniture ----------
@@ -472,34 +473,65 @@ public class CharacterBehaviour : MonoBehaviour
 
     // ---------- overlays ----------
 
+    private const float IconSize = 64f, Pad = 14f, MaxTextWidth = 340f;
+
     private void MakeOverlays()
     {
-        icon = new GameObject("MoodIcon").AddComponent<SpriteRenderer>();
-        icon.sortingOrder = 100;
-        // The icons are dark line art: a light disc keeps them readable against the room.
-        backdrop = new GameObject("Backdrop").AddComponent<SpriteRenderer>();
-        backdrop.transform.SetParent(icon.transform, false);
-        backdrop.transform.localScale = Vector3.one * 1.7f;
-        backdrop.sprite = UIKit.Circle;
-        backdrop.color = new Color(1f, 1f, 1f, 0.85f);
-        backdrop.sortingOrder = 99;
-        bubbleBack = new GameObject("SpeechBubble").AddComponent<SpriteRenderer>();
-        bubbleBack.sprite = UIKit.Rounded;
-        bubbleBack.drawMode = SpriteDrawMode.Sliced;
-        bubbleBack.size = new Vector2(7f, 2f);
-        bubbleBack.color = new Color(1f, 1f, 1f, 0.92f);
-        bubbleBack.sortingOrder = 100;
-        var textGo = new GameObject("Text");
-        textGo.transform.SetParent(bubbleBack.transform, false);
-        bubbleText = textGo.AddComponent<TextMeshPro>();
-        bubbleText.font = UIKit.BodyFont;
-        bubbleText.fontSize = 1.1f;
-        bubbleText.color = new Color(0.15f, 0.12f, 0.2f);
-        bubbleText.alignment = TextAlignmentOptions.Center;
-        bubbleText.rectTransform.sizeDelta = new Vector2(6.4f, 1.8f);
-        bubbleText.sortingOrder = 101;
-        bubbleBack.gameObject.SetActive(false);
+        overlay = UIKit.MakeCanvas("CharacterBubble", null, -5); // under the HUD's panels
+        Destroy(overlay.GetComponent<GraphicRaycaster>()); // never blocks clicks on the room
+        head = (RectTransform)UIKit.Make("Head", overlay.transform).transform;
+        head.anchorMin = head.anchorMax = Vector2.zero;
+        head.sizeDelta = Vector2.zero;
+        bubble = (RectTransform)UIKit.Make("Bubble", head, typeof(Image)).transform;
+        bubble.pivot = new Vector2(0.5f, 0f);
+        bubble.anchoredPosition = new Vector2(0f, 14f);
+        UIKit.Style(bubble.GetComponent<Image>(), Color.white);
+        bubble.GetComponent<Image>().raycastTarget = false;
+        // UIKit.Triangle points right; turned to point down at the head.
+        tail = (RectTransform)UIKit.Make("Tail", head, typeof(Image)).transform;
+        tail.sizeDelta = new Vector2(24f, 22f);
+        tail.anchoredPosition = new Vector2(0f, 8f);
+        tail.localRotation = Quaternion.Euler(0f, 0f, -90f);
+        var tailImage = tail.GetComponent<Image>();
+        tailImage.sprite = UIKit.Triangle;
+        tailImage.raycastTarget = false;
+        icon = UIKit.Make("MoodIcon", bubble, typeof(Image)).GetComponent<Image>();
+        icon.preserveAspect = true;
+        icon.raycastTarget = false;
+        bubbleText = UIKit.MakeText("Line", bubble, "", 30f, new Color(0.15f, 0.12f, 0.2f), TextAlignmentOptions.Left);
+        bubbleText.enableAutoSizing = false;
+        bubbleText.overflowMode = TextOverflowModes.Overflow;
+        bubbleText.textWrappingMode = TextWrappingModes.Normal;
+        Layout();
         StartCoroutine(IconLoop());
+    }
+
+    // A round bubble with just the icon; when speaking it widens to fit the line (wrapped at MaxTextWidth) beside the icon.
+    private void Layout()
+    {
+        bool hasIcon = icon.sprite != null, talking = line != null;
+        bubbleText.gameObject.SetActive(talking);
+        float textW = 0f, textH = 0f;
+        if (talking)
+        {
+            bubbleText.text = line;
+            textW = Mathf.Min(bubbleText.GetPreferredValues(line).x, MaxTextWidth);
+            textH = bubbleText.GetPreferredValues(line, textW, 0f).y;
+        }
+        float iconW = hasIcon ? IconSize : 0f, gap = hasIcon && talking ? 10f : 0f;
+        float h = Mathf.Max(iconW, textH) + Pad * 2f;
+        float w = Mathf.Max(h, iconW + gap + textW + Pad * 2f);
+        bubble.sizeDelta = new Vector2(w, h);
+        Place((RectTransform)icon.transform, Pad + (talking ? 0f : (w - Pad * 2f - iconW) / 2f), new Vector2(iconW, iconW), h);
+        Place((RectTransform)bubbleText.transform, Pad + iconW + gap, new Vector2(textW, textH), h);
+    }
+
+    // Positions a child of the bubble x pixels from its left edge, vertically centred.
+    private static void Place(RectTransform r, float x, Vector2 size, float bubbleH)
+    {
+        r.anchorMin = r.anchorMax = r.pivot = Vector2.zero;
+        r.sizeDelta = size;
+        r.anchoredPosition = new Vector2(x, (bubbleH - size.y) / 2f);
     }
 
     private System.Collections.IEnumerator IconLoop()
@@ -518,22 +550,26 @@ public class CharacterBehaviour : MonoBehaviour
     {
         if (shown == Mood) return;
         shown = Mood;
-        foreach (Transform c in icon.transform) if (c != backdrop.transform) Destroy(c.gameObject);
-        icon.sprite = sprites != null && sprites.Length > 0 ? sprites[0] : null;
-        backdrop.enabled = icon.sprite != null;
-        for (int i = 1; sprites != null && i < sprites.Length; i++)
+        foreach (Transform c in icon.transform) Destroy(c.gameObject);
+        Sprite anchor = sprites != null && sprites.Length > 0 ? sprites[0] : null;
+        icon.sprite = anchor;
+        Layout();
+        pop = 0f;
+        if (anchor == null) return;
+        float scale = IconSize / Mathf.Max(anchor.rect.width, anchor.rect.height); // sheet pixels -> bubble pixels
+        for (int i = 1; i < sprites.Length; i++)
         {
-            var piece = new GameObject("Piece").AddComponent<SpriteRenderer>();
+            var piece = UIKit.Make("Piece", icon.transform, typeof(Image)).GetComponent<Image>();
             piece.sprite = sprites[i];
-            piece.sortingOrder = icon.sortingOrder;
-            piece.transform.SetParent(icon.transform, false);
-            piece.transform.localPosition = (sprites[i].rect.center - sprites[0].rect.center) / sprites[0].pixelsPerUnit;
+            piece.raycastTarget = false;
+            var r = (RectTransform)piece.transform;
+            r.sizeDelta = sprites[i].rect.size * scale;
+            r.anchoredPosition = (sprites[i].rect.center - anchor.rect.center) * scale;
         }
     }
 
     private void OnDestroy()
     {
-        if (icon != null) Destroy(icon.gameObject);
-        if (bubbleBack != null) Destroy(bubbleBack.gameObject);
+        if (overlay != null) Destroy(overlay.gameObject);
     }
 }

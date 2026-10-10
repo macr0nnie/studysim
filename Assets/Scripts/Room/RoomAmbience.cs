@@ -13,25 +13,26 @@ public class RoomAmbience : MonoBehaviour
     public enum Style { Off, Cozy, Bright }
 
     // Per style: key colour/intensity, fill sky/ground, exposure shift, bloom, vignette (focus end / break end of the mood blend).
-    private struct Look { public Color key, sky, ground; public float keyFocus, keyBreak, exposure, bloom, vignette; }
+    private struct Look { public Color key, sky, ground; public float keyFocus, keyBreak, exposure, bloom, vignette, lampIntensity, lampRange; }
 
     private static readonly Look Cozy = new Look
     {
         key = new Color(1f, 0.82f, 0.62f), sky = new Color(0.55f, 0.62f, 0.8f), ground = new Color(0.22f, 0.17f, 0.14f),
-        keyFocus = 0.75f, keyBreak = 1.0f, exposure = 0f, bloom = 0.45f, vignette = 0.28f,
+        keyFocus = 0.75f, keyBreak = 1.0f, exposure = 0f, bloom = 0.1f, vignette = 0.28f, lampIntensity = 0.05f, lampRange = 0.4f,
     };
     private static readonly Look Bright = new Look
     {
         key = new Color(1f, 0.94f, 0.84f), sky = new Color(0.75f, 0.8f, 0.9f), ground = new Color(0.35f, 0.3f, 0.26f),
-        keyFocus = 1.0f, keyBreak = 1.2f, exposure = 0.2f, bloom = 0.25f, vignette = 0.12f,
+        keyFocus = 1.0f, keyBreak = 1.2f, exposure = 0.2f, bloom = 0.15f, vignette = 0.12f, lampIntensity = 0.1f, lampRange = 0.5f,
     };
 
     private const float LampScan = 2f, Fade = 1.5f, LampsOffDim = 0.65f;
-    private static readonly Color LampColor = new Color(1f, 0.74f, 0.45f);
+    private static readonly Color LampColor = new Color(1f, 0.7f, 0.4f);
 
     private static RoomAmbience instance;
     private readonly List<Light> lamps = new List<Light>();
-    private readonly HashSet<Light> styled = new HashSet<Light>();
+    private readonly Dictionary<Light, Vector2> lampBase = new Dictionary<Light, Vector2>(); // authored (intensity, range)
+    private Style lampStyle = (Style)(-1);
     private Light key;
     private TimerManager timer;
     private Volume volume;
@@ -73,8 +74,8 @@ public class RoomAmbience : MonoBehaviour
 
         var profile = ScriptableObject.CreateInstance<VolumeProfile>();
         bloom = profile.Add<Bloom>(true);
-        bloom.threshold.Override(1f);
-        bloom.scatter.Override(0.7f);
+        bloom.threshold.Override(1.1f);
+        bloom.scatter.Override(0.85f);
         vignette = profile.Add<Vignette>(true);
         vignette.smoothness.Override(0.6f);
         grade = profile.Add<ColorAdjustments>(true);
@@ -136,19 +137,32 @@ public class RoomAmbience : MonoBehaviour
         if (cam != null) cam.GetUniversalAdditionalCameraData().renderPostProcessing = true;
     }
 
-    // Lamps come and go as furniture is placed or deleted, so rescan now and then. Their intensity is left alone
-    // (the distraction effect flickers it); they just get a warm tint and cheap shadow-free shading, once each.
+    // Lamps come and go as furniture is placed or deleted, so rescan now and then. A lamp is dimmed and shortened
+    // from its authored values only when it is new or the style changed (the distraction effect flickers intensity
+    // in between), and gets a warm tint and no shadows once.
     private void ScanLamps()
     {
         lamps.Clear();
+        Look look = GameSettings.Ambience == Style.Bright ? Bright : Cozy;
+        bool restyle = GameSettings.Ambience != lampStyle;
+        lampStyle = GameSettings.Ambience;
         foreach (Light light in FindObjectsByType<Light>(FindObjectsSortMode.None))
         {
             if (light.type == LightType.Directional || light.GetComponentInParent<Furniture>() == null) continue;
             lamps.Add(light);
-            if (styled.Add(light))
+            bool fresh = !lampBase.ContainsKey(light);
+            if (fresh)
             {
-                light.color = Color.Lerp(light.color, LampColor, 0.6f);
+                lampBase[light] = new Vector2(light.intensity, light.range);
+                light.color = Color.Lerp(light.color, LampColor, 0.8f);
                 light.shadows = LightShadows.None;
+            }
+            if (fresh || restyle)
+            {
+                Vector2 b = lampBase[light];
+                bool off = lampStyle == Style.Off;
+                light.intensity = b.x * (off ? 1 : look.lampIntensity);
+                light.range = b.y * (off ? 1 : look.lampRange);
             }
         }
     }

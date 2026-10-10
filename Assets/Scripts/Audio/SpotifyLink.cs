@@ -6,7 +6,7 @@ using UnityEngine;
 
 // Reads what the Spotify desktop app is playing from its window title ("Artist - Song" while playing,
 // "Spotify Premium"/"Spotify Free" while paused) and controls it with media keys. No account or API key.
-// shortcut: no album art, progress or reliable paused-track info; upgrade to the Spotify Web API if those are wanted.
+// shortcut: no progress bar; upgrade to the Spotify Web API if that is wanted. (Covers come from MusicPlayerUI.)
 public static class SpotifyLink
 {
     public static bool Running { get; private set; }

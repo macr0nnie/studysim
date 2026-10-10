@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Book 15
   description: A book 15 to add some personality to your space.
-  category: 6
+  category: 7
   tags:
   - book
   - office

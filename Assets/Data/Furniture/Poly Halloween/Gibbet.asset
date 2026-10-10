@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Gibbet
   description: A gibbet to add some personality to your space.
-  category: 10
+  category: 12
   tags:
   - gibbet
   - halloween

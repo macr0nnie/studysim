@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Scarecrow_A
   description: A scarecrow_a to add some personality to your space.
-  category: 10
+  category: 12
   tags:
   - scarecrow
   - halloween

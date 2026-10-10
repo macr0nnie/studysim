@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Candy_Stick
   description: A candy_stick to add some personality to your space.
-  category: 10
+  category: 12
   tags:
   - candy
   - stick

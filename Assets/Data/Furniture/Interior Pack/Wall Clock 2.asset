@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Wall Clock 2
   description: A wall clock 2 to add some personality to your space.
-  category: 7
+  category: 9
   tags:
   - wall
   - clock

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Bottle_1
   description: A bottle_1 to add some personality to your space.
-  category: 9
+  category: 8
   tags:
   - bottle
   price: 15

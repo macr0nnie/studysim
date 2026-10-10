@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Gravestone_Old_Small_A
   description: A gravestone_old_small_a to add some personality to your space.
-  category: 10
+  category: 12
   tags:
   - gravestone
   - old

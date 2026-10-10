@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Bubbling Cauldron
   description: "A bubbling cauldron with a soft glow. Perfect for brewing focus potions."
-  category: 6
+  category: 8
   tags:
   - witchy
   - potions

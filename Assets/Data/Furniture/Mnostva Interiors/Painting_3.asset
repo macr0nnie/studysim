@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Painting_3
   description: A painting_3 to add some personality to your space.
-  category: 7
+  category: 9
   tags:
   - painting
   price: 15

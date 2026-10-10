@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: PC_Monitor
   description: A pc_monitor to add some personality to your space.
-  category: 8
+  category: 10
   tags:
   - pc
   - monitor

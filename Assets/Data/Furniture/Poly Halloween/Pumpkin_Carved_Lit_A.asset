@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Pumpkin_Carved_Lit_A
   description: A pumpkin_carved_lit_a to add some personality to your space.
-  category: 10
+  category: 12
   tags:
   - pumpkin
   - carved

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Tree_Scary_Dead
   description: A tree_scary_dead to bring a little life into the room.
-  category: 10
+  category: 12
   tags:
   - tree
   - scary

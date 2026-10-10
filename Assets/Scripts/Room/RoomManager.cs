@@ -1254,7 +1254,8 @@ public class RoomManager : MonoBehaviour
         return desk;
     }
 
-    // A chair on the camera side of the desk, facing it.
+    // A chair in front of the desk (the side facing the camera), clear of the desk, walls and other pieces, facing the desk.
+    // Tries the other three sides if the first is blocked.
     private void SpawnStarterChair(GameObject desk)
     {
         if (desk == null) { Debug.LogWarning("RoomManager: no desk in the scene to put a starter chair at."); return; }
@@ -1262,41 +1263,66 @@ public class RoomManager : MonoBehaviour
         FurnitureItem item = catalog != null ? catalog.items.Find(i => i != null && i.prefab != null && i.name == "Chair 1") : null;
         if (item == null) { Debug.LogWarning("RoomManager: no 'Chair 1' in the furniture catalog; no starter chair."); return; }
         Physics.SyncTransforms();
-        Bounds b = GetBounds(desk);
-        Vector3 toCamera = Vector3.ProjectOnPlane(mainCamera.transform.position - b.center, Vector3.up).normalized;
-        Vector3 position = new Vector3(b.center.x, b.min.y, b.center.z) + toCamera * (Mathf.Max(b.extents.x, b.extents.z) + 0.6f);
-        GameObject chair = Instantiate(item.prefab, position, Quaternion.identity);
+        Bounds d = GetBounds(desk);
+        Vector3 toCamera = Vector3.ProjectOnPlane(mainCamera.transform.position - d.center, Vector3.up).normalized;
+        if (toCamera == Vector3.zero) toCamera = Vector3.back;
+        GameObject chair = Instantiate(item.prefab, new Vector3(d.center.x, d.min.y, d.center.z), Quaternion.identity);
         chair.name = item.prefab.name;
-        chair.transform.rotation = Quaternion.AngleAxis(Vector3.SignedAngle(ChairFront(chair, item.frontYaw), -toCamera, Vector3.up), Vector3.up);
         placedObjects.Add(chair);
         boughtItems[chair] = item;
         starterPieces.Add(chair);
+        bool known = TryChairFront(chair, item.frontYaw, out Vector3 front);
+        for (int turn = 0; turn < 4; turn++)
+        {
+            Vector3 dir = Quaternion.AngleAxis(90f * turn, Vector3.up) * toCamera; // the desk's side the chair goes on
+            Vector3 face = -dir;
+            chair.transform.rotation = Quaternion.AngleAxis(Vector3.SignedAngle(known ? front : Vector3.forward, face, Vector3.up), Vector3.up);
+            Physics.SyncTransforms();
+            Bounds c = GetBounds(chair);
+            float deskDepth = Mathf.Abs(dir.x) * d.extents.x + Mathf.Abs(dir.z) * d.extents.z;
+            float chairDepth = Mathf.Abs(dir.x) * c.extents.x + Mathf.Abs(dir.z) * c.extents.z;
+            Vector3 target = new Vector3(d.center.x, d.min.y, d.center.z) + dir * (deskDepth + chairDepth + 0.05f);
+            chair.transform.position += target - new Vector3(c.center.x, c.min.y, c.center.z);
+            Physics.SyncTransforms();
+            if (IsValidPlacement(chair, null)) return;
+        }
+        // nowhere clear: leave it in front of the desk (the last try was the far side, so go back to the first)
+        Vector3 backDir = toCamera;
+        chair.transform.rotation = Quaternion.AngleAxis(Vector3.SignedAngle(known ? front : Vector3.forward, -backDir, Vector3.up), Vector3.up);
+        Physics.SyncTransforms();
+        Bounds cb = GetBounds(chair);
+        chair.transform.position += new Vector3(d.center.x, d.min.y, d.center.z) + backDir * (Mathf.Abs(backDir.x) * d.extents.x + Mathf.Abs(backDir.z) * d.extents.z + Mathf.Abs(backDir.x) * cb.extents.x + Mathf.Abs(backDir.z) * cb.extents.z + 0.05f)
+            - new Vector3(cb.center.x, cb.min.y, cb.center.z);
     }
 
     // The way a sitter faces on a chair standing unrotated: the item's frontYaw if set, otherwise opposite
-    // the backrest, found as the side the upper part of the mesh leans towards.
-    public static Vector3 ChairFront(GameObject chair, float frontYaw)
+    // the backrest, found as the side the upper part of the mesh leans towards. Meshes that can't be read
+    // (no Read/Write in a build) give +Z.
+    public static Vector3 ChairFront(GameObject chair, float frontYaw) =>
+        TryChairFront(chair, frontYaw, out Vector3 front) ? front : chair.transform.forward;
+
+    // False when the front can't be worked out (no frontYaw and no readable mesh).
+    private static bool TryChairFront(GameObject chair, float frontYaw, out Vector3 front)
     {
-        if (frontYaw != 0f) return Quaternion.AngleAxis(frontYaw, Vector3.up) * chair.transform.rotation * Vector3.forward;
+        front = chair.transform.forward;
+        if (frontYaw != 0f) { front = Quaternion.AngleAxis(frontYaw, Vector3.up) * chair.transform.rotation * Vector3.forward; return true; }
         Physics.SyncTransforms();
         Bounds b = GetBounds(chair);
         Vector3 back = Vector3.zero;
         float from = b.min.y + b.size.y * 0.7f;
-        try
+        foreach (MeshFilter mf in chair.GetComponentsInChildren<MeshFilter>())
         {
-            foreach (MeshFilter mf in chair.GetComponentsInChildren<MeshFilter>())
+            Mesh mesh = mf.sharedMesh;
+            if (mesh == null || !mesh.isReadable) continue;
+            foreach (Vector3 v in mesh.vertices)
             {
-                if (mf.sharedMesh == null) continue;
-                foreach (Vector3 v in mf.sharedMesh.vertices)
-                {
-                    Vector3 w = mf.transform.TransformPoint(v);
-                    if (w.y >= from) back += new Vector3(w.x - b.center.x, 0, w.z - b.center.z);
-                }
+                Vector3 w = mf.transform.TransformPoint(v);
+                if (w.y >= from) back += new Vector3(w.x - b.center.x, 0, w.z - b.center.z);
             }
         }
-        catch (UnityException) { return chair.transform.forward; } // mesh not readable: assume the front is +Z
-        if (back.sqrMagnitude < 1e-6f) return chair.transform.forward;
-        return -back.normalized;
+        if (back.sqrMagnitude < 1e-6f) return false;
+        front = -back.normalized;
+        return true;
     }
 
     private void LoadRoom()

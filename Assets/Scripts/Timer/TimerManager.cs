@@ -37,8 +37,13 @@ public class TimerManager : MonoBehaviour
     private void Start()
     {
         // the player's chosen session length survives restarts
+        // Scenes and old saves can carry a test value (1 second); anything under the shortest preset counts as unset.
+        studyDuration = studyDuration < 300f ? 1500f : studyDuration;
+        breakDuration = breakDuration < 60f ? 300f : breakDuration;
         studyDuration = PlayerPrefs.GetFloat(LengthKey, studyDuration);
         breakDuration = PlayerPrefs.GetFloat(BreakKey, breakDuration);
+        if (studyDuration < 300f) studyDuration = 1500f;
+        if (breakDuration < 60f) breakDuration = 300f;
         ResetTimer();
         if (plusButton) plusButton.onClick.AddListener(AddFiveMinutes);
         if (minusButton) minusButton.onClick.AddListener(RemoveFiveMinutes);

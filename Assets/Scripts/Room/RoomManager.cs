@@ -1231,21 +1231,62 @@ public class RoomManager : MonoBehaviour
             go.SetActive(false);
             placedObjects.Remove(go);
         }
-        if (desk == null) desk = SpawnStarterDesk(); // the scene no longer ships one
-        SpawnStarterChair(desk);
+        if (desk == null) desk = SpawnStarterDesk(null); // the scene no longer ships one
+        SpawnStarterChair(desk, null);
         SaveRoom(); // writes the layout, so the room stays as it is and later saves carry it
+        StarterPicker.Show(this);
     }
 
-    // First store item that is a desk (Desk 1 if the catalog has it), set down mid-room towards the back, facing the camera.
-    private GameObject SpawnStarterDesk()
+    // Swaps the new game's starter desk or chair for another catalog item; a new desk brings its chair along.
+    public void SetStarter(FurnitureItem item, bool isDesk)
+    {
+        GameObject desk = Starter("desk"), chair = Starter("chair");
+        FurnitureItem chairItem = chair != null ? ItemOf(chair) : null;
+        if (isDesk)
+        {
+            RemoveStarter(desk);
+            RemoveStarter(chair);
+            SpawnStarterChair(SpawnStarterDesk(item), chairItem);
+        }
+        else
+        {
+            RemoveStarter(chair);
+            SpawnStarterChair(desk, item);
+        }
+        SaveRoom();
+    }
+
+    private GameObject Starter(string kind)
+    {
+        foreach (GameObject go in starterPieces)
+            if (go != null && go.activeInHierarchy && IsKind(go, kind)) return go;
+        return null;
+    }
+
+    private void RemoveStarter(GameObject go)
+    {
+        if (go == null) return;
+        if (selectedObject == go) Select(null);
+        go.SetActive(false);
+        placedObjects.Remove(go);
+        starterPieces.Remove(go);
+        boughtItems.Remove(go);
+    }
+
+    // The room's walls run along the world axes, so the nearest of those to a direction squares a piece up with them.
+    private static Vector3 WallAxis(Vector3 v) =>
+        Mathf.Abs(v.x) >= Mathf.Abs(v.z) ? new Vector3(Mathf.Sign(v.x), 0, 0) : new Vector3(0, 0, Mathf.Sign(v.z));
+
+    // The given desk, else the first store item that is a desk (Desk 1 if the catalog has it), set down mid-room
+    // towards the back, square to the walls and facing the camera side.
+    private GameObject SpawnStarterDesk(FurnitureItem item)
     {
         FurnitureCatalog catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
         if (catalog == null || !hasRoomFloor) { Debug.LogWarning("RoomManager: no catalog or floor, so no starter desk."); return null; }
-        FurnitureItem item = catalog.items.Find(i => i != null && i.prefab != null && i.name == "Desk 1")
+        item ??= catalog.items.Find(i => i != null && i.prefab != null && i.name == "Desk 1")
             ?? catalog.items.Find(i => i != null && i.prefab != null && FurnitureRole.Is(i.prefab, i, "desk"));
         if (item == null) { Debug.LogWarning("RoomManager: no desk in the furniture catalog; no starter desk."); return null; }
-        Vector3 toCamera = Vector3.ProjectOnPlane(mainCamera.transform.position - roomFloor.center, Vector3.up).normalized;
-        if (toCamera == Vector3.zero) toCamera = Vector3.back;
+        Vector3 toCamera = WallAxis(Vector3.ProjectOnPlane(mainCamera.transform.position - roomFloor.center, Vector3.up));
         Vector3 position = new Vector3(roomFloor.center.x, roomFloor.max.y, roomFloor.center.z) - toCamera * Mathf.Min(roomFloor.extents.x, roomFloor.extents.z) * 0.4f;
         GameObject desk = Instantiate(item.prefab, position, Quaternion.LookRotation(toCamera));
         desk.name = item.prefab.name;
@@ -1257,16 +1298,15 @@ public class RoomManager : MonoBehaviour
 
     // A chair in front of the desk (the side facing the camera), clear of the desk, walls and other pieces, facing the desk.
     // Tries the other three sides if the first is blocked.
-    private void SpawnStarterChair(GameObject desk)
+    private void SpawnStarterChair(GameObject desk, FurnitureItem item)
     {
         if (desk == null) { Debug.LogWarning("RoomManager: no desk in the scene to put a starter chair at."); return; }
         FurnitureCatalog catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
-        FurnitureItem item = catalog != null ? catalog.items.Find(i => i != null && i.prefab != null && i.name == "Chair 1") : null;
+        item ??= catalog != null ? catalog.items.Find(i => i != null && i.prefab != null && i.name == "Chair 1") : null;
         if (item == null) { Debug.LogWarning("RoomManager: no 'Chair 1' in the furniture catalog; no starter chair."); return; }
         Physics.SyncTransforms();
         Bounds d = GetBounds(desk);
-        Vector3 toCamera = Vector3.ProjectOnPlane(mainCamera.transform.position - d.center, Vector3.up).normalized;
-        if (toCamera == Vector3.zero) toCamera = Vector3.back;
+        Vector3 toCamera = WallAxis(Vector3.ProjectOnPlane(mainCamera.transform.position - d.center, Vector3.up));
         GameObject chair = Instantiate(item.prefab, new Vector3(d.center.x, d.min.y, d.center.z), Quaternion.identity);
         chair.name = item.prefab.name;
         placedObjects.Add(chair);

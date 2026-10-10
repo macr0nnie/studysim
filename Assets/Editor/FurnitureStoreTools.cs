@@ -22,7 +22,7 @@ public static class FurnitureStoreTools
     // (FBX node, asset key, display name, category, tags, price, description)
     static readonly (string node, string key, string name, StoreCategory category, string[] tags, int price, string description)[] FromModel =
     {
-        ("Alter", "Altar", "Witchy Altar", StoreCategory.Decor, new[] { "witchy", "ritual", "new" }, 75,
+        ("Alter", "Altar", "Witchy Altar", StoreCategory.Spooky, new[] { "witchy", "ritual", "new" }, 75,
             "A little altar for crystals, candles and good-luck charms before a big exam."),
         ("Books", "Books", "Books", StoreCategory.Study, new[] { "books", "study", "small", "new" }, 15,
             "A few well-loved books to scatter across a desk or shelf."),

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Liana
   description: A liana to add some personality to your space.
-  category: 1
+  category: 5
   tags:
   - liana
   price: 15

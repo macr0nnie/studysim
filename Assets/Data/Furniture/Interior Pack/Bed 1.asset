@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Bed 1
   description: A bed 1 to make your room your own.
-  category: 0
+  category: 2
   tags:
   - bed
   - bedding

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Cauldron_Potion_Empty
   description: A cauldron_potion_empty to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - cauldron
   - potion

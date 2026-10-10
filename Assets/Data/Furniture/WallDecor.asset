@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Wall Decor
   description: "A framed piece to hang on the wall and make the room feel like yours."
-  category: 1
+  category: 7
   tags:
   - wall
   - art

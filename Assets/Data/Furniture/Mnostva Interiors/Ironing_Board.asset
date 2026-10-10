@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Ironing_Board
   description: A ironing_board to add some personality to your space.
-  category: 1
+  category: 9
   tags:
   - ironing
   - board

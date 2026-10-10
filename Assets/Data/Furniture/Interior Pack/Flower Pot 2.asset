@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Flower Pot 2
   description: A flower pot 2 to bring a little life into the room.
-  category: 3
+  category: 5
   tags:
   - flower
   - pot

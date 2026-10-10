@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Desk with Storage
   description: A desk with storage to make your room your own.
-  category: 0
+  category: 1
   tags:
   - desk
   - with

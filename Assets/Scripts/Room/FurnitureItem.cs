@@ -1,13 +1,20 @@
 using UnityEngine;
 
 // What the store shows and sells. Placement rules (floor/wall/shelf) live on the prefab's Furniture component.
+// Store tabs, in display order. Saved as numbers in every item asset, so add new ones at the end.
 public enum StoreCategory
 {
-    Furniture,
-    Decor,
+    Seating,
+    Tables, // desks and tables
+    Beds,
+    Storage,
     Lighting,
     Plants,
-    Ceiling // hanging lights and plants
+    Decor,
+    WallDecor,
+    Electronics,
+    KitchenBath,
+    Spooky
 }
 
 // How the character uses a piece (sit on a chair, lie on a bed). The spot is worked out from the piece's real renderer
@@ -30,7 +37,7 @@ public class FurnitureItem : ScriptableObject
 {
     public string displayName;
     [TextArea] public string description;
-    public StoreCategory category = StoreCategory.Furniture;
+    public StoreCategory category = StoreCategory.Decor;
     public string[] tags = new string[0];
     public int price = 10;
     public GameObject prefab;
@@ -68,7 +75,7 @@ public static class FurnitureRole
     {
         // A store item says what it is through its tags ("Desk Lamp" is not a desk); only scene leftovers go by name.
         if (item == null) return NameHas(piece, role);
-        if (item.category != StoreCategory.Furniture) return false; // a desk lamp is tagged "desk" but isn't one
+        if (item.category > StoreCategory.Storage) return false; // only big furniture: a desk lamp or a sink desk isn't a desk
         foreach (string tag in item.tags ?? new string[0])
             if (string.Equals(tag, role, System.StringComparison.OrdinalIgnoreCase)) return true;
         return false;

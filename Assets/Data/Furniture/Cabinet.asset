@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Cabinet
   description: "A low cabinet to hide the clutter so your desk stays clear."
-  category: 0
+  category: 3
   tags:
   - storage
   - wood

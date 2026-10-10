@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Cozy Bed
   description: "A soft bed with a patchwork blanket. Every study room needs somewhere to crash after a long session."
-  category: 0
+  category: 2
   tags:
   - bedroom
   - cozy

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Table 6
   description: A table 6 to make your room your own.
-  category: 0
+  category: 1
   tags:
   - table
   - shelf

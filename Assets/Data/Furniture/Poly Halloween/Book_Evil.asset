@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Book_Evil
   description: A book_evil to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - book
   - evil

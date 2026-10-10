@@ -14,8 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Study Desk
   description: "A sturdy wooden desk with plenty of room for notes, books and a cup of tea."
-  category: 0
+  category: 1
   tags:
+  - desk
   - study
   - work
   - wood

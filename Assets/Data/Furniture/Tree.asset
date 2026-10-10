@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Indoor Tree
   description: "A small indoor tree to bring a bit of the forest inside."
-  category: 3
+  category: 5
   tags:
   - green
   - large

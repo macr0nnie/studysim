@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Man_Killer_Halloween
   description: A man_killer_halloween to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - man
   - killer

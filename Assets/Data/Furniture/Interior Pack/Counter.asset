@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Counter
   description: A counter to make your room your own.
-  category: 0
+  category: 9
   tags:
   - counter
   - shelf

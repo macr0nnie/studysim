@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Candle_Finger_Holder_Unlit
   description: A candle_finger_holder_unlit to keep your study corner warm and bright.
-  category: 2
+  category: 4
   tags:
   - candle
   - finger

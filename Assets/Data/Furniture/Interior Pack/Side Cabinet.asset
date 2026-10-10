@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Side Cabinet
   description: A side cabinet to make your room your own.
-  category: 0
+  category: 3
   tags:
   - side
   - cabinet

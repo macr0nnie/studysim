@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Wall Shelf
   description: A wall shelf to make your room your own.
-  category: 0
+  category: 3
   tags:
   - wall
   - shelf

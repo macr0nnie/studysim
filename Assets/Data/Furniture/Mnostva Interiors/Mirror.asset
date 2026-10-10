@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Mirror
   description: A mirror to add some personality to your space.
-  category: 1
+  category: 7
   tags:
   - mirror
   price: 15

@@ -5,11 +5,11 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 // Save slots. Every system already keeps its live state in PlayerPrefs, so a slot is a snapshot of those
-// keys, and loading writes them back and reloads the room so everything picks them up in Start.
-// Slot 0 is the autosave.
+// keys, written back when a slot is opened from the save-select screen (the only place slots are picked).
+// Slot 0 is the Editor's slot (the room scene played directly) and is listed as "Autosave".
 public static class SaveSystem
 {
-    public const int SlotCount = 4; // autosave + 3 manual slots
+    public const int SlotCount = 4; // slot 0 + 3 menu slots
     public const string GameScene = "Protoype_2", MenuScene = "MainMenu", SelectScene = "SaveSelect";
     private static readonly string[] StringKeys = { "RoomLayout", "RoomPaint", "MenuColor", "TodoTasks", "StudyHabits", "iPodPlayerData" };
     private static readonly string[] IntKeys = { "PlayerLevel", "PlayerExperience", "PlayerCoins", "EmptyRoom" };
@@ -27,6 +27,14 @@ public static class SaveSystem
     public static event Action<int> Saved;
 
     private static string SlotKey(int slot) => "SaveGame" + slot;
+
+    // The slot picked on the save-select screen; the game autosaves into it. Kept outside the game keys so a
+    // fresh game doesn't clear it. 0 when the room scene is played directly (in the Editor).
+    public static int CurrentSlot
+    {
+        get => PlayerPrefs.GetInt("CurrentSlot", 0);
+        private set => PlayerPrefs.SetInt("CurrentSlot", value);
+    }
 
     public static void Save(int slot)
     {
@@ -53,15 +61,6 @@ public static class SaveSystem
         catch (ArgumentException) { return null; } // corrupted slot reads as empty rather than breaking the menu
     }
 
-    // The current game goes to the autosave first, so loading the wrong slot can be undone from there.
-    public static void Load(int slot)
-    {
-        if (Peek(slot) == null) return;
-        Save(0);
-        Apply(slot);
-        ReloadRoom();
-    }
-
     public static void Delete(int slot)
     {
         PlayerPrefs.DeleteKey(SlotKey(slot));
@@ -77,6 +76,7 @@ public static class SaveSystem
             StartFresh();
             Save(slot);
         }
+        CurrentSlot = slot;
         UIKit.LoadSavedTheme();
         SceneManager.LoadScene(GameScene);
     }
@@ -98,15 +98,6 @@ public static class SaveSystem
         return true;
     }
 
-    // Fresh start; the old game is kept in the autosave. Manual slots are untouched.
-    public static void NewGame()
-    {
-        Save(0);
-        StartFresh();
-        PlayerPrefs.Save();
-        ReloadRoom();
-    }
-
     // A new game starts in an empty bedroom to decorate. The flag makes the room scene clear the designed
     // furniture once; saves made before this have a RoomLayout (or no flag) and keep their room.
     private static void StartFresh()
@@ -119,11 +110,5 @@ public static class SaveSystem
     {
         foreach (string[] keys in new[] { StringKeys, IntKeys, FloatKeys })
             foreach (string key in keys) PlayerPrefs.DeleteKey(key);
-    }
-
-    private static void ReloadRoom()
-    {
-        UIKit.LoadSavedTheme();
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }

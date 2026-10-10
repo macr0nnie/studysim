@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Witchy Rug
   description: "A flat woven rug that ties the room together."
-  category: 1
+  category: 6
   tags:
   - floor
   - cozy

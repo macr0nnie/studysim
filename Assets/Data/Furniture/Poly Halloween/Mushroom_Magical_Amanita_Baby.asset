@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Mushroom_Magical_Amanita_Baby
   description: A mushroom_magical_amanita_baby to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - mushroom
   - magical

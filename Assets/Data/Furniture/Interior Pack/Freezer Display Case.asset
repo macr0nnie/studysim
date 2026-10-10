@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Freezer Display Case
   description: A freezer display case to make your room your own.
-  category: 0
+  category: 9
   tags:
   - freezer
   - display

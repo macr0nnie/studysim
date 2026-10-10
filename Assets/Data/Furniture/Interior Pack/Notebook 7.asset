@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Notebook 7
   description: A notebook 7 to add some personality to your space.
-  category: 6
+  category: 7
   tags:
   - notebook
   - office

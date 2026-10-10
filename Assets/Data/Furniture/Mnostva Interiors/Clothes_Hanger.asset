@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Clothes_Hanger
   description: A clothes_hanger to add some personality to your space.
-  category: 6
+  category: 3
   tags:
   - clothes
   - hanger

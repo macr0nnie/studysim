@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: PC_Mouse
   description: A pc_mouse to add some personality to your space.
-  category: 8
+  category: 10
   tags:
   - pc
   - mouse

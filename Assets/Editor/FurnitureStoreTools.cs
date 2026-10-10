@@ -24,7 +24,7 @@ public static class FurnitureStoreTools
     {
         ("Alter", "Altar", "Witchy Altar", StoreCategory.Decor, new[] { "witchy", "ritual", "new" }, 75,
             "A little altar for crystals, candles and good-luck charms before a big exam."),
-        ("Books", "Books", "Books", StoreCategory.Decor, new[] { "books", "study", "small", "new" }, 15,
+        ("Books", "Books", "Books", StoreCategory.Study, new[] { "books", "study", "small", "new" }, 15,
             "A few well-loved books to scatter across a desk or shelf."),
         ("LeafPile", "LeafPile", "Leaf Pile", StoreCategory.Plants, new[] { "autumn", "seasonal", "cozy", "new" }, 15,
             "A crunchy pile of autumn leaves for a seasonal corner."),
@@ -187,7 +187,8 @@ public static class FurnitureStoreTools
         ("refrigerat", StoreCategory.KitchenBath), ("freezer", StoreCategory.KitchenBath), ("toilet", StoreCategory.KitchenBath),
         ("vanity", StoreCategory.KitchenBath), ("kitchen", StoreCategory.KitchenBath), ("counter", StoreCategory.KitchenBath),
         ("bathtub", StoreCategory.KitchenBath), ("washing", StoreCategory.KitchenBath),
-        ("pillow", StoreCategory.Decor), ("blanket", StoreCategory.Decor), ("quilt", StoreCategory.Decor),
+        ("pillow", StoreCategory.Textiles), ("blanket", StoreCategory.Textiles), ("quilt", StoreCategory.Textiles),
+        ("rug", StoreCategory.Textiles),
         ("bed", StoreCategory.Beds),
         ("chair", StoreCategory.Seating), ("sofa", StoreCategory.Seating), ("couch", StoreCategory.Seating),
         ("stool", StoreCategory.Seating), ("bench", StoreCategory.Seating),
@@ -199,13 +200,14 @@ public static class FurnitureStoreTools
         ("shelf", StoreCategory.Storage), ("cabinet", StoreCategory.Storage), ("drawer", StoreCategory.Storage),
         ("wardrobe", StoreCategory.Storage), ("dresser", StoreCategory.Storage), ("closet", StoreCategory.Storage),
         ("bookcase", StoreCategory.Storage), ("rack", StoreCategory.Storage), ("nightstand", StoreCategory.Storage),
+        ("book", StoreCategory.Study), ("binder", StoreCategory.Study), ("clipboard", StoreCategory.Study), // after "bookcase"/"shelf"
         ("tv", StoreCategory.Electronics), ("monitor", StoreCategory.Electronics), ("keyboard", StoreCategory.Electronics),
         ("printer", StoreCategory.Electronics), ("vinyl", StoreCategory.Electronics),
         ("picture", StoreCategory.WallDecor), ("painting", StoreCategory.WallDecor), ("poster", StoreCategory.WallDecor),
         ("mirror", StoreCategory.WallDecor), ("wall clock", StoreCategory.WallDecor),
         ("halloween", StoreCategory.Spooky),
     };
-    static readonly int[] CategoryPrices = { 40, 50, 80, 40, 25, 20, 15, 20, 45, 40, 15 }; // indexed by StoreCategory
+    static readonly int[] CategoryPrices = { 40, 50, 80, 40, 25, 20, 15, 10, 15, 20, 45, 40, 15 }; // indexed by StoreCategory
 
     // First guess at store details for a new item; the Inspector is where they get polished.
     static void Describe(FurnitureItem item, string assetName, string sourcePath)

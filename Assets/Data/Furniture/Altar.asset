@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Witchy Altar
   description: A little altar for crystals, candles and good-luck charms before a big exam.
-  category: 6
+  category: 8
   tags:
   - witchy
   - ritual

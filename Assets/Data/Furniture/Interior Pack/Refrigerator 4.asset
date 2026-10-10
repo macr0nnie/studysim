@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Refrigerator 4
   description: A refrigerator 4 to make your room your own.
-  category: 9
+  category: 11
   tags:
   - refrigerator
   - shelf

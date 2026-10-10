@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Mushroom_Magical_Cluster_B
   description: A mushroom_magical_cluster_b to add some personality to your space.
-  category: 10
+  category: 12
   tags:
   - mushroom
   - magical

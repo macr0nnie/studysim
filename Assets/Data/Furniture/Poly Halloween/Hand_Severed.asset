@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Hand_Severed
   description: A hand_severed to add some personality to your space.
-  category: 10
+  category: 12
   tags:
   - hand
   - severed

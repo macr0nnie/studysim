@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Clipboard
   description: A clipboard to add some personality to your space.
-  category: 6
+  category: 7
   tags:
   - clipboard
   - office

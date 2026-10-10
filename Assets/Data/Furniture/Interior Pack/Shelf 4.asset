@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Shelf 4
   description: A shelf 4 to make your room your own.
-  category: 0
+  category: 3
   tags:
   - shelf
   - table

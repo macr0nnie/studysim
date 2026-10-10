@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Desk Lamp 2
   description: A desk lamp 2 to keep your study corner warm and bright.
-  category: 2
+  category: 4
   tags:
   - desk
   - lamp

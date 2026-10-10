@@ -183,20 +183,29 @@ public static class FurnitureStoreTools
     // shortcut: substring match, so e.g. "vegetable" reads as a table; fix such items in the Inspector.
     static readonly (string word, StoreCategory category)[] CategoryWords =
     {
-        ("hanging", StoreCategory.Ceiling), ("chandelier", StoreCategory.Ceiling), ("pendant", StoreCategory.Ceiling),
-        ("ceiling", StoreCategory.Ceiling), ("track light", StoreCategory.Ceiling),
+        ("sink", StoreCategory.KitchenBath), ("stove", StoreCategory.KitchenBath), ("fridge", StoreCategory.KitchenBath),
+        ("refrigerat", StoreCategory.KitchenBath), ("freezer", StoreCategory.KitchenBath), ("toilet", StoreCategory.KitchenBath),
+        ("vanity", StoreCategory.KitchenBath), ("kitchen", StoreCategory.KitchenBath), ("counter", StoreCategory.KitchenBath),
+        ("bathtub", StoreCategory.KitchenBath), ("washing", StoreCategory.KitchenBath),
+        ("pillow", StoreCategory.Decor), ("blanket", StoreCategory.Decor), ("quilt", StoreCategory.Decor),
+        ("bed", StoreCategory.Beds),
+        ("chair", StoreCategory.Seating), ("sofa", StoreCategory.Seating), ("couch", StoreCategory.Seating),
+        ("stool", StoreCategory.Seating), ("bench", StoreCategory.Seating),
         ("lamp", StoreCategory.Lighting), ("light", StoreCategory.Lighting), ("candle", StoreCategory.Lighting),
-        ("lantern", StoreCategory.Lighting),
+        ("lantern", StoreCategory.Lighting), ("chandelier", StoreCategory.Lighting), ("pendant", StoreCategory.Lighting),
+        ("desk", StoreCategory.Tables), ("table", StoreCategory.Tables),
         ("plant", StoreCategory.Plants), ("tree", StoreCategory.Plants), ("flower", StoreCategory.Plants),
         ("cactus", StoreCategory.Plants), ("leaf", StoreCategory.Plants), ("succulent", StoreCategory.Plants),
-        ("bed", StoreCategory.Furniture), ("chair", StoreCategory.Furniture), ("sofa", StoreCategory.Furniture),
-        ("couch", StoreCategory.Furniture), ("table", StoreCategory.Furniture), ("desk", StoreCategory.Furniture),
-        ("shelf", StoreCategory.Furniture), ("cabinet", StoreCategory.Furniture), ("drawer", StoreCategory.Furniture),
-        ("wardrobe", StoreCategory.Furniture), ("stool", StoreCategory.Furniture), ("bench", StoreCategory.Furniture),
-        ("counter", StoreCategory.Furniture), ("dresser", StoreCategory.Furniture), ("bathtub", StoreCategory.Furniture),
-        ("vanity", StoreCategory.Furniture), ("closet", StoreCategory.Furniture),
+        ("shelf", StoreCategory.Storage), ("cabinet", StoreCategory.Storage), ("drawer", StoreCategory.Storage),
+        ("wardrobe", StoreCategory.Storage), ("dresser", StoreCategory.Storage), ("closet", StoreCategory.Storage),
+        ("bookcase", StoreCategory.Storage), ("rack", StoreCategory.Storage), ("nightstand", StoreCategory.Storage),
+        ("tv", StoreCategory.Electronics), ("monitor", StoreCategory.Electronics), ("keyboard", StoreCategory.Electronics),
+        ("printer", StoreCategory.Electronics), ("vinyl", StoreCategory.Electronics),
+        ("picture", StoreCategory.WallDecor), ("painting", StoreCategory.WallDecor), ("poster", StoreCategory.WallDecor),
+        ("mirror", StoreCategory.WallDecor), ("wall clock", StoreCategory.WallDecor),
+        ("halloween", StoreCategory.Spooky),
     };
-    static readonly int[] CategoryPrices = { 40, 15, 25, 20, 30 }; // indexed by StoreCategory
+    static readonly int[] CategoryPrices = { 40, 50, 80, 40, 25, 20, 15, 20, 45, 40, 15 }; // indexed by StoreCategory
 
     // First guess at store details for a new item; the Inspector is where they get polished.
     static void Describe(FurnitureItem item, string assetName, string sourcePath)
@@ -221,7 +230,7 @@ public static class FurnitureStoreTools
         {
             StoreCategory.Lighting => $"A {lowerName} to keep your study corner warm and bright.",
             StoreCategory.Plants => $"A {lowerName} to bring a little life into the room.",
-            StoreCategory.Furniture => $"A {lowerName} to make your room your own.",
+            StoreCategory.Seating or StoreCategory.Tables or StoreCategory.Beds or StoreCategory.Storage => $"A {lowerName} to make your room your own.",
             _ => $"A {lowerName} to add some personality to your space.",
         };
     }
@@ -307,11 +316,6 @@ public static class FurnitureStoreTools
             {
                 furniture.Type = guess;
                 PrefabUtility.SaveAsPrefabAsset(root, path);
-                if (guess == Furniture.FurnitureType.Ceiling && item.category != StoreCategory.Ceiling)
-                {
-                    item.category = StoreCategory.Ceiling;
-                    EditorUtility.SetDirty(item);
-                }
                 moved++;
             }
             PrefabUtility.UnloadPrefabContents(root);

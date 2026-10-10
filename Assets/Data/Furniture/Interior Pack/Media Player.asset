@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Media Player
   description: A media player to add some personality to your space.
-  category: 1
+  category: 8
   tags:
   - media
   - player

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Vinyl_Record
   description: A vinyl_record to add some personality to your space.
-  category: 1
+  category: 8
   tags:
   - vinyl
   - record

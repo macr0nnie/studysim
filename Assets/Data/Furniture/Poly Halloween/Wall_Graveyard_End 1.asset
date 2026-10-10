@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Wall_Graveyard_End 1
   description: A wall_graveyard_end 1 to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - wall
   - graveyard

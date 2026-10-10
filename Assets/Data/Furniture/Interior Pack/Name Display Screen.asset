@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Name Display Screen
   description: A name display screen to add some personality to your space.
-  category: 1
+  category: 8
   tags:
   - name
   - display

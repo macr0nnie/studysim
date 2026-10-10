@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Washing_Machine
   description: A washing_machine to add some personality to your space.
-  category: 1
+  category: 9
   tags:
   - washing
   - machine

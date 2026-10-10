@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Lanterns_On_String_5m
   description: A lanterns_on_string_5m to keep your study corner warm and bright.
-  category: 2
+  category: 4
   tags:
   - lanterns
   - on

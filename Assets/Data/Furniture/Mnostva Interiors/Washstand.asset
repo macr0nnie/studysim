@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Washstand
   description: A washstand to add some personality to your space.
-  category: 1
+  category: 9
   tags:
   - washstand
   price: 15

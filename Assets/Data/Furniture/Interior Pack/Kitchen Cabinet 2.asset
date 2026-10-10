@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Kitchen Cabinet 2
   description: A kitchen cabinet 2 to make your room your own.
-  category: 0
+  category: 9
   tags:
   - kitchen
   - cabinet

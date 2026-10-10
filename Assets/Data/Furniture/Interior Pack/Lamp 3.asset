@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Lamp 3
   description: A lamp 3 to keep your study corner warm and bright.
-  category: 2
+  category: 4
   tags:
   - lamp
   - light

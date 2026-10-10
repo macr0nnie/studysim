@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Bunk Bed
   description: A bunk bed to make your room your own.
-  category: 0
+  category: 2
   tags:
   - bunk
   - bed

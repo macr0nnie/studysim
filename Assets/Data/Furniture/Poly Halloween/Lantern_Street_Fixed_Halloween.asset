@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Lantern_Street_Fixed_Halloween
   description: A lantern_street_fixed_halloween to keep your study corner warm and bright.
-  category: 2
+  category: 4
   tags:
   - lantern
   - street

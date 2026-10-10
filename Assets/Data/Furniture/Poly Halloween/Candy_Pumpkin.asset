@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Candy_Pumpkin
   description: A candy_pumpkin to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - candy
   - pumpkin

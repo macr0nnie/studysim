@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Coffin_New
   description: A coffin_new to add some personality to your space.
-  category: 1
+  category: 10
   tags:
   - coffin
   - new

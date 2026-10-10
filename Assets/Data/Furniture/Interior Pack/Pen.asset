@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Pen
   description: A pen to add some personality to your space.
-  category: 1
+  category: 6
   tags:
   - pen
   - office

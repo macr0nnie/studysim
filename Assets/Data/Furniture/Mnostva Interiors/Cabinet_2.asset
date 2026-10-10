@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
   displayName: Cabinet_2
   description: A cabinet_2 to make your room your own.
-  category: 0
+  category: 3
   tags:
   - cabinet
   price: 40

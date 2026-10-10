@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   displayName: Potted Plant
   description: "A leafy plant in a pot. It brightens up any corner."
-  category: 3
+  category: 5
   tags:
   - green
   - small

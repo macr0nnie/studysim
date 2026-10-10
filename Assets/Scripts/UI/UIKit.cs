@@ -93,22 +93,28 @@ public static class UIKit
             }
     }
 
-    // Left-side drawer slot shared by the store and planner: below the HUD card, above the room buttons.
-    public const float DrawerWidth = 440, DrawerBottom = 410, DrawerTop = 130;
+    // Left-side drawer slot shared by the store, planner and paint: below the HUD card, down to the screen's bottom
+    // margin (the dock is bottom centre, clear of it).
+    public const float DrawerWidth = 440, DrawerBottom = 24, DrawerTop = 130;
     // Type scale: every panel picks from these instead of one-off sizes.
     public const float TitleSize = 30, HeadingSize = 23, BodySize = 19, LabelSize = 16, CaptionSize = 14;
 
-    // Room-button row (bottom left, under the drawers): one shared slot per button so they line up.
-    const float NavWidth = 96, NavGap = 6, NavY = 334;
+    // The dock: one row of room buttons centred along the bottom (Edit, Shop, Paint, Planner, Settings), one
+    // shared slot per button so they line up whichever script builds them. Bottom-centred things (the edit-mode
+    // key bar) sit above DockTop.
+    const int DockSlots = 5;
+    const float NavWidth = 120, NavHeight = 44, NavGap = 8, NavY = 20;
+    public const float DockTop = NavY + NavHeight;
 
     public static Button NavButton(Transform canvas, int slot, string label, Controls.Act? key)
     {
         Button button = TextButton(label + "Button", canvas, label, TabColor, LabelSize + 1);
         if (key.HasValue) KeyHint(button.GetComponentInChildren<TMP_Text>(), label, key.Value);
+        button.gameObject.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.25f);
         var rect = (RectTransform)button.transform;
-        rect.anchorMin = rect.anchorMax = rect.pivot = Vector2.zero;
-        rect.sizeDelta = new Vector2(NavWidth, 40);
-        rect.anchoredPosition = new Vector2(24 + slot * (NavWidth + NavGap), NavY);
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
+        rect.sizeDelta = new Vector2(NavWidth, NavHeight);
+        rect.anchoredPosition = new Vector2((slot - (DockSlots - 1) / 2f) * (NavWidth + NavGap), NavY);
         return button;
     }
 
@@ -386,33 +392,6 @@ public static class UIKit
         rect.anchorMin = Vector2.zero;
         rect.anchorMax = Vector2.one;
         rect.offsetMin = rect.offsetMax = Vector2.zero;
-    }
-
-    private static Sprite gearSprite;
-
-    // Eight-toothed gear with a hole, anti-aliased, built once.
-    public static Sprite Gear
-    {
-        get
-        {
-            if (gearSprite != null) return gearSprite;
-            const int n = 64;
-            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
-            var pixels = new Color32[n * n];
-            for (int y = 0; y < n; y++)
-                for (int x = 0; x < n; x++)
-                {
-                    float dx = x + 0.5f - n / 2f, dy = y + 0.5f - n / 2f;
-                    float r = Mathf.Sqrt(dx * dx + dy * dy);
-                    float tooth = Mathf.Clamp01(Mathf.Sin(8 * Mathf.Atan2(dy, dx)) * 2.5f + 0.5f); // 0 between teeth, 1 on them
-                    float outer = Mathf.Lerp(22f, 30f, tooth);
-                    float a = Mathf.Clamp01(outer - r + 0.5f) * Mathf.Clamp01(r - 9f + 0.5f); // body minus the centre hole
-                    pixels[y * n + x] = new Color32(255, 255, 255, (byte)(a * 255));
-                }
-            tex.SetPixels32(pixels);
-            tex.Apply();
-            return gearSprite = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100);
-        }
     }
 
     // Right-pointing anti-aliased triangle, built once.

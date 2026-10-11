@@ -1,10 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "Study Sim Focus",
-  "version": "0.2.0",
-  "description": "Connects your browser to Study Sim: control the timer, earn focus XP on study sites, and block distracting sites during study sessions.",
+  "name": "lofilife Focus",
+  "short_name": "lofilife",
+  "version": "1.0.0",
+  "description": "Focus companion for the lofilife desktop game: control your study timer, earn XP on study sites, and block distractions.",
+  "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
   "permissions": ["tabs", "storage", "alarms"],
   "host_permissions": ["http://localhost:8080/*"],
   "background": { "service_worker": "background.js" },
-  "action": { "default_popup": "popup.html", "default_title": "Study Sim" }
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "lofilife",
+    "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png" }
+  },
+  "minimum_chrome_version": "120"
 }

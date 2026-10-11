@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Wash_Basin_07
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Pedestal Sink
+  description: A pink pedestal sink with a golden tap.
+  category: 11
+  tags:
+  - sink
+  - basin
+  - bathroom
+  - cute
+  price: 40
+  prefab: {fileID: 365409966559699820, guid: bec93768271d0ec4a998a41157eb095d, type: 3}
+  icon: {fileID: 21300000, guid: d3240c52888d219498528bd6d4abf5ad, type: 3}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

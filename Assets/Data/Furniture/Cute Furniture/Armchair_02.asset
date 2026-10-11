@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Armchair_02
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Comfy Blue Armchair
+  description: A squishy blue armchair for reading breaks.
+  category: 0
+  tags:
+  - armchair
+  - comfy
+  - cute
+  price: 55
+  prefab: {fileID: 6253955288435565766, guid: 8878c202feaa3d549a699e287f054431, type: 3}
+  icon: {fileID: 21300000, guid: 6f7d6240adcad5d48be8d5ede3df5126, type: 3}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: ExerciseBike_01
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Exercise Bike
+  description: For stretching your legs between study sessions.
+  category: 8
+  tags:
+  - exercise
+  - bike
+  - fitness
+  - cute
+  price: 70
+  prefab: {fileID: 114470185571205976, guid: 0e1632eb5707b5f4e802b9c0d9ff86a0, type: 3}
+  icon: {fileID: 21300000, guid: 9099c1e3f03c3e148a61bf7da2d97c35, type: 3}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

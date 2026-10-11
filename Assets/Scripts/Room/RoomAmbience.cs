@@ -52,8 +52,8 @@ public class RoomAmbience : MonoBehaviour
 
     private static RoomAmbience instance;
     private Canvas skyCanvas;
-    private RawImage skyImage, skyPhoto, stars, rain, snow;
-    private Texture2D skyTexture, starTexture, rainTexture, snowTexture;
+    private RawImage skyImage, skyGlow, stars, rain, snow;
+    private Texture2D skyTexture, starTexture, rainTexture, snowTexture, haloTexture;
     private float skyClock;
     private Weather weather;
     private const string WindowLightName = "WindowLight";
@@ -131,6 +131,7 @@ public class RoomAmbience : MonoBehaviour
     {
         if (volume != null) Destroy(volume.sharedProfile);
         if (skyTexture != null) Destroy(skyTexture);
+        if (haloTexture != null) Destroy(haloTexture);
         if (starTexture != null) Destroy(starTexture);
         if (rainTexture != null) Destroy(rainTexture);
         if (snowTexture != null) Destroy(snowTexture);
@@ -320,14 +321,25 @@ public class RoomAmbience : MonoBehaviour
         starTexture = Dots(256, 256, 90, 1, (x, y) => new Color(1f, 1f, 1f, 0.5f + Hash(x, y) * 0.5f));
         stars = SkyLayer("Stars", starTexture, new Rect(0, 0, 2f * cam.aspect, 2f));
 
-        // A cloudy daytime sky photo over the gradient, faded out towards night so the gradient's dusk and night show.
-        // One static texture: the photo is never redrawn, only its tint and fade change every 30 seconds.
-        var photo = Resources.Load<Texture2D>("RoomSky");
-        if (photo != null) skyPhoto = SkyLayer("Clouds", photo, new Rect(0.3f, 0.48f, 0.4f, 0.4f)); // the wispy clouds above the horizon
+        // A soft glow behind the room instead of a sky photo (ronnie found the photo looked unpolished): the room
+        // floats in a warm pool of light that follows the time-of-day colours.
+        haloTexture = new Texture2D(128, 128, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+        var glow = new Color32[128 * 128];
+        for (int y = 0; y < 128; y++)
+            for (int x = 0; x < 128; x++)
+            {
+                float d = Mathf.Clamp01(new Vector2(x - 63.5f, y - 63.5f).magnitude / 64f);
+                glow[y * 128 + x] = new Color(1f, 1f, 1f, Mathf.SmoothStep(1f, 0f, d)); // smooth falloff, no hard edge
+            }
+        haloTexture.SetPixels32(glow);
+        haloTexture.Apply();
+        skyGlow = SkyLayer("Glow", haloTexture, new Rect(0, 0, 1, 1));
+        var glowRect = (RectTransform)skyGlow.transform;
+        glowRect.anchorMin = new Vector2(-0.1f, -0.35f); glowRect.anchorMax = new Vector2(1.1f, 1.35f); // wider than the screen, centred on the room
 
         // Rain: a few short slanted streaks on one small tiled texture, scrolled down while it rains. It used to be twice as
         // dense, longer and brighter, which read as a storm; drizzle is the same layer, fainter.
-        rainTexture = Dots(64, 128, 8, 12, (x, y) => new Color(0.85f, 0.9f, 1f, 0.2f + Hash(x, y) * 0.3f));
+        rainTexture = Dots(64, 128, 8, 12, (x, y) => new Color(0.85f, 0.9f, 1f, 0.12f + Hash(x, y) * 0.18f));
         rain = SkyLayer("Rain", rainTexture, new Rect(0, 0, 5f * cam.aspect, 2.5f));
         rain.gameObject.SetActive(false);
         // Snow: soft dots drifting slowly.
@@ -440,11 +452,11 @@ public class RoomAmbience : MonoBehaviour
         windowIntensity = Mathf.Lerp(0.08f, 0.6f, day) * (weather == Weather.Rain ? 0.45f : clear ? 1f : 0.65f);
         foreach (Light light in windowLights) if (light != null) { light.color = windowColor; light.intensity = windowIntensity; }
 
-        if (skyPhoto != null)
+        if (skyGlow != null)
         {
-            Color tint = Color.Lerp(bottom, Color.white, clear ? 0.6f : 0.2f); // warm at dawn and dusk, plain by day
-            tint.a = day; // gone at night, full by day
-            skyPhoto.color = tint;
+            Color tint = Color.Lerp(bottom, Color.white, 0.5f);
+            tint.a = Mathf.Lerp(0.25f, 0.55f, day); // a faint moonlit pool at night
+            skyGlow.color = tint;
         }
     }
 

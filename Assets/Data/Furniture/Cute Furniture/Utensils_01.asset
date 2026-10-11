@@ -1,0 +1,38 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Utensils_01
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Rolling Pin
+  description: A rolling pin for study-break baking.
+  category: 11
+  tags:
+  - kitchen
+  - baking
+  - small
+  - cute
+  price: 10
+  prefab: {fileID: 7406040887766281601, guid: 015e0f79829aaff4b98daeaca64b81f5, type: 3}
+  icon: {fileID: 21300000, guid: 711a0565d31080c45862432adb6225ef, type: 3}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

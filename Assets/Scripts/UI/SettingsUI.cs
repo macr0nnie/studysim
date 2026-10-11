@@ -60,7 +60,7 @@ public class SettingsUI : MonoBehaviour
     private void Update()
     {
         if (Controls.Pressed(Controls.Act.Settings) && !Typing()) Toggle();
-        if (window.activeSelf && pages[ExtensionPage].activeSelf) RefreshExtension();
+        if (window.activeSelf && pages[ExtensionPage].activeSelf && !GameSettings.Web) RefreshExtension();
     }
 
     public void Toggle()
@@ -245,9 +245,12 @@ public class SettingsUI : MonoBehaviour
             SaveSystem.Save(SaveSystem.CurrentSlot);
             SceneManager.LoadScene(SaveSystem.MenuScene);
         });
-        Button quit = TextButton("Quit", side.transform, "Save and quit", DangerColor, BodySize);
-        quit.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
-        quit.onClick.AddListener(Quit);
+        if (!GameSettings.Web) // a browser tab can't quit itself
+        {
+            Button quit = TextButton("Quit", side.transform, "Save and quit", DangerColor, BodySize);
+            quit.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
+            quit.onClick.AddListener(Quit);
+        }
 
         // Right: one scrolling page per tab.
         GameObject content = Make("Pages", body.transform, typeof(LayoutElement));
@@ -280,7 +283,7 @@ public class SettingsUI : MonoBehaviour
         AddSlider(page, "Music", 0, 100, GameSettings.MusicVolume * 100, v => $"{v:0}%", v => GameSettings.MusicVolume = v / 100f, out _);
         AddSlider(page, "Effects (UI sounds, chime)", 0, 100, GameSettings.EffectsVolume * 100, v => $"{v:0}%", v => GameSettings.EffectsVolume = v / 100f, out _);
         Switch(page, "Interface sounds", "Clicks, placing furniture, coins and lamps.", () => GameSettings.UISounds, v => GameSettings.UISounds = v);
-        Switch(page, "Spotify album covers", "Fetches the cover from Apple's iTunes Search, which sends Apple the song and artist.", () => GameSettings.OnlineCovers, v => GameSettings.OnlineCovers = v);
+        if (!GameSettings.Web) Switch(page, "Spotify album covers", "Fetches the cover from Apple's iTunes Search, which sends Apple the song and artist.", () => GameSettings.OnlineCovers, v => GameSettings.OnlineCovers = v);
     }
 
     private void BuildFocus(Transform page)
@@ -353,6 +356,7 @@ public class SettingsUI : MonoBehaviour
             PlayerPrefs.Save();
             cycle.GetComponentInChildren<TMP_Text>().text = GameSettings.Ambience.ToString();
         });
+        if (GameSettings.Web) return; // mini mode needs the desktop version
         Heading(page, "Mini mode");
         Note(page, "Your character, timer and a progress ring, like a game overlay: top right, on top of other windows and click-through. "
             + "Ctrl + drag moves it, F9 comes back.");
@@ -378,6 +382,12 @@ public class SettingsUI : MonoBehaviour
     private void BuildExtension(Transform page)
     {
         Heading(page, "Browser extension");
+        if (GameSettings.Web)
+        {
+            Note(page, "The browser extension works with the desktop version of Study Sim, which it talks to on this computer. "
+                + "The web version can't receive its messages.");
+            return;
+        }
         GameObject statusRow = Row("Status", page, 64, 12, false);
         Style(statusRow.AddComponent<Image>(), CardColor);
         statusRow.GetComponent<LayoutElement>().preferredHeight = -1; // grows with a long error

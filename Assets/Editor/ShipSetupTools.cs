@@ -28,6 +28,24 @@ public static class ShipSetupTools
         Debug.Log("Study Sim: menu scenes created, Build Settings = MainMenu, SaveSelect, Protoype_2.");
     }
 
+    // Web build for itch.io: zip the CONTENTS of Builds/WebGL (index.html at the zip root), upload as HTML,
+    // tick "This file will be played in the browser". Gzip + decompression fallback loads on any host, itch.io included.
+    [MenuItem("Study Sim/Build for itch.io (WebGL)")]
+    public static void BuildWeb()
+    {
+        PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+        PlayerSettings.WebGL.decompressionFallback = true;
+        PlayerSettings.WebGL.dataCaching = true; // repeat visits skip the download
+        PlayerSettings.runInBackground = true; // the timer keeps going while the player is in another tab
+        var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+        {
+            scenes = System.Array.ConvertAll(System.Array.FindAll(EditorBuildSettings.scenes, s => s.enabled), s => s.path),
+            locationPathName = "Builds/WebGL",
+            target = BuildTarget.WebGL,
+        });
+        Debug.Log($"Study Sim web build: {report.summary.result}, {report.summary.totalSize / (1024 * 1024)} MB in Builds/WebGL.");
+    }
+
     // Separate so it can wait until testing is done.
     [MenuItem("Study Sim/Remove Experimental Pipeline Package")]
     public static void RemovePipeline() => Client.Remove("com.unity.pipeline");

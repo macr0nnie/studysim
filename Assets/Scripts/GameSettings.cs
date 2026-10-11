@@ -3,6 +3,9 @@ using UnityEngine;
 // Player settings, stored in PlayerPrefs (not in save slots: they belong to the player, not the room).
 public static class GameSettings
 {
+    // Browser (WebGL) build, e.g. on itch.io: no extension bridge, mini mode, Spotify or Quit there.
+    public static bool Web => Application.platform == RuntimePlatform.WebGLPlayer;
+
     public enum FocusMode { Pomodoro, DeepFocus, Sprint, Custom }
 
     // (study, break) minutes for each preset; Custom keeps whatever the sliders set.

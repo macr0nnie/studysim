@@ -38,6 +38,8 @@ public class PaintUI : MonoBehaviour
     private Transform swatchGrid, materialGrid;
     private TMP_Text info;
     private Button resetButton;
+    private GameObject weatherRow; // Background tab only
+    private TMP_Text weatherLabel;
     private Image[] tabs;
     private Target target = Target.Walls;
     private GameObject shownPiece;
@@ -149,7 +151,7 @@ public class PaintUI : MonoBehaviour
         {
             canPaint = backgroundCamera != null;
             painted = paint.backgroundColor.Length > 0;
-            info.text = "The colour behind the room.";
+            info.text = "Behind the room: the time-of-day sky with its weather, or a plain colour.";
         }
         else if (target == Target.Piece)
         {
@@ -173,6 +175,8 @@ public class PaintUI : MonoBehaviour
         foreach (Button swatch in swatchGrid.GetComponentsInChildren<Button>(true)) swatch.interactable = canPaint;
         resetButton.interactable = painted;
 
+        weatherRow.SetActive(target == Target.Background);
+        weatherLabel.text = $"Weather: {GameSettings.Weather}";
         bool surface = target == Target.Walls || target == Target.Floor;
         materialsLabel.SetActive(surface && Materials(target).Length > 0);
         materialScroll.SetActive(surface && Materials(target).Length > 0);
@@ -278,6 +282,18 @@ public class PaintUI : MonoBehaviour
         info = MakeText("Info", panel.transform, "", LabelSize, MutedText, TextAlignmentOptions.Left);
         info.textWrappingMode = TextWrappingModes.Normal;
         info.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
+
+        // Background tab: the sky's weather (Changing picks new weather every few hours; rain patters at Effects volume).
+        Button weather = TextButton("Weather", panel.transform, "", TabColor, BodySize);
+        weather.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
+        weatherLabel = weather.GetComponentInChildren<TMP_Text>();
+        weather.onClick.AddListener(() =>
+        {
+            GameSettings.Weather = (RoomAmbience.Weather)(((int)GameSettings.Weather + 1) % 5);
+            PlayerPrefs.Save();
+            weatherLabel.text = $"Weather: {GameSettings.Weather}";
+        });
+        weatherRow = weather.gameObject;
 
         // Materials come first and get two thirds of the free height; colours scroll in the last third.
         materialsLabel = Label("Materials");

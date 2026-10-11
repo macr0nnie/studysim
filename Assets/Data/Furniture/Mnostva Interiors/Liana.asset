@@ -17,6 +17,19 @@ MonoBehaviour:
   category: 5
   tags:
   - liana
-  price: 15
+  price: 20
   prefab: {fileID: 8648495499808985570, guid: ad02d743925822f409d2f3191febda16, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

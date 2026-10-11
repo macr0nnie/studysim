@@ -12,12 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Scarecrow_A
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Scarecrow_A
+  displayName: Scarecrow A
   description: A scarecrow_a to add some personality to your space.
   category: 12
   tags:
   - scarecrow
   - halloween
-  price: 15
+  price: 35
   prefab: {fileID: 8045810702686802794, guid: 6466f21c32f0b664d8f3c4d04a087c49, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

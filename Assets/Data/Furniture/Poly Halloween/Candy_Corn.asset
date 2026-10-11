@@ -12,13 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Candy_Corn
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Candy_Corn
+  displayName: Candy Corn
   description: A candy_corn to add some personality to your space.
   category: 12
   tags:
   - candy
   - corn
   - halloween
-  price: 15
+  price: 5
   prefab: {fileID: 7655395962464083695, guid: ea6d0d79c6f9e514c9c7594bbaeac82f, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

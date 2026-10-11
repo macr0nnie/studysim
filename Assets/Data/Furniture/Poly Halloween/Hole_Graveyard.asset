@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Hole_Graveyard
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Hole_Graveyard
+  displayName: Hole Graveyard
   description: A hole_graveyard to add some personality to your space.
   category: 12
   tags:
@@ -22,3 +22,16 @@ MonoBehaviour:
   price: 15
   prefab: {fileID: 8506530406277262289, guid: 681d246977554b146b68ac0bc80c5289, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

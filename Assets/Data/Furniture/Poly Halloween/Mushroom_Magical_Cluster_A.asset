@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Mushroom_Magical_Cluster_A
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Mushroom_Magical_Cluster_A
+  displayName: Mushroom Magical Cluster A
   description: A mushroom_magical_cluster_a to add some personality to your space.
   category: 12
   tags:
@@ -20,6 +20,19 @@ MonoBehaviour:
   - magical
   - cluster
   - halloween
-  price: 15
+  price: 10
   prefab: {fileID: 3445003256888115320, guid: 17ecc69fedc732d4b96ab4722d7dd95f, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

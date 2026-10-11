@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Pumpkin_Carved_Lit_A
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Pumpkin_Carved_Lit_A
+  displayName: Pumpkin Carved Lit A
   description: A pumpkin_carved_lit_a to add some personality to your space.
   category: 12
   tags:
@@ -23,3 +23,16 @@ MonoBehaviour:
   price: 15
   prefab: {fileID: 4655076214908982717, guid: 81a373bf062c567419256ed415c47f4b, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

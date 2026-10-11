@@ -12,12 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: PC_Mouse
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: PC_Mouse
+  displayName: PC Mouse
   description: A pc_mouse to add some personality to your space.
   category: 10
   tags:
   - pc
   - mouse
-  price: 15
+  price: 10
   prefab: {fileID: 1566978063473202252, guid: 72ca7aeda21ec674b9bfb91123d0e263, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

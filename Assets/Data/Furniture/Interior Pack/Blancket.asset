@@ -12,13 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Blancket
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Blancket
+  displayName: Blanket
   description: A blancket to make your room your own.
   category: 6
   tags:
   - blancket
   - bed
   - bedding
-  price: 40
+  price: 15
   prefab: {fileID: 694849772245819444, guid: 3934a4668c96b78429ce2d9f24c5b157, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

@@ -19,6 +19,19 @@ MonoBehaviour:
   - nightstand
   - shelf
   - table
-  price: 40
+  price: 25
   prefab: {fileID: 4441987046950301430, guid: 6c21597ca7255584484520de8b18d62f, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

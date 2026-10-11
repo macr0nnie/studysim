@@ -19,6 +19,19 @@ MonoBehaviour:
   - wardrobe
   - shelf
   - table
-  price: 40
+  price: 60
   prefab: {fileID: 7584317778148419242, guid: 3e0d4e0b7fbb6b640990fbb78d643044, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

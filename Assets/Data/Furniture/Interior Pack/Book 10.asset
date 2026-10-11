@@ -19,6 +19,19 @@ MonoBehaviour:
   - book
   - office
   - items
-  price: 15
+  price: 8
   prefab: {fileID: 2528697205488614416, guid: 4d1524f1b6945e5408c9166c061829e6, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

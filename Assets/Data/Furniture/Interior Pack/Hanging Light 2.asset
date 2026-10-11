@@ -19,7 +19,19 @@ MonoBehaviour:
   - hanging
   - light
   - source
-  price: 25
+  price: 35
   prefab: {fileID: 5525325216558927822, guid: b39443b4d581dcc459c67a35f06080b6, type: 3}
   icon: {fileID: 0}
   colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

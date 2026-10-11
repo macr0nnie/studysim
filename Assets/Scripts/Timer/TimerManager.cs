@@ -27,6 +27,7 @@ public class TimerManager : MonoBehaviour
     private bool isTimerRunning;
     private bool isStudySession = true;
     private bool distracted;
+    private double endsAt; // wall clock, so long frames, window drags and the 15 fps idle cap can't lose time
     
     public float CurrentTime => currentTime;
     public bool IsTimerRunning => isTimerRunning;
@@ -58,7 +59,7 @@ public class TimerManager : MonoBehaviour
         
         if (currentTime > 0)
         {
-            currentTime -= Time.deltaTime;
+            currentTime = Mathf.Max(0f, (float)(endsAt - Time.realtimeSinceStartupAsDouble));
             if (isStudySession && Distraction.Reported) distracted = true;
             OnTimerTick?.Invoke(currentTime);
         }
@@ -69,6 +70,8 @@ public class TimerManager : MonoBehaviour
     }
     public void StartTimer()
     {
+        if (isTimerRunning) return;
+        endsAt = Time.realtimeSinceStartupAsDouble + currentTime;
         isTimerRunning = true;
     }
     public void PauseTimer()

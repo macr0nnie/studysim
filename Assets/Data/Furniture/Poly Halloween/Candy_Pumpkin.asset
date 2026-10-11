@@ -12,13 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Candy_Pumpkin
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Candy_Pumpkin
+  displayName: Candy Pumpkin
   description: A candy_pumpkin to add some personality to your space.
   category: 12
   tags:
   - candy
   - pumpkin
   - halloween
-  price: 15
+  price: 5
   prefab: {fileID: 1027337107402632769, guid: 02a2903fd6ff3bb46b4e541371cc79e4, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

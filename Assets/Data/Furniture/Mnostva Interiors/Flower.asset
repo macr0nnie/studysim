@@ -17,6 +17,19 @@ MonoBehaviour:
   category: 5
   tags:
   - flower
-  price: 20
+  price: 15
   prefab: {fileID: 6587345871612521942, guid: e31015a6cb5368449a94f0d54981ce03, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

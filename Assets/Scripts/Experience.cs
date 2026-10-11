@@ -19,11 +19,14 @@ public class Experience : MonoBehaviour
     // Each level needs a little more than the last: 100, 125, 150...
     public int ExperienceToNextLevel => 100 + 25 * (current_player_level - 1);
     public int GetExperience() => experiencePoints;
+    // Coins paid on reaching a level, so levelling up buys something for the room.
+    public static int LevelBonus(int level) => 25 * level;
 
     public void LevelUP(){
         current_player_level++;
         experiencePoints = 0;
         SavePlayerLevel();
+        PayLevelBonus();
         PlayerLevelUp?.Invoke(current_player_level);
         OnExperienceChanged?.Invoke();
     }
@@ -35,10 +38,16 @@ public class Experience : MonoBehaviour
         {
             experiencePoints -= ExperienceToNextLevel;
             current_player_level++;
+            PayLevelBonus();
             PlayerLevelUp?.Invoke(current_player_level);
         }
         SavePlayerLevel();
         OnExperienceChanged?.Invoke();
+    }
+    private void PayLevelBonus()
+    {
+        PlayerCurrency currency = FindAnyObjectByType<PlayerCurrency>();
+        if (currency != null) currency.AddCoins(LevelBonus(current_player_level));
     }
     //get the current player level
     public int GetPlayerLevel(){

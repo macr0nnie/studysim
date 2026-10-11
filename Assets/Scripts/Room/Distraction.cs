@@ -61,6 +61,8 @@ public class Distraction : MonoBehaviour
 
     public static void Clear() => lastReport = -999f;
     public static bool Reported => Time.unscaledTime - lastReport < Timeout;
+    // Reported during a running study session with the penalty on: what the room and the character react to.
+    public static bool Active => instance != null && instance.active;
 
     // Where a piece really is, ignoring the shaking, so saving the room never stores a fallen piece.
     public static void RestPose(Transform t, out Vector3 position, out Quaternion rotation)

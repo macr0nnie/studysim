@@ -19,6 +19,19 @@ MonoBehaviour:
   - bunk
   - bed
   - bedding
-  price: 40
+  price: 95
   prefab: {fileID: 1890858143027182012, guid: 912c0b28541db8847ad230065b0075fa, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

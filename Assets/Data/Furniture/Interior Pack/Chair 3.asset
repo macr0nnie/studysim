@@ -17,6 +17,19 @@ MonoBehaviour:
   category: 0
   tags:
   - chair
-  price: 40
+  price: 30
   prefab: {fileID: 2268344577385932783, guid: 9962407cb9a22a446970b6bf3e57d094, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

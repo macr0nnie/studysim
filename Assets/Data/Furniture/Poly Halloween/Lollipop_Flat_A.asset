@@ -12,13 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Lollipop_Flat_A
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Lollipop_Flat_A
+  displayName: Lollipop Flat A
   description: A lollipop_flat_a to add some personality to your space.
   category: 12
   tags:
   - lollipop
   - flat
   - halloween
-  price: 15
+  price: 5
   prefab: {fileID: 3813520038766734591, guid: 235453bd5573550408d145c0b6db75dc, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

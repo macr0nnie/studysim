@@ -12,13 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Book_Evil
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Book_Evil
+  displayName: Book Evil
   description: A book_evil to add some personality to your space.
   category: 12
   tags:
   - book
   - evil
   - halloween
-  price: 15
+  price: 8
   prefab: {fileID: 7412997524030076762, guid: 1885c34483df2264dbe998d6edbb1d3d, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

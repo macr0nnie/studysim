@@ -61,7 +61,7 @@ public class MenuUI : MonoBehaviour
         Gap(24);
         Button play = Big("Play", "Play", AccentButtonColor, 64);
         play.onClick.AddListener(() => Go(SaveSystem.SelectScene));
-        if (!GameSettings.Web) Big("Quit", "Quit", TabColor, 52).onClick.AddListener(Quit); // a browser tab can't quit itself
+        if (GameSettings.Desktop) Big("Quit", "Quit", TabColor, 52).onClick.AddListener(Quit); // a browser tab can't quit itself
         Gap(8);
         Text("Version", "v" + Application.version, CaptionSize, MutedText, 22, false);
     }

@@ -9,12 +9,14 @@ using UnityEngine.UI;
 // Cozy room lighting, built at runtime so the scene stays untouched: a warm key light, a cool ambient fill,
 // warm soft lamps, and a light URP Volume (bloom, vignette, grading). The room dims and warms while a study
 // session runs or every lamp is off, and brightens on a break. Settings > Sound > Lighting picks Off / Cozy / Bright.
-// Behind the room is a sky that follows the clock (clouds by day, stars at night, optional rain; hidden while
-// Paint > Background has a colour), and a few dust motes drift in the room, with a soft shadow under it so it doesn't float.
+// Behind the room is a sky that follows the clock (clouds by day, stars at night, weather from Settings > Display; hidden
+// while Paint > Background has a colour), and a few dust motes drift in the room, with a soft shadow under it so it doesn't float.
+// Each window on a wall gets a soft spot light that shines into the room: daylight by day, moonlight at night, dimmer in bad weather.
 // Mini mode owns shadows and post-processing while it is active, so this only turns the Volume off there.
 public class RoomAmbience : MonoBehaviour
 {
     public enum Style { Off, Cozy, Bright }
+    public enum Weather { Clear, Drizzle, Rain, Snow, Changing }
 
     // Per style: key colour/intensity, fill sky/ground, exposure shift, bloom, vignette (focus end / break end of the mood blend).
     private struct Look { public Color key, sky, ground; public float keyFocus, keyBreak, exposure, bloom, vignette, lampIntensity, lampRange; }
@@ -49,10 +51,14 @@ public class RoomAmbience : MonoBehaviour
 
     private static RoomAmbience instance;
     private Canvas skyCanvas;
-    private RawImage skyImage, skyPhoto, stars, rain;
-    private Texture2D skyTexture, starTexture, rainTexture;
+    private RawImage skyImage, skyPhoto, stars, rain, snow;
+    private Texture2D skyTexture, starTexture, rainTexture, snowTexture;
     private float skyClock;
-    private bool raining;
+    private Weather weather;
+    private const string WindowLightName = "WindowLight";
+    private readonly List<Light> windowLights = new List<Light>();
+    private Color windowColor = Color.white;
+    private float windowIntensity = 0.5f;
     private AudioSource rainSound;
     private ParticleSystem dust;
     private Material shadowMaterial;
@@ -126,6 +132,7 @@ public class RoomAmbience : MonoBehaviour
         if (skyTexture != null) Destroy(skyTexture);
         if (starTexture != null) Destroy(starTexture);
         if (rainTexture != null) Destroy(rainTexture);
+        if (snowTexture != null) Destroy(snowTexture);
         if (rainSound != null) Destroy(rainSound.clip);
         if (shadowMaterial != null) Destroy(shadowMaterial);
         if (dust != null) { Destroy(dust.GetComponent<ParticleSystemRenderer>().sharedMaterial.mainTexture); Destroy(dust.GetComponent<ParticleSystemRenderer>().sharedMaterial); }
@@ -135,22 +142,30 @@ public class RoomAmbience : MonoBehaviour
     private void Update()
     {
         bool mini = MiniMode.Active;
-        if (GameSettings.Rain != raining) SetRain(GameSettings.Rain);
-        if (rainSound != null) rainSound.volume = GameSettings.EffectsVolume * 0.35f;
+        Weather now = CurrentWeather();
+        if (now != weather) SetWeather(now);
+        if (rainSound != null) rainSound.volume = GameSettings.EffectsVolume * (weather == Weather.Rain ? 0.2f : 0.1f);
         if (skyCanvas != null)
         {
             bool showSky = !SkyHidden && !mini; // mini mode's window needs the camera's own clear colour
             if (skyCanvas.enabled != showSky) skyCanvas.enabled = showSky;
             if (showSky && (skyClock -= Time.unscaledDeltaTime) <= 0) { skyClock = 30; PaintSky(); }
-            if (showSky && raining)
+            if (showSky && (weather == Weather.Drizzle || weather == Weather.Rain))
             {
                 Rect r = rain.uvRect;
-                r.y = Mathf.Repeat(r.y + Time.unscaledDeltaTime * 1.4f, 1f); // scrolling one small texture is the whole effect
+                r.y = Mathf.Repeat(r.y + Time.unscaledDeltaTime * (weather == Weather.Rain ? 1.1f : 0.8f), 1f); // scrolling one small texture is the whole effect
                 rain.uvRect = r;
+            }
+            if (showSky && weather == Weather.Snow)
+            {
+                Rect r = snow.uvRect;
+                r.y = Mathf.Repeat(r.y + Time.unscaledDeltaTime * 0.06f, 1f);
+                r.x = Mathf.Repeat(r.x + Mathf.Sin(Time.unscaledTime * 0.4f) * Time.unscaledDeltaTime * 0.03f, 1f); // a slow sideways drift
+                snow.uvRect = r;
             }
         }
         if (key == null) return;
-        if ((scanClock -= Time.unscaledDeltaTime) <= 0) { scanClock = LampScan; ScanLamps(); if (dust == null) BuildDust(); }
+        if ((scanClock -= Time.unscaledDeltaTime) <= 0) { scanClock = LampScan; ScanLamps(); ScanWindows(); if (dust == null) BuildDust(); }
 
         var style = GameSettings.Ambience;
         if (dust != null && dust.gameObject.activeSelf != (style != Style.Off && !mini)) dust.gameObject.SetActive(style != Style.Off && !mini);
@@ -201,7 +216,7 @@ public class RoomAmbience : MonoBehaviour
         lampStyle = GameSettings.Ambience;
         foreach (Light light in FindObjectsByType<Light>())
         {
-            if (light.type == LightType.Directional || light.GetComponentInParent<Furniture>() == null) continue;
+            if (light.type == LightType.Directional || light.name == WindowLightName || light.GetComponentInParent<Furniture>() == null) continue;
             lamps.Add(light);
             bool fresh = !lampBase.ContainsKey(light);
             if (fresh)
@@ -218,6 +233,68 @@ public class RoomAmbience : MonoBehaviour
                 light.range = b.y * (off ? 1 : look.lampRange);
             }
         }
+    }
+
+    // Windows come and go like lamps. Each gets one spot light from its middle towards the middle of the floor, re-aimed
+    // every scan so a moved window still points into the room. No shadows: several rooms may render at once later.
+    private void ScanWindows()
+    {
+        windowLights.RemoveAll(l => l == null);
+        if (!FloorBounds(out Bounds floor)) return;
+        bool on = GameSettings.Ambience != Style.Off;
+        foreach (Furniture piece in FindObjectsByType<Furniture>())
+        {
+            GameObject g = piece.gameObject;
+            if (!FurnitureRole.NameHas(g, "window") || FurnitureRole.NameHas(g, "blind")) continue;
+            Renderer[] renderers = g.GetComponentsInChildren<Renderer>();
+            if (renderers.Length == 0) continue;
+            Bounds b = renderers[0].bounds;
+            foreach (Renderer r in renderers) b.Encapsulate(r.bounds);
+
+            Transform t = g.transform.Find(WindowLightName);
+            Light light = t != null ? t.GetComponent<Light>() : null;
+            if (light == null)
+            {
+                var go = new GameObject(WindowLightName);
+                go.transform.SetParent(g.transform, false);
+                light = go.AddComponent<Light>();
+                light.type = LightType.Spot;
+                light.spotAngle = 80f;
+                light.innerSpotAngle = 20f;
+                light.shadows = LightShadows.None;
+                windowLights.Add(light);
+            }
+            light.transform.position = b.center;
+            light.transform.rotation = Quaternion.LookRotation(floor.center - b.center);
+            light.range = Vector3.Distance(b.center, floor.center) * 2f;
+            light.color = windowColor;
+            light.intensity = windowIntensity;
+            light.enabled = on;
+        }
+    }
+
+    private bool FloorBounds(out Bounds floor)
+    {
+        floor = new Bounds();
+        bool any = false;
+        if (room == null || room.FloorRenderers == null) return false;
+        foreach (Renderer r in room.FloorRenderers)
+            if (r != null) { if (any) floor.Encapsulate(r.bounds); else floor = r.bounds; any = true; }
+        return any;
+    }
+
+    // Settings > Display picks the weather; Changing rolls new weather every three hours, mostly clear.
+    // shortcut: winter (snow) is December to February, northern hemisphere only; add a hemisphere setting if asked.
+    private static Weather CurrentWeather()
+    {
+        Weather chosen = GameSettings.Weather;
+        if (chosen != Weather.Changing) return chosen;
+        DateTime now = DateTime.Now;
+        float roll = Hash(now.DayOfYear, now.Year % 100 * 8 + now.Hour / 3);
+        bool winter = now.Month == 12 || now.Month <= 2;
+        if (roll < 0.6f) return Weather.Clear;
+        if (roll < 0.82f) return Weather.Drizzle;
+        return winter ? Weather.Snow : roll < 0.92f ? Weather.Rain : Weather.Drizzle;
     }
 
     // A screen-space canvas at the far end of the camera, so the room draws in front of it and post-processing
@@ -246,11 +323,15 @@ public class RoomAmbience : MonoBehaviour
         var photo = Resources.Load<Texture2D>("RoomSky");
         if (photo != null) skyPhoto = SkyLayer("Clouds", photo, new Rect(0.3f, 0.48f, 0.4f, 0.4f)); // the wispy clouds above the horizon
 
-        // Rain: short slanted streaks on one small tiled texture, scrolled down while it rains (Settings > Display).
-        rainTexture = Dots(64, 128, 14, 18, (x, y) => new Color(0.85f, 0.9f, 1f, 0.2f + Hash(x, y) * 0.3f));
-        rain = SkyLayer("Rain", rainTexture, new Rect(0, 0, 6f * cam.aspect, 3f));
-        rain.color = new Color(1f, 1f, 1f, 0.7f);
-        rain.gameObject.SetActive(raining);
+        // Rain: a few short slanted streaks on one small tiled texture, scrolled down while it rains. It used to be twice as
+        // dense, longer and brighter, which read as a storm; drizzle is the same layer, fainter.
+        rainTexture = Dots(64, 128, 8, 12, (x, y) => new Color(0.85f, 0.9f, 1f, 0.2f + Hash(x, y) * 0.3f));
+        rain = SkyLayer("Rain", rainTexture, new Rect(0, 0, 5f * cam.aspect, 2.5f));
+        rain.gameObject.SetActive(false);
+        // Snow: soft dots drifting slowly.
+        snowTexture = Dots(128, 128, 30, 2, (x, y) => new Color(1f, 1f, 1f, 0.5f + Hash(x, y) * 0.4f));
+        snow = SkyLayer("Snow", snowTexture, new Rect(0, 0, 3f * cam.aspect, 2f));
+        snow.gameObject.SetActive(false);
         PaintSky();
     }
 
@@ -287,11 +368,17 @@ public class RoomAmbience : MonoBehaviour
 
     private static float Hash(int x, int y) => Mathf.Repeat(Mathf.Sin(x * 12.9898f + y * 78.233f) * 43758.5453f, 1f);
 
-    private void SetRain(bool on)
+    private void SetWeather(Weather now)
     {
-        raining = on;
-        skyClock = 0; // repaint: rain greys the sky and hides the stars
-        if (rain != null) rain.gameObject.SetActive(on);
+        weather = now;
+        bool on = now == Weather.Drizzle || now == Weather.Rain;
+        skyClock = 0; // repaint: weather greys the sky and hides the stars
+        if (rain != null)
+        {
+            rain.gameObject.SetActive(on);
+            rain.color = new Color(1f, 1f, 1f, now == Weather.Rain ? 0.45f : 0.22f);
+        }
+        if (snow != null) snow.gameObject.SetActive(now == Weather.Snow);
         if (on && rainSound == null)
         {
             rainSound = gameObject.AddComponent<AudioSource>();
@@ -300,7 +387,8 @@ public class RoomAmbience : MonoBehaviour
             rainSound.spatialBlend = 0;
         }
         if (rainSound == null) return;
-        if (on) rainSound.Play(); else rainSound.Stop();
+        if (!on) rainSound.Stop();
+        else if (!rainSound.isPlaying) rainSound.Play();
     }
 
     // Three seconds of softened noise, made once in code: the patter of steady rain, no audio file needed.
@@ -337,24 +425,32 @@ public class RoomAmbience : MonoBehaviour
         float t = Mathf.InverseLerp(SkyKeys[i].hour, SkyKeys[i + 1].hour, hour);
         Color bottom = Color.Lerp(SkyKeys[i].bottom, SkyKeys[i + 1].bottom, t), top = Color.Lerp(SkyKeys[i].top, SkyKeys[i + 1].top, t);
         float day = Mathf.InverseLerp(0.15f, 0.8f, top.grayscale);
-        if (raining) { bottom = Overcast(bottom); top = Overcast(top); }
+        bool clear = weather == Weather.Clear;
+        float grey = weather == Weather.Rain ? 0.65f : weather == Weather.Clear ? 0f : 0.45f;
+        bottom = Overcast(bottom, grey); top = Overcast(top, grey);
         skyTexture.SetPixel(0, 0, bottom);
         skyTexture.SetPixel(0, 1, top);
         skyTexture.Apply();
-        stars.color = new Color(1f, 1f, 1f, raining ? 0f : 1f - day);
+        stars.color = new Color(1f, 1f, 1f, clear ? 1f - day : 0f);
+
+        // Window light: the sky's own colour by day, a cool moonlight at night, dimmer when it's grey out.
+        windowColor = Color.Lerp(new Color(0.55f, 0.65f, 1f), Color.Lerp(bottom, Color.white, 0.4f), day);
+        windowIntensity = Mathf.Lerp(0.08f, 0.6f, day) * (weather == Weather.Rain ? 0.45f : clear ? 1f : 0.65f);
+        foreach (Light light in windowLights) if (light != null) { light.color = windowColor; light.intensity = windowIntensity; }
+
         if (skyPhoto != null)
         {
-            Color tint = Color.Lerp(bottom, Color.white, raining ? 0.2f : 0.6f); // warm at dawn and dusk, plain by day
+            Color tint = Color.Lerp(bottom, Color.white, clear ? 0.6f : 0.2f); // warm at dawn and dusk, plain by day
             tint.a = day; // gone at night, full by day
             skyPhoto.color = tint;
         }
     }
 
-    // Grey and a little darker, for a rainy sky.
-    private static Color Overcast(Color c)
+    // Grey and a little darker, for a cloudy sky.
+    private static Color Overcast(Color c, float amount)
     {
         float g = c.grayscale * 0.8f;
-        return Color.Lerp(c, new Color(g, g, g, 1f), 0.75f);
+        return Color.Lerp(c, new Color(g, g, g, 1f), amount);
     }
 
     // A few slow warm motes over the floor. Cheap: at most 40 particles, no lights or collisions.

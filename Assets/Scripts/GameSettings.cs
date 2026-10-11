@@ -46,7 +46,12 @@ public static class GameSettings
     public static RoomAmbience.Style Ambience { get => (RoomAmbience.Style)PlayerPrefs.GetInt("Ambience", 1); set => PlayerPrefs.SetInt("Ambience", (int)value); }
     public static bool UISounds { get => Get("UISounds", true); set => Set("UISounds", value); }
     public static bool OnlineCovers { get => Get("OnlineCovers", false); set => Set("OnlineCovers", value); } // off by default: it sends the song to Apple
-    public static bool Rain { get => Get("Rain", false); set => Set("Rain", value); }
+    // Changing by default; a player who had the old Rain switch on keeps rain.
+    public static RoomAmbience.Weather Weather
+    {
+        get => (RoomAmbience.Weather)Mathf.Clamp(PlayerPrefs.GetInt("Weather", Get("Rain", false) ? (int)RoomAmbience.Weather.Rain : (int)RoomAmbience.Weather.Changing), 0, 4);
+        set => PlayerPrefs.SetInt("Weather", (int)value);
+    }
     public static bool DistractionPenalty { get => Get("DistractionPenalty", true); set => Set("DistractionPenalty", value); }
     public static int DistractionCoinsPerMinute { get => PlayerPrefs.GetInt("DistractionCoins", 6); set => PlayerPrefs.SetInt("DistractionCoins", value); }
 

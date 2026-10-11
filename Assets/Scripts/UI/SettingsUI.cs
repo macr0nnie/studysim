@@ -353,7 +353,17 @@ public class SettingsUI : MonoBehaviour
             PlayerPrefs.Save();
             cycle.GetComponentInChildren<TMP_Text>().text = GameSettings.Ambience.ToString();
         });
-        Switch(page, "Rain", "Rain outside with a soft patter (follows the Effects volume).", () => GameSettings.Rain, v => GameSettings.Rain = v);
+        GameObject weatherRow = Row("Weather", page, 48, 12, false);
+        weatherRow.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+        Label(weatherRow.transform, "Weather", "Outside the room. Changing picks new weather every few hours. Rain patters softly (Effects volume).");
+        Button weatherButton = SmallButton(weatherRow.transform, GameSettings.Weather.ToString(), CardColor, 110);
+        weatherButton.GetComponent<LayoutElement>().preferredHeight = 36;
+        weatherButton.onClick.AddListener(() =>
+        {
+            GameSettings.Weather = (RoomAmbience.Weather)(((int)GameSettings.Weather + 1) % 5);
+            PlayerPrefs.Save();
+            weatherButton.GetComponentInChildren<TMP_Text>().text = GameSettings.Weather.ToString();
+        });
 
         Heading(page, "Mini mode");
         Note(page, "Just the room, like a game overlay: top right, on top of other windows and click-through. "

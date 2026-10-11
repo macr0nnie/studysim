@@ -341,6 +341,7 @@ public class SettingsUI : MonoBehaviour
             PlayerPrefs.Save();
             cycle.GetComponentInChildren<TMP_Text>().text = GameSettings.Ambience.ToString();
         });
+        Switch(page, "Rain", "Rain outside with a soft patter (follows the Effects volume).", () => GameSettings.Rain, v => GameSettings.Rain = v);
 
         Heading(page, "Mini mode");
         Note(page, "Just the room, like a game overlay: top right, on top of other windows and click-through. "

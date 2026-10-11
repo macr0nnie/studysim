@@ -51,7 +51,9 @@ public class CharacterBehaviour : MonoBehaviour
         Mood = Distraction.Reported ? Mood.Stressed : Happiness >= 70f ? Mood.Happy : Happiness < 30f ? Mood.Sad : Mood.Content;
 
         if (Time.time >= nextCheck) { nextCheck = Time.time + 0.25f; UseFurniture(); }
-        if (Time.time >= nextSay && !lying) { Say(greeted ? CharacterDialogue.Line(Mood, CharacterDialogue.Stage) : CharacterDialogue.Greeting()); greeted = true; nextSay = Time.time + SayEvery * Random.Range(0.8f, 1.6f); }
+        // Chatter only during a running study session (plus the hello when the room opens); finished sessions get their own line.
+        bool studying = timer != null && timer.IsTimerRunning && timer.IsStudySession;
+        if (Time.time >= nextSay && !lying && (studying || !greeted)) { Say(greeted ? CharacterDialogue.Line(Mood, CharacterDialogue.Stage) : CharacterDialogue.Greeting()); greeted = true; nextSay = Time.time + SayEvery * Random.Range(0.8f, 1.6f); }
         if (line != null && Time.time >= hideBubble) { line = null; Layout(); }
         if (walking) Walk();
         else if (usedPiece != null) Hold();

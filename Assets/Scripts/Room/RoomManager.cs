@@ -28,16 +28,15 @@ public class RoomManager : MonoBehaviour
     private List<GameObject> placedObjects = new List<GameObject>();
     private GameObject currentPreview;
     private Action onPreviewPlaced; // e.g. charge the player only once the item is actually placed
-    private Renderer[] previewRenderers = new Renderer[0];
-    private MaterialPropertyBlock previewTint;
     private bool? previewTintValid; // last tint applied, so the block is only rewritten when validity changes
 
     // Reused by GetBounds so placement checks don't allocate every frame.
     private static readonly Collider[] overlapBuffer = new Collider[16];
     private static readonly List<Collider> colliderBuffer = new List<Collider>();
     private static readonly List<Renderer> rendererBuffer = new List<Renderer>();
-    static readonly Color ValidTint = new Color(0.55f, 1f, 0.6f, 1f);
-    static readonly Color InvalidTint = new Color(1f, 0.45f, 0.45f, 1f);
+    // Outline colours (see PieceOutline): green can go here, red can't.
+    static readonly Color ValidTint = new Color(0.3f, 0.9f, 0.45f, 1f);
+    static readonly Color InvalidTint = new Color(0.95f, 0.25f, 0.25f, 1f);
     private GameObject selectedObject;
     private bool isPlacementValid;
     private Camera mainCamera;
@@ -76,8 +75,7 @@ public class RoomManager : MonoBehaviour
     private bool previewOnSurface;
     private const float FollowRate = 22f;
     private static float Follow => 1f - Mathf.Exp(-FollowRate * Time.deltaTime);
-    private MaterialPropertyBlock highlight;
-    static readonly Color SelectedTint = new Color(1f, 0.9f, 0.6f, 1f);
+    static readonly Color SelectedTint = new Color(1f, 0.8f, 0.3f, 1f);
     private float ceilingY;
     private Quaternion previewBase;
     private float previewSpin; // wall pieces: turn about the wall normal (R flips them)
@@ -219,7 +217,6 @@ public class RoomManager : MonoBehaviour
         currentPreview = Instantiate(furniturePrefab);
         currentPreview.name = furniturePrefab.name;
         onPreviewPlaced = onPlaced;
-        previewRenderers = currentPreview.GetComponentsInChildren<Renderer>();
         previewTintValid = null;
         previewOnSurface = false;
         // Wall pieces get turned to face out of whichever wall they're on. A piece that is thin along x
@@ -675,6 +672,7 @@ public class RoomManager : MonoBehaviour
         placedObjects.Add(placedObject);
         if (previewItem != null) boughtItems[placedObject] = previewItem;
         previewItem = null;
+        if (IsKind(placedObject, "desk")) FitDesk(placedObject);
         RecordAction(placedObject);
         ResetPreviewMaterial(placedObject);
         if (HasLights(placedObject)) SetLights(placedObject, true, false); // the pack's lamps start switched off
@@ -700,25 +698,16 @@ public class RoomManager : MonoBehaviour
         }
     }
 
-    // Tints the preview green/red with a property block, so the furniture keeps its own materials and textures.
+    // Outlines the preview green/red, so the furniture keeps its own look.
     private void SetPreviewTint(bool valid)
     {
         if (previewTintValid == valid) return;
         previewTintValid = valid;
-        if (previewTint == null) previewTint = new MaterialPropertyBlock();
-        Color tint = valid ? ValidTint : InvalidTint;
-        previewTint.SetColor("_BaseColor", tint); // URP Lit
-        previewTint.SetColor("_Color", tint);     // built-in/legacy shaders
-        foreach (Renderer renderer in previewRenderers)
-            if (renderer != null) renderer.SetPropertyBlock(previewTint);
+        PieceOutline.Show(currentPreview, valid ? ValidTint : InvalidTint);
     }
 
-    // Clears the preview tint from a placed object.
-    private void ResetPreviewMaterial(GameObject obj)
-    {
-        foreach (Renderer renderer in obj.GetComponentsInChildren<Renderer>())
-            renderer.SetPropertyBlock(null);
-    }
+    // Clears the preview outline from a placed object (Instantiate copied it from the preview).
+    private void ResetPreviewMaterial(GameObject obj) => PieceOutline.Show(obj, null);
 
     // Small squash-and-settle so a placed piece feels like it lands.
     private static IEnumerator PopIn(Transform target)
@@ -822,17 +811,8 @@ public class RoomManager : MonoBehaviour
         Glow(obj, shownTint = SelectedTint);
     }
 
-    // Tints a piece with a property block (null clears it), leaving its own materials and paint alone.
-    private void Glow(GameObject obj, Color? tint)
-    {
-        if (tint.HasValue)
-        {
-            if (highlight == null) highlight = new MaterialPropertyBlock();
-            highlight.SetColor("_BaseColor", tint.Value);
-            highlight.SetColor("_Color", tint.Value);
-        }
-        foreach (Renderer r in obj.GetComponentsInChildren<Renderer>()) r.SetPropertyBlock(tint.HasValue ? highlight : null);
-    }
+    // Outlines a piece (null clears it), leaving its own materials and paint alone.
+    private void Glow(GameObject obj, Color? tint) => PieceOutline.Show(obj, tint);
 
     // Edit mode: a faint glow on the piece under the cursor (what a click would pick up), and the selected
     // piece glows red while it overlaps something.
@@ -1024,26 +1004,30 @@ public class RoomManager : MonoBehaviour
     public Renderer[] WallRenderers => wallMeshes;
     public Renderer[] FloorRenderers => floorMeshes;
 
-    // Plain-coloured pieces can be painted; textured artwork (paintings, posters) and pieces marked
-    // not colourable in the store can't.
+    // Pieces marked not colourable in the store can't be painted. Store furniture with a detailed texture (most pack
+    // pieces use one atlas texture) takes the colour as a tint over it; only wall decor (paintings, posters) and
+    // scene leftovers with such a texture count as artwork and are left alone.
     public bool CanPaint(GameObject piece)
     {
         if (piece == null) return false;
-        if (boughtItems.TryGetValue(piece, out FurnitureItem item) && !item.colorable) return false;
-        return Paintable(piece.GetComponentsInChildren<Renderer>());
+        boughtItems.TryGetValue(piece, out FurnitureItem item);
+        if (item != null && !item.colorable) return false;
+        return Paintable(piece.GetComponentsInChildren<Renderer>(), item == null || item.category == StoreCategory.WallDecor);
     }
 
-    public static bool Paintable(Renderer[] renderers)
+    // Paintable when at least one material has a colour (glass, particles and the like are skipped, not a veto).
+    public static bool Paintable(Renderer[] renderers, bool textureIsArtwork = true)
     {
-        if (renderers.Length == 0) return false;
+        bool any = false;
         foreach (Renderer r in renderers)
-            foreach (Material m in r.sharedMaterials)
+            foreach (Material m in r.name == PieceOutline.HullName ? new Material[0] : r.sharedMaterials)
             {
-                if (m == null || !(m.HasProperty("_BaseColor") || m.HasProperty("_Color"))) return false;
+                if (m == null || !(m.HasProperty("_BaseColor") || m.HasProperty("_Color"))) continue;
                 Texture texture = m.mainTexture;
-                if (texture != null && texture.width > 256) return false; // detailed artwork, not a small colour palette
+                if (textureIsArtwork && texture != null && texture.width > 256) return false; // detailed artwork, not a small colour palette
+                any = true;
             }
-        return true;
+        return any;
     }
 
     public void PaintPiece(GameObject piece, Color? color)
@@ -1069,7 +1053,7 @@ public class RoomManager : MonoBehaviour
     {
         foreach (Renderer r in renderers)
         {
-            if (r == null) continue;
+            if (r == null || r.name == PieceOutline.HullName) continue; // the edit-mode outline keeps its own colour
             if (!originalMaterials.ContainsKey(r)) originalMaterials[r] = r.sharedMaterials;
             if (color == null)
             {
@@ -1320,12 +1304,41 @@ public class RoomManager : MonoBehaviour
         if (item == null) { Debug.LogWarning("RoomManager: no desk in the furniture catalog; no starter desk."); return null; }
         Vector3 toCamera = WallAxis(Vector3.ProjectOnPlane(mainCamera.transform.position - roomFloor.center, Vector3.up));
         Vector3 position = new Vector3(roomFloor.center.x, roomFloor.max.y, roomFloor.center.z) - toCamera * Mathf.Min(roomFloor.extents.x, roomFloor.extents.z) * 0.4f;
-        GameObject desk = Instantiate(item.prefab, position, Quaternion.LookRotation(toCamera));
+        // Keep the prefab's own rotation (imported roots are tilted, e.g. 270 degrees on X; LookRotation used to wipe that
+        // out and lay some desks on their side) and only turn it about the vertical.
+        Quaternion tilt = item.prefab.transform.rotation;
+        GameObject desk = Instantiate(item.prefab, position, tilt);
         desk.name = item.prefab.name;
         placedObjects.Add(desk);
         boughtItems[desk] = item;
         starterPieces.Add(desk);
+        // Front: frontYaw when set, else the prefab's forward, else (forward points up or down after the tilt) its up.
+        Vector3 front = Vector3.ProjectOnPlane(tilt * Vector3.forward, Vector3.up);
+        if (front.sqrMagnitude < 0.25f) front = Vector3.ProjectOnPlane(tilt * Vector3.up, Vector3.up);
+        if (item.frontYaw != 0f) front = Quaternion.AngleAxis(item.frontYaw, Vector3.up) * front;
+        desk.transform.rotation = Quaternion.AngleAxis(Vector3.SignedAngle(front, toCamera, Vector3.up), Vector3.up) * tilt;
+        // A desk is wider than it is deep: if it ended up sideways, turn it so its long side runs along the back wall.
+        Physics.SyncTransforms();
+        Bounds b = GetBounds(desk);
+        if (Mathf.Abs(toCamera.x) * b.size.x + Mathf.Abs(toCamera.z) * b.size.z > Mathf.Abs(toCamera.z) * b.size.x + Mathf.Abs(toCamera.x) * b.size.z)
+            desk.transform.rotation = Quaternion.AngleAxis(90f, Vector3.up) * desk.transform.rotation;
+        Physics.SyncTransforms();
+        b = GetBounds(desk);
+        desk.transform.position += position - new Vector3(b.center.x, b.min.y, b.center.z);
+        FitDesk(desk);
         return desk;
+    }
+
+    // Pack desks come at very different scales. A desk is about 0.3 of the wall height; one far outside that is scaled
+    // to it through the saved size, so Reset size in edit mode gives the model's own size back.
+    private void FitDesk(GameObject desk)
+    {
+        float wall = ceilingY - roomFloor.max.y;
+        if (!hasRoomFloor || ceilingY == float.MinValue || wall <= 0f) return;
+        Physics.SyncTransforms();
+        float height = GetBounds(desk).size.y, target = wall * 0.3f;
+        if (height <= 0f || (height < target * 1.35f && height > target * 0.65f)) return;
+        SetSize(desk, (sizes.TryGetValue(desk, out float z) ? z : 1f) * target / height);
     }
 
     // A chair in front of the desk (the side facing the camera), clear of the desk, walls and other pieces, facing the desk.

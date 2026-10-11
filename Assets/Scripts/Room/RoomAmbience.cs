@@ -19,17 +19,18 @@ public class RoomAmbience : MonoBehaviour
     public enum Weather { Clear, Drizzle, Rain, Snow, Changing }
 
     // Per style: key colour/intensity, fill sky/ground, exposure shift, bloom, vignette (focus end / break end of the mood blend).
-    private struct Look { public Color key, sky, ground; public float keyFocus, keyBreak, exposure, bloom, vignette, lampIntensity, lampRange; }
+    private struct Look { public Color key, sky, equator, ground; public float keyFocus, keyBreak, exposure, bloom, vignette, lampIntensity, lampRange; }
 
     private static readonly Look Cozy = new Look
     {
-        key = new Color(1f, 0.82f, 0.62f), sky = new Color(0.55f, 0.62f, 0.8f), ground = new Color(0.22f, 0.17f, 0.14f),
-        keyFocus = 0.75f, keyBreak = 1.0f, exposure = 0f, bloom = 0.1f, vignette = 0.32f, lampIntensity = 0.04f, lampRange = 0.5f,
+        // Soft and even: a warm fill on the walls and floor carries the room, the key light only adds a gentle direction.
+        key = new Color(1f, 0.82f, 0.62f), sky = new Color(0.66f, 0.64f, 0.72f), equator = new Color(0.5f, 0.43f, 0.38f), ground = new Color(0.34f, 0.28f, 0.24f),
+        keyFocus = 0.55f, keyBreak = 0.75f, exposure = 0f, bloom = 0.1f, vignette = 0.32f, lampIntensity = 0.04f, lampRange = 0.5f,
     };
     private static readonly Look Bright = new Look
     {
-        key = new Color(1f, 0.94f, 0.84f), sky = new Color(0.75f, 0.8f, 0.9f), ground = new Color(0.35f, 0.3f, 0.26f),
-        keyFocus = 1.0f, keyBreak = 1.2f, exposure = 0.2f, bloom = 0.15f, vignette = 0.12f, lampIntensity = 0.1f, lampRange = 0.5f,
+        key = new Color(1f, 0.94f, 0.84f), sky = new Color(0.82f, 0.84f, 0.9f), equator = new Color(0.62f, 0.58f, 0.54f), ground = new Color(0.45f, 0.4f, 0.36f),
+        keyFocus = 0.85f, keyBreak = 1.05f, exposure = 0.2f, bloom = 0.15f, vignette = 0.12f, lampIntensity = 0.1f, lampRange = 0.5f,
     };
 
     private const float LampScan = 2f, Fade = 1.5f, LampsOffDim = 0.65f;
@@ -186,11 +187,12 @@ public class RoomAmbience : MonoBehaviour
         key.color = Color.Lerp(keyColor, Color.Lerp(look.key, look.key * new Color(1f, 0.9f, 0.8f), warm), strength);
         key.intensity = Mathf.Lerp(keyIntensity, keyIntensity * mood, strength);
         key.shadows = mini ? LightShadows.None : (strength > 0.5f ? LightShadows.Soft : keyShadows);
-        key.shadowStrength = Mathf.Lerp(1f, 0.7f, strength);
+        key.shadowStrength = Mathf.Lerp(1f, 0.5f, strength); // soft shadows that ground pieces without dark patches
         if (ambientMode == AmbientMode.Trilight)
         {
-            RenderSettings.ambientSkyColor = Color.Lerp(sky, look.sky, strength);
-            RenderSettings.ambientEquatorColor = Color.Lerp(equator, Color.Lerp(look.sky, look.ground, 0.5f) * 0.6f, strength);
+            // The fill leans a little towards the window light, so the room follows the time of day.
+            RenderSettings.ambientSkyColor = Color.Lerp(sky, Color.Lerp(look.sky, windowColor * look.sky.maxColorComponent, 0.25f), strength);
+            RenderSettings.ambientEquatorColor = Color.Lerp(equator, look.equator, strength);
             RenderSettings.ambientGroundColor = Color.Lerp(ground, look.ground, strength);
         }
 

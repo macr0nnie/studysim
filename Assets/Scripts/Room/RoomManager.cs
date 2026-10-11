@@ -1104,6 +1104,7 @@ public class RoomManager : MonoBehaviour
             uv[i] = ay >= ax && ay >= az ? new Vector2(p.x, p.z) : ax >= az ? new Vector2(p.z, p.y) : new Vector2(p.x, p.y);
         }
         mesh.uv = uv;
+        mesh.RecalculateTangents(); // the textures' normal maps follow the new UVs
         filter.sharedMesh = mesh;
         projected.Add(filter);
     }

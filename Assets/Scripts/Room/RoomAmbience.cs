@@ -25,12 +25,12 @@ public class RoomAmbience : MonoBehaviour
     {
         // Soft and even: a warm fill on the walls and floor carries the room, the key light only adds a gentle direction.
         key = new Color(1f, 0.82f, 0.62f), sky = new Color(0.66f, 0.64f, 0.72f), equator = new Color(0.5f, 0.43f, 0.38f), ground = new Color(0.34f, 0.28f, 0.24f),
-        keyFocus = 0.55f, keyBreak = 0.75f, exposure = 0f, bloom = 0.1f, vignette = 0.32f, lampIntensity = 0.04f, lampRange = 0.5f,
+        keyFocus = 0.55f, keyBreak = 0.75f, exposure = 0f, bloom = 0.3f, vignette = 0.32f, lampIntensity = 0.04f, lampRange = 0.5f,
     };
     private static readonly Look Bright = new Look
     {
         key = new Color(1f, 0.94f, 0.84f), sky = new Color(0.82f, 0.84f, 0.9f), equator = new Color(0.62f, 0.58f, 0.54f), ground = new Color(0.45f, 0.4f, 0.36f),
-        keyFocus = 0.85f, keyBreak = 1.05f, exposure = 0.2f, bloom = 0.15f, vignette = 0.12f, lampIntensity = 0.1f, lampRange = 0.5f,
+        keyFocus = 0.85f, keyBreak = 1.05f, exposure = 0.2f, bloom = 0.35f, vignette = 0.12f, lampIntensity = 0.1f, lampRange = 0.5f,
     };
 
     private const float LampScan = 2f, Fade = 1.5f, LampsOffDim = 0.65f;
@@ -113,7 +113,7 @@ public class RoomAmbience : MonoBehaviour
 
         var profile = ScriptableObject.CreateInstance<VolumeProfile>();
         bloom = profile.Add<Bloom>(true);
-        bloom.threshold.Override(1.1f);
+        bloom.threshold.Override(0.9f); // sunlit patches and lamp bulbs glow softly
         bloom.scatter.Override(0.85f);
         vignette = profile.Add<Vignette>(true);
         vignette.smoothness.Override(0.6f);

@@ -82,7 +82,6 @@ public class TimerManager : MonoBehaviour
     private void CompleteTimer()
     {
         isTimerRunning = false;
-        UISound.Play(UISound.Cue.TimerEnd);
         if (isStudySession)
         {
             GrantRewards();

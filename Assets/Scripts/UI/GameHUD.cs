@@ -431,17 +431,17 @@ public class GameHUD : MonoBehaviour
         toastText.margin = new Vector4(16, 0, 16, 0);
 
         // Session card, in the same spot as the toast but taller.
-        GameObject card = Make("SessionCard", canvas, typeof(Image), typeof(CanvasGroup), typeof(Button));
-        var cardRect = (RectTransform)card.transform;
-        cardRect.anchorMin = cardRect.anchorMax = cardRect.pivot = new Vector2(0.5f, 1);
-        cardRect.sizeDelta = new Vector2(560, 150);
-        cardRect.anchoredPosition = new Vector2(0, -190); // below the toast, so a level-up shows too
-        Style(card.GetComponent<Image>(), PanelColor);
-        card.GetComponent<Button>().onClick.AddListener(() => summary.blocksRaycasts = false); // ends PlaySummary's loop
-        summary = card.GetComponent<CanvasGroup>();
+        GameObject sessionCard = Make("SessionCard", canvas, typeof(Image), typeof(CanvasGroup), typeof(Button));
+        var sessionRect = (RectTransform)sessionCard.transform;
+        sessionRect.anchorMin = sessionRect.anchorMax = sessionRect.pivot = new Vector2(0.5f, 1);
+        sessionRect.sizeDelta = new Vector2(560, 150);
+        sessionRect.anchoredPosition = new Vector2(0, -190); // below the toast, so a level-up shows too
+        Style(sessionCard.GetComponent<Image>(), PanelColor);
+        sessionCard.GetComponent<Button>().onClick.AddListener(() => summary.blocksRaycasts = false); // ends PlaySummary's loop
+        summary = sessionCard.GetComponent<CanvasGroup>();
         summary.alpha = 0;
         summary.blocksRaycasts = false;
-        summaryText = MakeText("Text", card.transform, "", BodySize, TextColor, TextAlignmentOptions.Center);
+        summaryText = MakeText("Text", sessionCard.transform, "", BodySize, TextColor, TextAlignmentOptions.Center);
         summaryText.enableAutoSizing = false;
         summaryText.textWrappingMode = TextWrappingModes.Normal;
         summaryText.lineSpacing = 8;

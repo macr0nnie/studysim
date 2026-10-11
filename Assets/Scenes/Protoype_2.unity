@@ -336,6 +336,7 @@ MonoBehaviour:
   breakDuration: 300
   baseMoneyReward: 100
   baseExperienceReward: 100
+  focusBonus: 0.2
   OnStudySessionComplete:
     m_PersistentCalls:
       m_Calls:
@@ -1162,7 +1163,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 771262165}
-  - component: {fileID: 771262164}
   m_Layer: 0
   m_Name: Settings/MainMenuComponent
   m_TagString: Untagged
@@ -1170,18 +1170,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &771262164
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 771262163}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5f72f2d7f0a71b94fbb72c0b8b75acbb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!4 &771262165
 Transform:
   m_ObjectHideFlags: 0
@@ -4670,7 +4658,6 @@ MonoBehaviour:
   shelfLayer:
     serializedVersion: 2
     m_Bits: 512
-  snapThreshold: 0.5
   gridSize: 0.5
   useGridPlacement: 1
   validPlacementMaterial: {fileID: 2100000, guid: f3bcf5d20c842d145a3a746f211a36d8, type: 2}

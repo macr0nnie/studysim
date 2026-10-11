@@ -147,6 +147,7 @@ public static class UIKit
     private static Sprite rounded, circle;
     private static TMP_FontAsset bodyFont, displayFont;
     private static GameObject openDrawer;
+    public static bool DrawerOpen => openDrawer != null && openDrawer.activeInHierarchy;
 
     // 9-sliced rounded rectangle drawn once, so panels get soft corners without an art asset.
     private static Sprite triangle;

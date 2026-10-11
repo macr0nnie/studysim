@@ -20,6 +20,19 @@ MonoBehaviour:
   - counter
   - shelf
   - table
-  price: 40
+  price: 45
   prefab: {fileID: 8519549509493469024, guid: 9618ac3b7cbf631459ae6e8e4b1539c7, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

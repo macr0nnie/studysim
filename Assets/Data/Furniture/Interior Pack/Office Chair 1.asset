@@ -18,6 +18,19 @@ MonoBehaviour:
   tags:
   - office
   - chair
-  price: 40
+  price: 45
   prefab: {fileID: 7050859023964544430, guid: c31d666ef7c22d3488bb58f303e37eed, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

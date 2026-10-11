@@ -19,6 +19,19 @@ MonoBehaviour:
   - sink
   - shelf
   - table
-  price: 40
+  price: 35
   prefab: {fileID: 3117143589853887644, guid: 246033705ea83904da3ad9af1045c122, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

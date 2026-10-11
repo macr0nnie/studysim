@@ -20,6 +20,19 @@ MonoBehaviour:
   - vanity
   - shelf
   - table
-  price: 40
+  price: 45
   prefab: {fileID: 8243811998498907338, guid: 2b3ed8c41be08274bb3a73319ee9281d, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

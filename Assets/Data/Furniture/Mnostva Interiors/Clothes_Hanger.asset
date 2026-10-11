@@ -12,12 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Clothes_Hanger
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Clothes_Hanger
+  displayName: Clothes Hanger
   description: A clothes_hanger to add some personality to your space.
   category: 3
   tags:
   - clothes
   - hanger
-  price: 15
+  price: 5
   prefab: {fileID: 5246407817298231480, guid: 9d95c079dccd14942aceaac7175ed20b, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

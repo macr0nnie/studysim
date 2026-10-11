@@ -113,6 +113,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 635075435d8792e4bac9c69e2120bfde, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4297915035570042063}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 635075435d8792e4bac9c69e2120bfde, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7567877282020486145}
     - targetCorrespondingSourceObject: {fileID: -3559909895095799887, guid: 635075435d8792e4bac9c69e2120bfde, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7705897175901626231}
@@ -347,3 +350,16 @@ MonoBehaviour:
     value: {fileID: 7901072032473694345}
   - key: 1
     value: {fileID: 6739604637137016655}
+--- !u!114 &7567877282020486145
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5920910244212063300}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ee977423c936a1a40b8da5f33554af0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Furniture
+  Type: 1

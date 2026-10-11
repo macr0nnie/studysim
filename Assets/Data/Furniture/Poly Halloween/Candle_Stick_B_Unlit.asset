@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Candle_Stick_B_Unlit
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Candle_Stick_B_Unlit
+  displayName: Candle Stick B (unlit)
   description: A candle_stick_b_unlit to keep your study corner warm and bright.
   category: 4
   tags:
@@ -20,6 +20,19 @@ MonoBehaviour:
   - stick
   - unlit
   - halloween
-  price: 25
+  price: 10
   prefab: {fileID: 594396830807225269, guid: b45cd03fb31c8a54b9d9c3b5a2634d93, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

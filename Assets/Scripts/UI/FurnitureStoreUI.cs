@@ -31,6 +31,7 @@ public class FurnitureStoreUI : MonoBehaviour
     private Card selected;
     private readonly Queue<(Image image, FurnitureItem item)> pendingIcons = new Queue<(Image, FurnitureItem)>();
     private int shownCategory = -1;
+    private string search = "";
     private readonly List<(int category, Image image)> tabs = new List<(int, Image)>();
 
     // Tab labels, indexed by StoreCategory.
@@ -107,9 +108,14 @@ public class FurnitureStoreUI : MonoBehaviour
     {
         shownCategory = category;
         foreach (Card c in cards)
-            c.root.SetActive(category < 0 || (int)c.item.category == category);
+            c.root.SetActive((category < 0 || (int)c.item.category == category) && Matches(c.item));
         foreach (var (tabCategory, image) in tabs) image.color = tabCategory == category ? SelectedColor : TabColor;
     }
+
+    // Search box: name or tag contains the text.
+    private bool Matches(FurnitureItem item) => search.Length == 0
+        || item.displayName.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0
+        || Array.Exists(item.tags ?? new string[0], t => t.IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0);
 
     private int Coins => playerCurrency != null ? playerCurrency.GetCoins() : 0;
 
@@ -179,6 +185,10 @@ public class FurnitureStoreUI : MonoBehaviour
         foreach (StoreCategory c in Enum.GetValues(typeof(StoreCategory)))
             if (catalog.items.Exists(i => i != null && i.prefab != null && i.category == c))
                 AddTab(tabGrid.transform, CategoryNames[(int)c], (int)c);
+
+        TMP_InputField searchField = MakeInput(panel.transform, $"Search {catalog.items.Count} items");
+        searchField.GetComponent<LayoutElement>().preferredHeight = 36;
+        searchField.onValueChanged.AddListener(text => { search = text.Trim(); ShowCategory(shownCategory); });
 
         // Scrollable grid of cards.
         Transform content = ScrollList(panel.transform, out _);

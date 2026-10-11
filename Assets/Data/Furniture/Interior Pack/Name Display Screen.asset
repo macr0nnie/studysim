@@ -21,6 +21,19 @@ MonoBehaviour:
   - screen
   - office
   - items
-  price: 15
+  price: 40
   prefab: {fileID: 3381915399350897084, guid: 334d9e34817ad2d45b5523989bbdee61, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

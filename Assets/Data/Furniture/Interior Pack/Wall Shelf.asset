@@ -19,6 +19,19 @@ MonoBehaviour:
   - wall
   - shelf
   - table
-  price: 40
+  price: 20
   prefab: {fileID: 179735642078224081, guid: bf133f757d7f71747a0536879a1049ba, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using static UIKit;
 
 // New-game drawer: pick the starter desk, then the starter chair, from the store's desks and seating. Free, and
-// the room already has Desk 1 and Chair 1 in it, so closing early keeps those.
+// the room already has a study desk and desk chair in it, so closing early keeps those.
 public class StarterPicker : MonoBehaviour
 {
     private RoomManager room;
@@ -44,6 +44,12 @@ public class StarterPicker : MonoBehaviour
         Fill();
     }
 
+    // Another drawer (shop, paint...) opening over the picker: step aside, keeping what was picked.
+    private void Update()
+    {
+        if (DrawerOpen) Destroy(gameObject);
+    }
+
     private void Next()
     {
         if (choosingChair) { Destroy(gameObject); return; }
@@ -67,7 +73,13 @@ public class StarterPicker : MonoBehaviour
         GameObject root = Make(item.name, grid, typeof(Image), typeof(Button));
         Style(root.GetComponent<Image>(), CardColor);
         bool chair = choosingChair;
-        root.GetComponent<Button>().onClick.AddListener(() => room.SetStarter(item, !chair));
+        Image background = root.GetComponent<Image>();
+        root.GetComponent<Button>().onClick.AddListener(() =>
+        {
+            room.SetStarter(item, !chair);
+            foreach (Transform card in grid) card.GetComponent<Image>().color = CardColor; // show which one is picked
+            background.color = SelectedColor;
+        });
         var icon = Make("Icon", root.transform, typeof(Image)).GetComponent<Image>();
         icon.preserveAspect = true;
         icon.raycastTarget = false;

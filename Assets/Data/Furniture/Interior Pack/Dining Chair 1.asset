@@ -18,6 +18,19 @@ MonoBehaviour:
   tags:
   - dining
   - chair
-  price: 40
+  price: 30
   prefab: {fileID: 8005791189375050424, guid: e543b6396c054d347923a50485814e9a, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Candle_Skull_Unlit
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Candle_Skull_Unlit
+  displayName: Candle Skull (unlit)
   description: A candle_skull_unlit to keep your study corner warm and bright.
   category: 4
   tags:
@@ -20,6 +20,19 @@ MonoBehaviour:
   - skull
   - unlit
   - halloween
-  price: 25
+  price: 10
   prefab: {fileID: 5250659286268021285, guid: 5cd97b84979069440ad59df73c135724, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

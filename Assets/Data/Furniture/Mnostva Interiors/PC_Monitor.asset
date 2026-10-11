@@ -12,12 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: PC_Monitor
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: PC_Monitor
+  displayName: PC Monitor
   description: A pc_monitor to add some personality to your space.
   category: 10
   tags:
   - pc
   - monitor
-  price: 15
+  price: 40
   prefab: {fileID: 3734611379897310439, guid: d9c9480afa265d94896e13edc024af89, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

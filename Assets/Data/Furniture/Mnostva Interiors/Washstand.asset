@@ -17,6 +17,19 @@ MonoBehaviour:
   category: 11
   tags:
   - washstand
-  price: 15
+  price: 40
   prefab: {fileID: 2185891953866781079, guid: 2f5c771d3fe5d0a429eb9d6aeaf7f3d7, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

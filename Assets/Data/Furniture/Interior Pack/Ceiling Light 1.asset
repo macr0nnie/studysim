@@ -19,7 +19,19 @@ MonoBehaviour:
   - ceiling
   - light
   - source
-  price: 25
+  price: 30
   prefab: {fileID: 2588291847208277666, guid: 6e04acdfc8276d645b3e7e14136bc103, type: 3}
   icon: {fileID: 0}
   colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

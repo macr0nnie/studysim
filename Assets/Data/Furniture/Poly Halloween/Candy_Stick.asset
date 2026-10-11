@@ -12,13 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Candy_Stick
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Candy_Stick
+  displayName: Candy Stick
   description: A candy_stick to add some personality to your space.
   category: 12
   tags:
   - candy
   - stick
   - halloween
-  price: 15
+  price: 5
   prefab: {fileID: 6471249933983205053, guid: 7af4f0a4609974949a9a0ee588dd2f57, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

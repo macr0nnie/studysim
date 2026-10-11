@@ -1,6 +1,6 @@
-# Study Sim Focus (browser extension)
+# lofilife Focus (browser extension)
 
-This is a Chrome extension that connects your browser to Study Sim while the game is running. It works in Chrome, Edge, Brave and other Chromium browsers.
+A Chrome extension that connects your browser to the lofilife desktop game while it runs. It works in Chrome, Edge, Brave and other Chromium browsers (version 120 or newer). The web and iOS versions of the game don't talk to it.
 
 - **Popup:** shows the game's timer. You can start, pause and reset it, and set the study length (5 to 120 minutes, while the timer is stopped).
 - **Badge:** the toolbar icon shows the minutes left: terracotta while studying, green on a break, grey when paused, blank when the game isn't running.
@@ -8,11 +8,18 @@ This is a Chrome extension that connects your browser to Study Sim while the gam
 - **Blocking:** the extension can also block distracting sites. It does this during strict focus sessions by default, during every study session if you choose, or never.
 - **Study sites** (Google Docs, Notion, Wikipedia and so on): these earn focus XP, at most 1 XP a minute.
 
-## Install
+## Install for development
 1. Open `chrome://extensions` (or `edge://extensions`).
 2. Turn on **Developer mode**.
 3. Click **Load unpacked** and pick this `BrowserExtension` folder.
-4. Start the game. The popup's dot turns green when it connects.
+4. Start the game. The popup says "Connected" when it finds it.
+
+## Publish an update to the Chrome Web Store
+1. Raise `version` in `manifest.json` (the store rejects a version it has already seen).
+2. Zip the **contents** of this folder, so `manifest.json` is at the top of the zip. `store/` and this README can be left out.
+3. In the Chrome Web Store developer dashboard, open the item, go to **Package**, upload the zip, and submit for review.
+
+The listing text, permission justifications and images are in [`store/`](store/).
 
 ## How it talks to the game
 The extension uses plain HTTP on `http://localhost:8080/`, which `ChromeWebEx.cs` serves while the game runs.
@@ -27,3 +34,5 @@ The extension uses plain HTTP on `http://localhost:8080/`, which `ChromeWebEx.cs
   - `ping`
 
 The game can't see your browser on its own, so detecting and blocking sites only works with this extension installed.
+
+The Jersey 15 font in `fonts/` is under the SIL Open Font License (`fonts/OFL.txt`).

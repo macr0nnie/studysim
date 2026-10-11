@@ -1042,7 +1042,8 @@ public class RoomManager : MonoBehaviour
     private void ApplyPieceColor(GameObject piece, Color? color)
     {
         Renderer[] renderers = piece.GetComponentsInChildren<Renderer>();
-        Tint(renderers, color);
+        Tint(renderers, null); // back to the originals, then paint only the main part (or tint all if that can't tell)
+        if (color.HasValue && !PieceRecolor.Apply(renderers, color.Value)) Tint(renderers, color);
         if (color.HasValue) pieceColors[piece] = color.Value;
         else pieceColors.Remove(piece);
         foreach (Renderer r in renderers) r.SetPropertyBlock(null); // drop the selection glow so the new colour shows

@@ -5,6 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using static UIKit;
 
 // Mini mode: shrinks the game to a small game-overlay window: borderless, always on top, see-through, no taskbar
@@ -31,8 +32,20 @@ public class MiniMode : MonoBehaviour
     private readonly List<Canvas> hidden = new List<Canvas>();
     private RoomManager room;
     private TimerManager timer;
-    private TMP_Text timerText; // the one UI kept while mini: the focus countdown
+    private TMP_Text timerText, nudgeText; // the UI kept while mini: the countdown, a progress ring and a nudge line
+    private Image ring;
+    private Sprite ringSprite;
+    private bool wasDistracted;
+    private float shakeUntil;
+    static readonly Color FocusRing = new Color(1f, 0.78f, 0.4f, 0.9f), BreakRing = new Color(0.55f, 0.85f, 0.65f, 0.9f), NudgeRing = new Color(1f, 0.35f, 0.3f, 1f);
     private float lastClick = -1, blockUntil;
+    // Mini mode frames the character close up instead of the whole room, which is too small to read at 360x300.
+    private CharacterBehaviour character;
+    private IsometricCameraController cameraController;
+    private Vector3 cameraPosition;
+    private float cameraSize;
+    private UnityEngine.UI.CanvasScaler bubbleScaler;
+    private UnityEngine.UI.CanvasScaler.ScaleMode bubbleMode;
     private int shownTimer = -1;
     // Full-mode settings, restored on the way back.
     private int frameRate, vSync;
@@ -62,6 +75,7 @@ public class MiniMode : MonoBehaviour
         // Leaving mini mode re-enables the key action, which can report the same key press once more.
         if (!Active && Time.unscaledTime > blockUntil && Controls.Pressed(Controls.Act.MiniMode) && !Typing()) Toggle();
         else if (Active) Overlay();
+        if (Active) { Progress(); FollowCharacter(false); }
         if (timerText != null && timer != null)
         {
             int s = Mathf.Max(0, Mathf.CeilToInt(timer.CurrentTime));
@@ -70,6 +84,77 @@ public class MiniMode : MonoBehaviour
             shownTimer = key;
             timerText.text = $"{s / 60:00}:{s % 60:00}  <size=60%>{(timer.IsStudySession ? "Focus" : "Break")}</size>";
         }
+    }
+
+    // The ring fills as the session runs (warm while focusing, green on a break). A distracting site during a study
+    // session turns it red, shakes it (and the window, in a build) once, and shows a line naming the site.
+    private void Progress()
+    {
+        if (ring == null || timer == null) return;
+        float total = (timer.IsStudySession ? timer.StudyMinutes : timer.BreakMinutes) * 60f;
+        ring.fillAmount = total > 0f ? Mathf.Clamp01(1f - timer.CurrentTime / total) : 0f;
+        bool distracted = timer.IsStudySession && timer.IsTimerRunning && Distraction.Reported;
+        if (distracted && !wasDistracted) shakeUntil = Time.unscaledTime + 0.8f;
+        wasDistracted = distracted;
+        ring.color = distracted ? NudgeRing : timer.IsStudySession ? FocusRing : BreakRing;
+        nudgeText.text = distracted ? (Distraction.Site.Length > 0 ? $"{Distraction.Site}? Back to it!" : "Back to it!") : "";
+        float shake = Time.unscaledTime < shakeUntil ? Mathf.Sin(Time.unscaledTime * 30f) * 6f : 0f;
+        ((RectTransform)ring.transform).anchoredPosition = new Vector2(shake, 0f);
+    }
+
+    // Keeps the camera on the character (it walks about on breaks), centred in the ring. The isometric camera's own
+    // script is paused meanwhile, since it resets the zoom every frame; the view is put back on the way out.
+    private void FollowCharacter(bool start)
+    {
+        Camera cam = Camera.main;
+        if (cam == null) return;
+        if (start)
+        {
+            character = FindAnyObjectByType<CharacterBehaviour>();
+            if (character == null) return;
+            cameraPosition = cam.transform.position;
+            cameraSize = cam.orthographicSize;
+            if (cam.TryGetComponent(out cameraController)) cameraController.enabled = false;
+        }
+        if (character == null) return;
+        Bounds b = default; bool found = false;
+        foreach (Renderer r in character.GetComponentsInChildren<Renderer>())
+            if (r.enabled && !(r is SpriteRenderer)) { if (!found) { b = r.bounds; found = true; } else b.Encapsulate(r.bounds); }
+        if (!found) return;
+        float size = Mathf.Clamp(b.size.y * 1.6f, 0.5f, cameraSize);
+        // Slide the camera across its own view plane (keeping its distance) so the character sits at the ring's centre.
+        Vector3 offset = b.center - cam.transform.position;
+        Vector3 aim = cam.transform.position + offset - cam.transform.forward * Vector3.Dot(offset, cam.transform.forward) + cam.transform.up * (size * 0.16f);
+        float k = start ? 1f : Mathf.Clamp01(Time.unscaledDeltaTime * 3f);
+        cam.transform.position = Vector3.Lerp(cam.transform.position, aim, k);
+        cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, size, k);
+    }
+
+    private void RestoreCamera()
+    {
+        Camera cam = Camera.main;
+        if (character != null && cam != null) { cam.transform.position = cameraPosition; cam.orthographicSize = cameraSize; }
+        if (cameraController != null) cameraController.enabled = true;
+        character = null; cameraController = null;
+    }
+
+    // A thin annulus, made once: the radial fill of an Image turns it into a progress ring.
+    private Sprite RingSprite()
+    {
+        if (ringSprite != null) return ringSprite;
+        const int size = 256;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        var pixels = new Color32[size * size];
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float d = new Vector2(x - size / 2f + 0.5f, y - size / 2f + 0.5f).magnitude;
+                float a = Mathf.Clamp01(size / 2f - 1f - d) * Mathf.Clamp01(d - (size / 2f - 12f)); // 11 px wide, soft edges
+                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255));
+            }
+        tex.SetPixels32(pixels);
+        tex.Apply();
+        return ringSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
     }
 
     // Wants to leave mini mode: the (editor-only) key, or a double-click / right-click while unlocked.
@@ -105,14 +190,29 @@ public class MiniMode : MonoBehaviour
         {
             hidden.Clear();
             foreach (Canvas c in FindObjectsByType<Canvas>())
-                if (c.isRootCanvas && c.enabled) { Show(c, false); hidden.Add(c); }
+            {
+                if (!c.isRootCanvas || !c.enabled) continue;
+                // The character's mood icon and speech bubble stay (the worried face on a distraction), at a size that fits.
+                if (c.name == "CharacterBubble" && c.TryGetComponent(out bubbleScaler))
+                {
+                    bubbleMode = bubbleScaler.uiScaleMode;
+                    bubbleScaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ConstantPixelSize;
+                    bubbleScaler.scaleFactor = 0.6f;
+                    continue;
+                }
+                Show(c, false); hidden.Add(c);
+            }
             ShowTimer();
+            FollowCharacter(true);
         }
         else
         {
-            if (timerText != null) Destroy(timerText.canvas.gameObject);
+            if (timerText != null) Destroy(timerText.canvas.gameObject); // takes the ring and nudge line with it
             foreach (Canvas c in hidden) if (c != null) Show(c, true);
             hidden.Clear();
+            if (bubbleScaler != null) bubbleScaler.uiScaleMode = bubbleMode;
+            bubbleScaler = null;
+            RestoreCamera();
         }
         Economy(Active);
         blockUntil = Time.unscaledTime + 0.5f;
@@ -135,6 +235,30 @@ public class MiniMode : MonoBehaviour
         timerText.outlineWidth = 0.25f; // readable over any background behind the see-through window
         timerText.outlineColor = Color.black;
         timerText.raycastTarget = false;
+
+        // Faint full track, then the ring that fills over it, around the room.
+        for (int i = 0; i < 2; i++)
+        {
+            GameObject go = Make(i == 0 ? "MiniRingTrack" : "MiniRing", canvas.transform, typeof(Image));
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.42f);
+            rect.sizeDelta = new Vector2(230, 230);
+            var image = go.GetComponent<Image>();
+            image.sprite = RingSprite();
+            image.raycastTarget = false;
+            if (i == 0) { image.color = new Color(1f, 1f, 1f, 0.18f); continue; }
+            image.type = Image.Type.Filled;
+            image.fillMethod = Image.FillMethod.Radial360;
+            image.fillOrigin = (int)Image.Origin360.Top;
+            image.fillClockwise = true;
+            ring = image;
+        }
+        nudgeText = MakeText("MiniNudge", canvas.transform, "", 20, NudgeRing, TextAlignmentOptions.Bottom, true);
+        Anchor(nudgeText.gameObject, new Vector2(0, 0), new Vector2(1, 0.15f));
+        nudgeText.outlineWidth = 0.25f;
+        nudgeText.outlineColor = Color.black;
+        nudgeText.raycastTarget = false;
+        wasDistracted = false;
     }
 
     private static void Show(Canvas c, bool on)
@@ -167,7 +291,8 @@ public class MiniMode : MonoBehaviour
     private CameraClearFlags clearFlags;
     private Color background;
     private bool hdr, post;
-    private bool placed, dragging, unlocked, f9, f10, left, right;
+    private bool placed, dragging, unlocked, f9, f10, left, right, shaking;
+    private RECT shakeBase;
     private float lastTop;
     private POINT grabOffset;
 
@@ -185,6 +310,17 @@ public class MiniMode : MonoBehaviour
         if (pressF10) SetUnlocked(!unlocked);
         // Other topmost windows can push it down, so it's raised again now and then.
         if (Time.unscaledTime - lastTop > 2f) { lastTop = Time.unscaledTime; SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE); }
+        // The distraction nudge: a short side-to-side wiggle of the whole window, then back where it was.
+        if (Time.unscaledTime < shakeUntil && !dragging)
+        {
+            if (!shaking && GetWindowRect(hwnd, out shakeBase)) shaking = true;
+            if (shaking) SetWindowPos(hwnd, HWND_TOPMOST, shakeBase.left + Mathf.RoundToInt(Mathf.Sin(Time.unscaledTime * 30f) * 8f), shakeBase.top, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
+        }
+        else if (shaking)
+        {
+            shaking = false;
+            SetWindowPos(hwnd, HWND_TOPMOST, shakeBase.left, shakeBase.top, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
+        }
         if (!unlocked) return;
 
         if (LeaveClick(pressLeft && Inside(), pressRight && Inside())) { Toggle(); return; }

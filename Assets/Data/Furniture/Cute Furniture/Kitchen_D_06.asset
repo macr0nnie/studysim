@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Kitchen_D_06
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Skirted Side Table
+  description: A little side table with a frilly cloth.
+  category: 1
+  tags:
+  - table
+  - side
+  - cute
+  price: 30
+  prefab: {fileID: 2521167287353400167, guid: a7817c42be824e54495ac8d67d022a01, type: 3}
+  icon: {fileID: 21300000, guid: a7092bc7ebb760f43bf015996735ab0b, type: 3}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

@@ -366,8 +366,8 @@ public class SettingsUI : MonoBehaviour
         });
 
         Heading(page, "Mini mode");
-        Note(page, "Just the room, like a game overlay: top right, on top of other windows and click-through. "
-            + "F10 unlocks it to drag, F9 comes back.");
+        Note(page, "Your character, timer and a progress ring, like a game overlay: top right, on top of other windows and click-through. "
+            + "Ctrl + drag moves it, F9 comes back.");
         GameObject mini = Row("Mini mode", page, 40, 10, false);
         SmallButton(mini.transform, "Go mini", AccentButtonColor, 140).onClick.AddListener(() => { Toggle(); MiniMode.Set(true); });
         Button key = SmallButton(mini.transform, "", CardColor, 190);

@@ -1,14 +1,20 @@
-:root { --bg: #2a2236; --card: #3a3049; --text: #f5eee0; --muted: #b9adc8; --accent: #ffd166; --ok: #8cd9a6; --bad: #d96b7a; }
+/* Warm cozy palette, matching the game's UIKit colours (cream panels, brown text, terracotta accents). */
+:root { --bg: #faf2e6; --card: #f0e3d1; --text: #3d2e24; --muted: #786657; --accent: #b87319; --button: #ebdecc; --terracotta: #e8ad8c; --ok: #5c8f52; --bad: #c24d47; }
 body { width: 300px; margin: 0; padding: 14px; background: var(--bg); color: var(--text); font: 13px/1.4 system-ui, sans-serif; }
 header { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
 .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); flex: none; }
 .muted { color: var(--muted); font-size: 12px; }
-section { background: var(--card); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
-.clock { font-size: 32px; font-weight: 700; color: var(--accent); text-align: center; }
+section { background: var(--card); border-radius: 12px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(61, 46, 36, 0.15); }
+.clock { font-size: 34px; font-weight: 700; color: var(--accent); text-align: center; font-variant-numeric: tabular-nums; }
 #mode { text-align: center; margin-bottom: 8px; }
 .buttons { display: flex; gap: 6px; }
-button { flex: 1; border: 0; border-radius: 8px; padding: 7px; background: #574a6b; color: var(--text); cursor: pointer; font: inherit; }
-button:hover { filter: brightness(1.15); }
-button.wide { width: 100%; margin-top: 8px; background: #7a5aa6; }
+.buttons.set { margin-top: 8px; }
+.hint { margin-top: 4px; text-align: center; }
+button { flex: 1; border: 0; border-radius: 8px; padding: 7px; background: var(--button); color: var(--text); cursor: pointer; font: inherit; }
+button:hover { filter: brightness(0.95); }
+button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#start, button.wide { background: var(--terracotta); font-weight: 600; }
+button.wide { width: 100%; margin-top: 8px; }
 label { display: block; margin: 8px 0 4px; color: var(--muted); font-size: 12px; }
-select, textarea { width: 100%; box-sizing: border-box; background: var(--bg); color: var(--text); border: 1px solid #574a6b; border-radius: 6px; padding: 6px; font: inherit; }
+select, textarea, input { width: 100%; box-sizing: border-box; background: var(--bg); color: var(--text); border: 1px solid #d9c6ae; border-radius: 6px; padding: 6px; font: inherit; }
+.buttons.set input { width: 70px; flex: none; }

@@ -2,6 +2,7 @@ const $ = id => document.getElementById(id);
 
 async function refresh() {
   const status = await gameStatus();
+  showBadge(status);
   $("dot").style.background = status ? "var(--ok)" : "var(--bad)";
   if (!status) {
     $("status").textContent = "The game isn't running, or it isn't listening on localhost:8080.";
@@ -17,6 +18,12 @@ async function refresh() {
 
 for (const action of ["start", "pause", "reset"])
   $(action).addEventListener("click", async () => { try { await send(action); } catch {} refresh(); });
+
+$("set").addEventListener("click", async () => {
+  const minutes = Number($("minutes").value);
+  if (minutes >= 5 && minutes <= 120) { try { await send("set", { minutes }); } catch {} }
+  refresh();
+});
 
 const lines = text => text.split("\n").map(l => l.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "")).filter(Boolean);
 

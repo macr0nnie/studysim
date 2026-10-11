@@ -2,7 +2,8 @@
 
 This is a Chrome extension that connects your browser to Study Sim while the game is running. It works in Chrome, Edge, Brave and other Chromium browsers.
 
-- **Popup:** shows the game's timer. You can start, pause and reset it from there.
+- **Popup:** shows the game's timer. You can start, pause and reset it, and set the study length (5 to 120 minutes, while the timer is stopped).
+- **Badge:** the toolbar icon shows the minutes left: terracotta while studying, green on a break, grey when paused, blank when the game isn't running.
 - **Distracting sites** (YouTube, TikTok, Reddit and so on, editable in the popup): during a study session, being on one makes the room in the game fall apart and drains coins until you leave.
 - **Blocking:** the extension can also block distracting sites. It does this during strict focus sessions by default, during every study session if you choose, or never.
 - **Study sites** (Google Docs, Notion, Wikipedia and so on): these earn focus XP, at most 1 XP a minute.

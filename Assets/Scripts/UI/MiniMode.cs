@@ -10,7 +10,7 @@ using static UIKit;
 
 // Mini mode: shrinks the game to a small game-overlay window: borderless, always on top, see-through, no taskbar
 // entry, never takes focus, and click-through so it doesn't get in the way of what's underneath. It only displays
-// the room (no HUD, no room interaction). F10 unlocks it for dragging (a frame shows) and locks it again; the
+// the room (no HUD, no room interaction). Ctrl + drag moves it any time; F10 unlocks it (a frame shows) and locks it again; the
 // position is remembered. F9 leaves mini mode. In a Windows build both keys are read globally (even while another
 // app has focus), so they're fixed to F9 and F10 there. While unlocked, a double-click or right-click also leaves.
 // The timer, character and browser extension keep running underneath.
@@ -291,7 +291,7 @@ public class MiniMode : MonoBehaviour
     private CameraClearFlags clearFlags;
     private Color background;
     private bool hdr, post;
-    private bool placed, dragging, unlocked, f9, f10, left, right, shaking;
+    private bool placed, dragging, grabbing, unlocked, f9, f10, left, right, shaking;
     private RECT shakeBase;
     private float lastTop;
     private POINT grabOffset;
@@ -321,7 +321,15 @@ public class MiniMode : MonoBehaviour
             shaking = false;
             SetWindowPos(hwnd, HWND_TOPMOST, shakeBase.left, shakeBase.top, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
         }
-        if (!unlocked) return;
+        if (!unlocked)
+        {
+            // Holding Ctrl over the window grabs it for a drag without F10: it takes clicks only while Ctrl is held
+            // (or the drag lasts), so the app underneath doesn't get them. Ctrl, not Alt: a lone Alt opens menus.
+            bool grab = dragging || (Down(VK_CONTROL) && Inside());
+            if (grab != grabbing) { grabbing = grab; ClickThrough(!grab); }
+            if (grabbing) Drag(pressLeft, nowLeft);
+            return;
+        }
 
         if (LeaveClick(pressLeft && Inside(), pressRight && Inside())) { Toggle(); return; }
         Drag(pressLeft, nowLeft);
@@ -333,9 +341,14 @@ public class MiniMode : MonoBehaviour
     private void SetUnlocked(bool on)
     {
         unlocked = on;
+        ClickThrough(!on);
+        dragging = grabbing = false;
+    }
+
+    private void ClickThrough(bool on)
+    {
         int ex = GetWindowLong(hwnd, GWL_EXSTYLE);
-        SetWindowLong(hwnd, GWL_EXSTYLE, on ? ex & ~WS_EX_TRANSPARENT : ex | WS_EX_TRANSPARENT);
-        dragging = false;
+        SetWindowLong(hwnd, GWL_EXSTYLE, on ? ex | WS_EX_TRANSPARENT : ex & ~WS_EX_TRANSPARENT);
     }
 
     // A thin frame while unlocked so it's clear the window can be moved.
@@ -392,7 +405,7 @@ public class MiniMode : MonoBehaviour
         }
         SetWindowPos(hwnd, HWND_TOPMOST, x, y, Width, Height, SWP_FRAMECHANGED | SWP_NOACTIVATE);
         ShowWindow(hwnd, SW_SHOWNA);
-        unlocked = false;
+        unlocked = grabbing = false;
         f9 = Down(VK_F9); f10 = Down(VK_F10); left = Down(VK_LBUTTON); right = Down(VK_RBUTTON); // a key held from before isn't a new press
         placed = true;
     }
@@ -400,7 +413,7 @@ public class MiniMode : MonoBehaviour
     private void ExitWindow()
     {
         SavePosition();
-        placed = dragging = unlocked = false;
+        placed = dragging = grabbing = unlocked = false;
         var margins = new MARGINS();
         DwmExtendFrameIntoClientArea(hwnd, ref margins);
         ShowWindow(hwnd, SW_HIDE);
@@ -441,7 +454,7 @@ public class MiniMode : MonoBehaviour
 
     const int GWL_STYLE = -16, GWL_EXSTYLE = -20;
     const int WS_EX_LAYERED = 0x80000, WS_EX_TRANSPARENT = 0x20, WS_EX_TOOLWINDOW = 0x80, WS_EX_NOACTIVATE = 0x08000000;
-    const int VK_LBUTTON = 0x01, VK_RBUTTON = 0x02, VK_F9 = 0x78, VK_F10 = 0x79, SW_HIDE = 0, SW_SHOW = 5, SW_SHOWNA = 8;
+    const int VK_LBUTTON = 0x01, VK_RBUTTON = 0x02, VK_F9 = 0x78, VK_F10 = 0x79, VK_CONTROL = 0x11, SW_HIDE = 0, SW_SHOW = 5, SW_SHOWNA = 8;
     const uint LWA_COLORKEY = 0x1, LWA_ALPHA = 0x2, KeyColorRef = 0x0000FF00; // COLORREF 0x00BBGGRR: pure green
     const int WS_POPUP = unchecked((int)0x80000000), WS_VISIBLE = 0x10000000;
     const uint SWP_NOSIZE = 0x1, SWP_NOMOVE = 0x2, SWP_NOACTIVATE = 0x10, SWP_FRAMECHANGED = 0x20;

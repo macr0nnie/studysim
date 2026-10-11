@@ -62,7 +62,7 @@ public class RoomAmbience : MonoBehaviour
     private float windowIntensity = 0.5f;
     private AudioSource rainSound;
     private ParticleSystem dust;
-    private Material shadowMaterial;
+    private Material shadowMaterial, groundMaterial;
     private RoomManager room;
     private readonly List<Light> lamps = new List<Light>();
     private readonly Dictionary<Light, Vector2> lampBase = new Dictionary<Light, Vector2>(); // authored (intensity, range)
@@ -137,6 +137,7 @@ public class RoomAmbience : MonoBehaviour
         if (snowTexture != null) Destroy(snowTexture);
         if (rainSound != null) Destroy(rainSound.clip);
         if (shadowMaterial != null) Destroy(shadowMaterial);
+        if (groundMaterial != null) Destroy(groundMaterial);
         if (dust != null) { Destroy(dust.GetComponent<ParticleSystemRenderer>().sharedMaterial.mainTexture); Destroy(dust.GetComponent<ParticleSystemRenderer>().sharedMaterial); }
         if (instance == this) instance = null;
     }
@@ -458,6 +459,7 @@ public class RoomAmbience : MonoBehaviour
             tint.a = Mathf.Lerp(0.25f, 0.55f, day); // a faint moonlit pool at night
             skyGlow.color = tint;
         }
+        if (groundMaterial != null) groundMaterial.SetColor("_BaseColor", new Color(bottom.r * 0.8f, bottom.g * 0.75f, bottom.b * 0.72f, 0.85f));
     }
 
     // Grey and a little darker, for a cloudy sky.
@@ -540,7 +542,7 @@ public class RoomAmbience : MonoBehaviour
         shadow.name = "RoomShadow";
         shadow.transform.SetParent(go.transform, false);
         shadow.transform.SetPositionAndRotation(new Vector3(floor.center.x, floor.min.y - size * 0.02f, floor.center.z), Quaternion.Euler(90, 0, 0));
-        shadow.transform.localScale = Vector3.one * size * 1.6f / go.transform.lossyScale.x;
+        shadow.transform.localScale = Vector3.one * size * 1.4f / go.transform.lossyScale.x;
         Mesh quad = shadow.GetComponent<MeshFilter>().mesh;
         var white = new Color[quad.vertexCount];
         for (int i = 0; i < white.Length; i++) white[i] = Color.white; // the particle shader multiplies by vertex colour
@@ -548,11 +550,21 @@ public class RoomAmbience : MonoBehaviour
         shadowMaterial = new Material(material);
         shadowMaterial.SetFloat("_Blend", 0);
         shadowMaterial.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
-        shadowMaterial.SetColor("_BaseColor", new Color(0.12f, 0.08f, 0.1f, 0.35f));
+        shadowMaterial.SetColor("_BaseColor", new Color(0.12f, 0.08f, 0.1f, 0.5f));
         shadowMaterial.renderQueue = (int)RenderQueue.Transparent - 10;
         var shadowRenderer = shadow.GetComponent<MeshRenderer>();
         shadowRenderer.sharedMaterial = shadowMaterial;
         shadowRenderer.shadowCastingMode = ShadowCastingMode.Off;
         shadowRenderer.receiveShadows = false;
+
+        // A wide soft patch of ground under the shadow, a shade darker than the sky's horizon (PaintSky keeps it in
+        // step), so the room stands on something instead of floating in the air.
+        GameObject ground = Instantiate(shadow, go.transform);
+        ground.name = "RoomGround";
+        ground.transform.SetPositionAndRotation(shadow.transform.position - Vector3.up * size * 0.01f, shadow.transform.rotation);
+        ground.transform.localScale = shadow.transform.localScale * 2.8f;
+        groundMaterial = new Material(shadowMaterial) { renderQueue = (int)RenderQueue.Transparent - 20 };
+        ground.GetComponent<MeshRenderer>().sharedMaterial = groundMaterial;
+        if (skyTexture != null) PaintSky();
     }
 }

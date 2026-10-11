@@ -56,7 +56,7 @@ public class MenuUI : MonoBehaviour
 
     private void BuildMain()
     {
-        Text("Title", "Study Sim", TitleSize * 2, AccentColor, 90, true);
+        Text("Title", "lofilife", TitleSize * 2, AccentColor, 90, true);
         Text("Tagline", "Study. Build your room. Stay focused.", BodySize, MutedText, 36, false);
         Gap(24);
         Button play = Big("Play", "Play", AccentButtonColor, 64);

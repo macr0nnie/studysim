@@ -1,28 +1,32 @@
 const $ = id => document.getElementById(id);
+let running = false;
 
 async function refresh() {
   const status = await gameStatus();
   showBadge(status);
-  $("dot").style.background = status ? "var(--ok)" : "var(--bad)";
-  if (!status) {
-    $("status").textContent = "The game isn't running, or it isn't listening on localhost:8080.";
-    $("timer").hidden = true;
-    return;
-  }
-  $("status").textContent = status.distracted ? "Connected. The game thinks you're distracted!" : "Connected to the game.";
-  $("timer").hidden = false;
+  $("pill").textContent = status ? "Connected" : "Offline";
+  $("pill").className = "pill " + (status ? "on" : "off");
+  $("timer").hidden = !status;
+  $("offline").hidden = !!status;
+  if (!status) return;
+  running = status.running;
   const s = Math.max(0, status.secondsLeft);
   $("clock").textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
-  $("mode").textContent = `${status.studying ? "Study" : "Break"} · ${status.mode}${status.strict ? " · strict" : ""}${status.running ? "" : " · paused"}`;
+  $("phase").textContent = !running ? "Paused" : status.studying ? "Study" : "Break";
+  $("phase").className = "phase" + (!running ? " paused" : status.studying ? "" : " break");
+  $("mode").textContent = status.mode + (status.strict ? " · strict focus" : "");
+  $("toggle").textContent = running ? "Pause" : "Start";
+  $("setForm").hidden = running; // the game only accepts a new length while the timer is stopped
+  $("distracted").hidden = !(status.distracted && running && status.studying);
 }
 
-for (const action of ["start", "pause", "reset"])
-  $(action).addEventListener("click", async () => { try { await send(action); } catch {} refresh(); });
-
-$("set").addEventListener("click", async () => {
+async function act(action, extra) { try { await send(action, extra); } catch {} refresh(); }
+$("toggle").addEventListener("click", () => act(running ? "pause" : "start"));
+$("reset").addEventListener("click", () => act("reset"));
+$("setForm").addEventListener("submit", e => {
+  e.preventDefault();
   const minutes = Number($("minutes").value);
-  if (minutes >= 5 && minutes <= 120) { try { await send("set", { minutes }); } catch {} }
-  refresh();
+  if (minutes >= 5 && minutes <= 120) act("set", { minutes });
 });
 
 const lines = text => text.split("\n").map(l => l.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "")).filter(Boolean);
@@ -30,6 +34,7 @@ const lines = text => text.split("\n").map(l => l.trim().toLowerCase().replace(/
 $("save").addEventListener("click", async () => {
   await chrome.storage.sync.set({ block: $("block").value, distracting: lines($("distracting").value), study: lines($("study").value) });
   $("saved").textContent = "Saved.";
+  setTimeout(() => $("saved").textContent = "", 2000);
 });
 
 loadSettings().then(s => {

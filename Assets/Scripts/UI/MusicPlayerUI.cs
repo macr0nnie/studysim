@@ -98,12 +98,13 @@ public class MusicPlayerUI : MonoBehaviour
             elapsed.text = total.text = "";
             shownTime = shownLength = -1;
         }
-        string key = SpotifyLink.Artist + "\n" + SpotifyLink.Title;
+        bool covers = GameSettings.OnlineCovers;
+        string key = covers + "\n" + SpotifyLink.Artist + "\n" + SpotifyLink.Title; // the setting is in the key so switching it re-applies
         if (key != spotifyArtKey)
         {
             spotifyArtKey = key;
             SetArt(null);
-            if (SpotifyLink.Title.Length > 0) StartCoroutine(FetchSpotifyArt(key));
+            if (covers && SpotifyLink.Title.Length > 0) StartCoroutine(FetchSpotifyArt(key));
         }
         bool playing = SpotifyLink.Playing;
         title.text = SpotifyLink.Title.Length > 0 ? SpotifyLink.Title : "Spotify is open";

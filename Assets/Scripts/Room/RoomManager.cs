@@ -1076,10 +1076,36 @@ public class RoomManager : MonoBehaviour
         {
             if (r == null || material == null) continue;
             if (!originalMaterials.ContainsKey(r)) originalMaterials[r] = r.sharedMaterials;
+            if (material.mainTexture != null) WorldUVs(r);
             var slots = new Material[r.sharedMaterials.Length];
             for (int i = 0; i < slots.Length; i++) slots[i] = material;
             r.sharedMaterials = slots;
         }
+    }
+
+    // The room's wall and floor meshes come with plain-colour materials, so their UVs can't be relied on (all at one
+    // point gives one flat colour). For a textured surface they get UVs projected from world space, one texture
+    // repeat per 4 m before the material's own tiling, so wallpaper and planks line up across every wall.
+    private readonly HashSet<MeshFilter> projected = new HashSet<MeshFilter>();
+    private void WorldUVs(Renderer r)
+    {
+        if (!r.TryGetComponent(out MeshFilter filter) || filter.sharedMesh == null || projected.Contains(filter)) return;
+        Mesh source = filter.sharedMesh;
+        if (!source.isReadable) { Debug.LogWarning($"RoomManager: {source.name} isn't readable, so its texture can't be lined up"); return; }
+        Mesh mesh = Instantiate(source);
+        Vector3[] vertices = mesh.vertices, normals = mesh.normals;
+        var uv = new Vector2[vertices.Length];
+        Matrix4x4 world = r.localToWorldMatrix;
+        for (int i = 0; i < vertices.Length; i++)
+        {
+            Vector3 p = world.MultiplyPoint3x4(vertices[i]) / 4f;
+            Vector3 n = normals.Length == vertices.Length ? world.MultiplyVector(normals[i]) : Vector3.up;
+            float ax = Mathf.Abs(n.x), ay = Mathf.Abs(n.y), az = Mathf.Abs(n.z);
+            uv[i] = ay >= ax && ay >= az ? new Vector2(p.x, p.z) : ax >= az ? new Vector2(p.z, p.y) : new Vector2(p.x, p.y);
+        }
+        mesh.uv = uv;
+        filter.sharedMesh = mesh;
+        projected.Add(filter);
     }
 
     // Attempts to enter edit mode based on a raycast hit from the mouse position.

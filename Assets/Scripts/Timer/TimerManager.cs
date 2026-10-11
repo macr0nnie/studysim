@@ -14,8 +14,10 @@ public class TimerManager : MonoBehaviour
     [SerializeField] private float breakDuration = 300f;  // 5 minutes in seconds
     
     [Header("Rewards")]
+    // For a 25-minute session; rewards scale with the session's length.
     [SerializeField] private int baseMoneyReward = 100;
     [SerializeField] private int baseExperienceReward = 50;
+    [SerializeField] private float focusBonus = 0.2f; // extra coins when no distracting site was reported
 
     public event Action<float> OnTimerTick;
     public event Action OnTimerComplete;
@@ -24,6 +26,7 @@ public class TimerManager : MonoBehaviour
     private float currentTime;
     private bool isTimerRunning;
     private bool isStudySession = true;
+    private bool distracted;
     
     public float CurrentTime => currentTime;
     public bool IsTimerRunning => isTimerRunning;
@@ -56,6 +59,7 @@ public class TimerManager : MonoBehaviour
         if (currentTime > 0)
         {
             currentTime -= Time.deltaTime;
+            if (isStudySession && Distraction.Reported) distracted = true;
             OnTimerTick?.Invoke(currentTime);
         }
         else
@@ -76,6 +80,7 @@ public class TimerManager : MonoBehaviour
     public void ResetTimer()
     {
         currentTime = isStudySession ? studyDuration : breakDuration;
+        if (isStudySession) distracted = false;
         isTimerRunning = false;
         OnTimerTick?.Invoke(currentTime);
     }
@@ -94,8 +99,11 @@ public class TimerManager : MonoBehaviour
         OnTimerComplete?.Invoke();
     }
 
-    public int MoneyReward => baseMoneyReward;
-    public int ExperienceReward => baseExperienceReward;
+    // What the last finished session paid, for the session card.
+    public int MoneyReward { get; private set; }
+    public int ExperienceReward { get; private set; }
+    public bool FocusBonus { get; private set; }
+    public int LastSessionMinutes { get; private set; }
     public float StudyMinutes => studyDuration / 60f;
     public float BreakMinutes => breakDuration / 60f;
 
@@ -107,9 +115,16 @@ public class TimerManager : MonoBehaviour
 
     public void GrantRewards()
     {
-        if (playerCurrency != null) playerCurrency.AddCoins(baseMoneyReward);
+        // A flat reward made five-minute sessions the best way to farm coins.
+        LastSessionMinutes = Mathf.RoundToInt(studyDuration / 60f);
+        float scale = studyDuration / 1500f;
+        FocusBonus = !distracted;
+        MoneyReward = Mathf.RoundToInt(baseMoneyReward * scale * (FocusBonus ? 1f + focusBonus : 1f));
+        ExperienceReward = Mathf.RoundToInt(baseExperienceReward * scale);
+        StudyLog.Record(LastSessionMinutes);
+        if (playerCurrency != null) playerCurrency.AddCoins(MoneyReward);
         Experience experience = FindAnyObjectByType<Experience>();
-        if (experience != null) experience.GainExperience(baseExperienceReward);
+        if (experience != null) experience.GainExperience(ExperienceReward);
     }
     public void SetCustomDuration(float minutes)
     {

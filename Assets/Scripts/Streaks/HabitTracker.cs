@@ -26,6 +26,23 @@ public class StudyHabit
     public Color Tint => ColorUtility.TryParseHtmlString("#" + color, out Color c) ? c : Color.gray;
 
     public bool DoneOn(DateTime day) => completionDays.Contains(day.ToString(Day, CultureInfo.InvariantCulture));
+
+    // Run of done days ending today (or yesterday while today is still open). One missed day is forgiven,
+    // two in a row break it ("never miss twice"), so one bad day doesn't wipe out weeks of work.
+    public static int Streak(Func<DateTime, bool> doneOn, DateTime today)
+    {
+        DateTime day = doneOn(today) ? today : today.AddDays(-1);
+        int streak = 0;
+        bool forgiven = false;
+        while (true)
+        {
+            if (doneOn(day)) { streak++; forgiven = false; }
+            else if (!forgiven && doneOn(day.AddDays(-1))) forgiven = true;
+            else break;
+            day = day.AddDays(-1);
+        }
+        return streak;
+    }
 }
 
 public class HabitTracker : MonoBehaviour
@@ -108,17 +125,14 @@ public class HabitTracker : MonoBehaviour
     private static void UpdateStreak(StudyHabit habit)
     {
         habit.completionDays.Sort(); // ISO dates sort by text
-        DateTime day = DateTime.Now.Date;
-        if (!habit.DoneOn(day)) day = day.AddDays(-1); // not ticked yet today: still alive from yesterday
-        int streak = 0;
-        while (habit.DoneOn(day)) { streak++; day = day.AddDays(-1); }
-        habit.currentStreak = streak;
+        habit.currentStreak = StudyHabit.Streak(habit.DoneOn, DateTime.Now.Date);
 
         int run = 0, best = 0;
         List<DateTime> dates = habit.completionDates;
         for (int i = 0; i < dates.Count; i++)
         {
-            run = i > 0 && (dates[i] - dates[i - 1]).Days == 1 ? run + 1 : i > 0 && dates[i] == dates[i - 1] ? run : 1;
+            int gap = i > 0 ? (dates[i] - dates[i - 1]).Days : -1;
+            run = gap == 1 || gap == 2 ? run + 1 : gap == 0 ? run : 1; // one missed day between ticks keeps the run
             best = Math.Max(best, run);
         }
         habit.bestStreak = Math.Max(habit.bestStreak, best);

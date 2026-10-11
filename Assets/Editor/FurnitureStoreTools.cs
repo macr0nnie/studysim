@@ -45,7 +45,9 @@ public static class FurnitureStoreTools
     // Pack prefabs under these paths are demo scenes, characters, terrain or effects, not furniture.
     // Doors, lids and Cute Furniture's lone frame are parts of other pieces.
     static readonly string[] SkipFolders = { "/demo", "/scene", "/render_pipeline", "/character", "/fx", "/particle", "/vfx", "/effect",
-        "/terrain", "first person", "_door", "_cover", "/frame/" };
+        "/terrain", "first person", "_door", "_cover", "/frame/",
+        // ronnie (2026-10-11): too big for a bedroom; the small spooky decor stays.
+        "ghost_halloween", "wall_graveyard", "gate_graveyard", "lantern_street" };
 
     // ithappy's Cute Furniture ships an icon per piece and names like "Kitchen_D_08", so its store details are
     // written out here instead of guessed. (asset name, display name, category, price, tags, description)

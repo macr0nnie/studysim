@@ -20,7 +20,7 @@ public static class ShipSetupTools
             new EditorBuildSettingsScene(Scenes + "SaveSelect.unity", true),
             new EditorBuildSettingsScene(Scenes + "Protoype_2.unity", true),
         };
-        PlayerSettings.productName = "Study Sim";
+        PlayerSettings.productName = "lofilife";
         PlayerSettings.bundleVersion = "0.1.0";
         PlayerSettings.runInBackground = true; // the study timer and the browser extension must keep running when the window loses focus
         AssetDatabase.SaveAssets();

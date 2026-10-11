@@ -167,7 +167,7 @@ public class SettingsUI : MonoBehaviour
     }
 
     private const string SetupInfo =
-        "Study Sim browser extension setup\n" +
+        "lofilife browser extension setup\n" +
         "Send POST requests to http://localhost:8080/ with a plain word or JSON {\"action\":\"...\",\"minutes\":25}:\n" +
         "  start, pause, reset: control the timer\n" +
         "  set: study length in minutes (5-120, timer stopped)\n" +
@@ -384,7 +384,7 @@ public class SettingsUI : MonoBehaviour
         Heading(page, "Browser extension");
         if (GameSettings.Web)
         {
-            Note(page, "The browser extension works with the desktop version of Study Sim, which it talks to on this computer. "
+            Note(page, "The browser extension works with the desktop version of lofilife, which it talks to on this computer. "
                 + "The web version can't receive its messages.");
             return;
         }

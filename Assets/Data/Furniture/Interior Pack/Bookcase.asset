@@ -19,6 +19,19 @@ MonoBehaviour:
   - bookcase
   - shelf
   - table
-  price: 40
+  price: 50
   prefab: {fileID: 3975583397361463487, guid: dc095992e6b431a4d887a9c4785e478a, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

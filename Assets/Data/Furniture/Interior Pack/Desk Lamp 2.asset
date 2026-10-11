@@ -20,6 +20,19 @@ MonoBehaviour:
   - lamp
   - light
   - source
-  price: 25
+  price: 20
   prefab: {fileID: 8826941914721280803, guid: e5fb4e55aeb50914dae8dd596c555cde, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

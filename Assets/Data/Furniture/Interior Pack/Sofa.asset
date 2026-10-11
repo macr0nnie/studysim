@@ -18,6 +18,19 @@ MonoBehaviour:
   tags:
   - sofa
   - chair
-  price: 40
+  price: 70
   prefab: {fileID: 2987953162315981545, guid: c7d33ef2de4d58c4695266dfe6b54344, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

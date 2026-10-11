@@ -12,11 +12,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Jar_1
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Jar_1
+  displayName: Jar 1
   description: A jar_1 to add some personality to your space.
   category: 11
   tags:
   - jar
-  price: 15
+  price: 5
   prefab: {fileID: 533699651696987894, guid: 531b29c0850734544b11c1041e3511ba, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

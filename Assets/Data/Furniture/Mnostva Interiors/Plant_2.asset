@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Plant_2
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Plant_2
+  displayName: Plant 2
   description: A plant_2 to bring a little life into the room.
   category: 5
   tags:
@@ -20,3 +20,16 @@ MonoBehaviour:
   price: 20
   prefab: {fileID: 111561172033434090, guid: 4d478b3e457db504e9c007a5c703e276, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

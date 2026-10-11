@@ -17,6 +17,19 @@ MonoBehaviour:
   category: 11
   tags:
   - teapot
-  price: 15
+  price: 10
   prefab: {fileID: 8671807156809105900, guid: afa9335d56adaf14380939aa9e3480ce, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

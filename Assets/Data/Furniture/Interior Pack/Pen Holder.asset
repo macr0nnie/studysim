@@ -20,6 +20,19 @@ MonoBehaviour:
   - holder
   - office
   - items
-  price: 15
+  price: 5
   prefab: {fileID: 9117318432285903185, guid: 72675074d3fcfe64e9c234b90d5257e4, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

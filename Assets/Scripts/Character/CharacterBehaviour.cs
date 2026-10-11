@@ -48,7 +48,7 @@ public class CharacterBehaviour : MonoBehaviour
         // The target moves when a piece is bought, so it is read each frame; distraction drops it faster than the room lifts it.
         float target = Target();
         Happiness = Mathf.MoveTowards(Happiness, target, (target < Happiness ? 6f : 1.5f) * Time.deltaTime);
-        Mood = Distraction.Reported ? Mood.Stressed : Happiness >= 70f ? Mood.Happy : Happiness < 30f ? Mood.Sad : Mood.Content;
+        Mood = Distraction.Active ? Mood.Stressed : Happiness >= 70f ? Mood.Happy : Happiness < 30f ? Mood.Sad : Mood.Content;
 
         if (Time.time >= nextCheck) { nextCheck = Time.time + 0.25f; UseFurniture(); }
         // Chatter only during a running study session (plus the hello when the room opens); finished sessions get their own line.
@@ -78,7 +78,7 @@ public class CharacterBehaviour : MonoBehaviour
     // Happiness the room currently deserves: a baseline plus each piece's comfort, minus a big hit while distracted.
     private float Target()
     {
-        float t = 30f;
+        float t = 45f; // a new room with just a desk and chair reads as content; decorating makes it happy
         if (room != null)
             foreach (GameObject piece in room.PlacedPieces)
             {
@@ -86,7 +86,7 @@ public class CharacterBehaviour : MonoBehaviour
                 FurnitureItem item = room.ItemOf(piece);
                 t += 2f * (item != null ? item.comfort : 1);
             }
-        if (Distraction.Reported) t -= 50f;
+        if (Distraction.Active) t -= 50f;
         return Mathf.Clamp(t, 0f, 100f);
     }
 

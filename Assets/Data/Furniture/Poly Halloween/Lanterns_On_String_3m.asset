@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Lanterns_On_String_3m
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Lanterns_On_String_3m
+  displayName: Lanterns On String 3m
   description: A lanterns_on_string_3m to keep your study corner warm and bright.
   category: 4
   tags:
@@ -21,6 +21,19 @@ MonoBehaviour:
   - string
   - 3m
   - halloween
-  price: 25
+  price: 20
   prefab: {fileID: 1439008185303846551, guid: 9d511107e9279ba498a7f99b3f32d2ac, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

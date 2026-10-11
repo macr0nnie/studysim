@@ -12,12 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Washing_Machine
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Washing_Machine
+  displayName: Washing Machine
   description: A washing_machine to add some personality to your space.
   category: 11
   tags:
   - washing
   - machine
-  price: 15
+  price: 55
   prefab: {fileID: 4888072193939200019, guid: 20e8cb92cce7c38459f8d3257a9993ec, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

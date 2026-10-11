@@ -12,13 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Book_Stand_Halloween
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Book_Stand_Halloween
+  displayName: Book Stand
   description: A book_stand_halloween to add some personality to your space.
   category: 12
   tags:
   - book
   - stand
   - halloween
-  price: 15
+  price: 8
   prefab: {fileID: 4692724623747871498, guid: e0ff17931e0cd604f9658b2ae15aea66, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

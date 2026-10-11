@@ -19,6 +19,19 @@ MonoBehaviour:
   - coffee
   - table
   - shelf
-  price: 40
+  price: 35
   prefab: {fileID: 4272269745789347928, guid: e416d1311d5e06e4ba7fec46fe31d559, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

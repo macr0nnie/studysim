@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Mushroom_Magical_Champignon_A
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Mushroom_Magical_Champignon_A
+  displayName: Mushroom Magical Champignon A
   description: A mushroom_magical_champignon_a to add some personality to your space.
   category: 12
   tags:
@@ -20,6 +20,19 @@ MonoBehaviour:
   - magical
   - champignon
   - halloween
-  price: 15
+  price: 10
   prefab: {fileID: 602624818818653857, guid: d612f6a8366b16945939d1cf3ef5ae37, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

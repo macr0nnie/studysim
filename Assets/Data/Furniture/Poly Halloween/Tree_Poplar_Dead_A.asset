@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Tree_Poplar_Dead_A
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Tree_Poplar_Dead_A
+  displayName: Tree Poplar Dead A
   description: A tree_poplar_dead_a to bring a little life into the room.
   category: 5
   tags:
@@ -20,6 +20,19 @@ MonoBehaviour:
   - poplar
   - dead
   - trees
-  price: 20
+  price: 45
   prefab: {fileID: 611679142868818857, guid: 3c8772670f7f8e9478fa577f8630b365, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

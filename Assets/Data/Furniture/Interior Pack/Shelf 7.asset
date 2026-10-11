@@ -18,6 +18,19 @@ MonoBehaviour:
   tags:
   - shelf
   - table
-  price: 40
+  price: 30
   prefab: {fileID: 3100844568164266738, guid: 252fe1e50df4e5643880818e69122030, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

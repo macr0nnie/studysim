@@ -19,6 +19,19 @@ MonoBehaviour:
   - podium
   - office
   - items
-  price: 15
+  price: 10
   prefab: {fileID: 9086619948208830925, guid: d41576a54c68fae4699808890218f245, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

@@ -20,6 +20,19 @@ MonoBehaviour:
   - holder
   - light
   - source
-  price: 25
+  price: 10
   prefab: {fileID: 3145622940834242686, guid: d17eb34b666f89343b9f4df64b5e9873, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

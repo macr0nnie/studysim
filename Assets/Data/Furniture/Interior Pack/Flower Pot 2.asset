@@ -19,6 +19,19 @@ MonoBehaviour:
   - flower
   - pot
   - plants
-  price: 20
+  price: 15
   prefab: {fileID: 552523362279468007, guid: de36ff7ff845b8f4a87623d508dac53d, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

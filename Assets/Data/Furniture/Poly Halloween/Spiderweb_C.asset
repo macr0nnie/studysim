@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Spiderweb_C
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Spiderweb_C
+  displayName: Spiderweb C
   description: A spiderweb_c to add some personality to your space.
   category: 12
   tags:
@@ -21,3 +21,16 @@ MonoBehaviour:
   price: 15
   prefab: {fileID: 8774521910229133247, guid: 495a6aebb3bf94d4aa176a6d699c6e32, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

@@ -17,6 +17,19 @@ MonoBehaviour:
   category: 11
   tags:
   - faucet
-  price: 15
+  price: 10
   prefab: {fileID: 8665118343272131635, guid: 57fc163d359a36544afdc090a3b49123, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

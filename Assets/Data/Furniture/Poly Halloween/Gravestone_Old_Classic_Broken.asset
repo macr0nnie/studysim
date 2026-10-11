@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Gravestone_Old_Classic_Broken
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Gravestone_Old_Classic_Broken
+  displayName: Gravestone Old Classic Broken
   description: A gravestone_old_classic_broken to add some personality to your space.
   category: 12
   tags:
@@ -21,6 +21,19 @@ MonoBehaviour:
   - classic
   - broken
   - halloween
-  price: 15
+  price: 20
   prefab: {fileID: 3042831833515112434, guid: e54b5da67e1b90f4e91949ca516a50ae, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

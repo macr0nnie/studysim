@@ -18,6 +18,19 @@ MonoBehaviour:
   tags:
   - picture
   - frame
-  price: 15
+  price: 20
   prefab: {fileID: 4770985288417927784, guid: bc0f52bd67914ba4f9617682889d7e2e, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

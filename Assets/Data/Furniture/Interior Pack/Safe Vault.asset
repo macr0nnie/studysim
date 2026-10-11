@@ -20,6 +20,19 @@ MonoBehaviour:
   - vault
   - shelf
   - table
-  price: 40
+  price: 80
   prefab: {fileID: 3917423388144562903, guid: eff40e1b3a887894ebf5928afee87005, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

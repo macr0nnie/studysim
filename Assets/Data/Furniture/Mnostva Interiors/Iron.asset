@@ -20,3 +20,16 @@ MonoBehaviour:
   price: 15
   prefab: {fileID: 8521768854450964753, guid: bdd35528c5da7724e9b4a3b8535d6555, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

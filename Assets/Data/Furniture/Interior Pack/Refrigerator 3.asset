@@ -19,6 +19,19 @@ MonoBehaviour:
   - refrigerator
   - shelf
   - table
-  price: 40
+  price: 60
   prefab: {fileID: 5348247732310141206, guid: 8d7b38290e43722438607d47045c15a0, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

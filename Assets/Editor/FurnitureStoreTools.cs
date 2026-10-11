@@ -37,7 +37,7 @@ public static class FurnitureStoreTools
     {
         // Room-item groups only (food, clothes, bathroom etc. stay out).
         ("Interior Pack", new[] { "Bed & Bedding", "Chair-like", "Shelf-like & Table-like", "Light Source", "Office Items",
-            "Plants", "Clock & Alarms", "Picture Frame", "Racks" }.Select(g => $"{InteriorPack}/{g}").ToArray()),
+            "Plants", "Clock & Alarms", "Picture Frame", "Racks", "Window" }.Select(g => $"{InteriorPack}/{g}").ToArray()),
         ("Mnostva Interiors", new[] { "Assets/Mnostva_Art" }),
         ("Poly Halloween", new[] { "Assets/polyperfect/Poly Halloween" }),
         ("Cute Furniture", new[] { $"{CuteFurniture}/Prefabs" }),
@@ -263,7 +263,7 @@ public static class FurnitureStoreTools
         ("tv", StoreCategory.Electronics), ("monitor", StoreCategory.Electronics), ("keyboard", StoreCategory.Electronics),
         ("printer", StoreCategory.Electronics), ("vinyl", StoreCategory.Electronics),
         ("picture", StoreCategory.WallDecor), ("painting", StoreCategory.WallDecor), ("poster", StoreCategory.WallDecor),
-        ("mirror", StoreCategory.WallDecor), ("wall clock", StoreCategory.WallDecor),
+        ("mirror", StoreCategory.WallDecor), ("wall clock", StoreCategory.WallDecor), ("window", StoreCategory.WallDecor),
         ("halloween", StoreCategory.Spooky),
     };
     static readonly int[] CategoryPrices = { 40, 50, 80, 40, 25, 20, 15, 10, 15, 20, 45, 40, 15 }; // indexed by StoreCategory
@@ -294,6 +294,11 @@ public static class FurnitureStoreTools
             StoreCategory.Seating or StoreCategory.Tables or StoreCategory.Beds or StoreCategory.Storage => $"A {lowerName} to make your room your own.",
             _ => $"A {lowerName} to add some personality to your space.",
         };
+        if (lowerName.Contains("window") && !lowerName.Contains("blind"))
+        {
+            item.price = 35;
+            item.description = $"A {lowerName} that lets daylight, and moonlight at night, into the room.";
+        }
     }
 
     // Hand-written details and the pack's own icon for Cute Furniture pieces; other items keep their guesses.

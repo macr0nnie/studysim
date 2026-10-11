@@ -101,6 +101,18 @@ public class ChromeWebEx : MonoBehaviour
                 // Wait for an incoming request
                 HttpListenerContext context = listener.GetContext();
                 HttpListenerRequest request = context.Request;
+                HttpListenerResponse response = context.Response;
+
+                // Any web page can reach localhost too, so only the extension (or a local tool, which sends no
+                // Origin) is served. The Host check stops DNS-rebinding pages that pose as localhost.
+                string origin = request.Headers["Origin"];
+                string host = request.Headers["Host"] ?? "";
+                if (!AllowedOrigin(origin) || !(host.StartsWith("localhost:") || host.StartsWith("127.0.0.1:")))
+                {
+                    response.StatusCode = 403;
+                    response.Close();
+                    continue;
+                }
 
                 // Log the incoming request data
                 if (request.HttpMethod == "POST")
@@ -114,8 +126,7 @@ public class ChromeWebEx : MonoBehaviour
                 }
 
                 // Send a response back to the client
-                HttpListenerResponse response = context.Response;
-                response.AddHeader("Access-Control-Allow-Origin", "*");
+                if (origin != null) response.AddHeader("Access-Control-Allow-Origin", origin);
                 bool get = request.HttpMethod == "GET";
                 if (get) response.ContentType = "application/json";
                 string responseString = get ? _status : "Unity received your request!";
@@ -127,6 +138,9 @@ public class ChromeWebEx : MonoBehaviour
             catch (Exception) { } // closed listener or a dropped connection: the loop condition decides whether to go on
         }
     }
+
+    private static bool AllowedOrigin(string origin) =>
+        origin == null || origin.StartsWith("chrome-extension://") || origin.StartsWith("moz-extension://");
 
     void Update()
     {

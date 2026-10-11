@@ -5,6 +5,7 @@ Made by ronnie (macr0nnie).
 Ultimate Interior Pack (Interior O5) by Fries and Seagull, from the Unity Asset Store.
 Interiors pack by Mnostva (mnostva@gmail.com), from the Unity Asset Store.
 Poly Halloween by polyperfect and Tri Pirogy, from the Unity Asset Store.
+Cute Furniture Free by ithappy, from the Unity Asset Store. [CHECK]
 Bedroom, witchy furniture, desk, cabinet, TV and wall decor models: ronnie. [CHECK]
 Character models and animations (Ch03, Ch29, Sitting Disbelief, Sitting Victory, Zombie Biting): Mixamo, by Adobe. [CHECK]
 Unity Asset Store packs are used under the Unity Asset Store EULA.
@@ -27,7 +28,8 @@ Yagi Wrath
 Iced Coffee by moonboy. [CHECK]
 
 <b>Sound effects</b>
-The interface sounds and the timer chime are generated in the game's code.
+Interface sounds: Casual Game Sounds by Dustyroom (dustyroom.com), CC0.
+The timer chime is generated in the game's code.
 
 <b>Fonts</b>
 All fonts are licensed under the SIL Open Font License 1.1:
@@ -40,3 +42,8 @@ Liberation Sans, included with TextMesh Pro.
 
 <b>Built with</b>
 Unity, the Universal Render Pipeline and TextMesh Pro.
+
+<b>Privacy</b>
+Study Sim has no accounts, ads or analytics. Saves and settings stay on this PC.
+The browser extension only talks to the game on this PC (localhost:8080) and tells it the name of the site you're on, so it can spot distracting and study sites.
+The Spotify card reads the Spotify window's title on this PC. Album covers are off by default; turning them on sends the song and artist to Apple's iTunes Search.

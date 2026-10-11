@@ -280,6 +280,7 @@ public class SettingsUI : MonoBehaviour
         AddSlider(page, "Music", 0, 100, GameSettings.MusicVolume * 100, v => $"{v:0}%", v => GameSettings.MusicVolume = v / 100f, out _);
         AddSlider(page, "Effects (UI sounds, chime)", 0, 100, GameSettings.EffectsVolume * 100, v => $"{v:0}%", v => GameSettings.EffectsVolume = v / 100f, out _);
         Switch(page, "Interface sounds", "Clicks, placing furniture, coins and lamps.", () => GameSettings.UISounds, v => GameSettings.UISounds = v);
+        Switch(page, "Spotify album covers", "Fetches the cover from Apple's iTunes Search, which sends Apple the song and artist.", () => GameSettings.OnlineCovers, v => GameSettings.OnlineCovers = v);
     }
 
     private void BuildFocus(Transform page)

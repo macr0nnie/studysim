@@ -9,7 +9,9 @@ using UnityEngine.UI;
 // placing furniture, coins, lamps and warnings. Volume follows Settings > Sound > Effects.
 public class UISound : MonoBehaviour
 {
-    public enum Cue { Click, Toggle, Denied, Place, Coin, Light, Warning, Recovered }
+    public enum Cue { Click, Toggle, Denied, Place, Coin, Light, Warning, Recovered, TimerEnd }
+
+    private const float PackVolume = 0.5f; // the pack's clips are mastered much louder than the synth ones
 
     private static UISound instance;
     private AudioSource source;
@@ -28,7 +30,9 @@ public class UISound : MonoBehaviour
     public static void Play(Cue cue)
     {
         if (instance == null || !GameSettings.UISounds) return;
-        instance.source.PlayOneShot(instance.clips[(int)cue], GameSettings.EffectsVolume);
+        AudioClip clip = instance.clips[(int)cue];
+        if (clip == null) return;
+        instance.source.PlayOneShot(clip, GameSettings.EffectsVolume * (clip.name.StartsWith("DM-") ? PackVolume : 1f));
     }
 
     private void Awake()
@@ -45,7 +49,21 @@ public class UISound : MonoBehaviour
         clips[(int)Cue.Light] = Synth("Light", 0.04f, t => Sweep(t, 2400, 1800, 0.04f) * Env(t, 110) * 0.2f);
         clips[(int)Cue.Warning] = Synth("Warning", 0.55f, t => Sweep(t, 520, 260, 0.55f) * Env(t, 4) * 0.18f);
         clips[(int)Cue.Recovered] = Synth("Recovered", 0.45f, t => Sweep(t, 330, 660, 0.45f) * Env(t, 5) * 0.16f);
+
+        // Dustyroom's Casual Game SFX replace the synth sounds where present (Resources/UISounds); swap a number to
+        // try another clip from Assets/Casual Game Sounds U6. TimerEnd has no synth version, so it's silent without one.
+        foreach (var (cue, clip) in PackClips)
+        {
+            var loaded = Resources.Load<AudioClip>("UISounds/DM-CGS-" + clip);
+            if (loaded != null) clips[(int)cue] = loaded;
+        }
     }
+
+    private static readonly (Cue cue, string clip)[] PackClips =
+    {
+        (Cue.Click, "16"), (Cue.Toggle, "41"), (Cue.Denied, "14"), (Cue.Place, "35"), (Cue.Coin, "31"),
+        (Cue.Light, "44"), (Cue.Warning, "38"), (Cue.Recovered, "33"), (Cue.TimerEnd, "45"),
+    };
 
     private void Update()
     {

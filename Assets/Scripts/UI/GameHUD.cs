@@ -14,7 +14,9 @@ public class GameHUD : MonoBehaviour
     private Experience experience;
     private TMP_Text levelBadge, levelLabel, xpLabel, coinsLabel, toastText;
     private RectTransform xpFill;
-    private CanvasGroup toast;
+    private CanvasGroup toast, summary;
+    private TMP_Text summaryText;
+    private Coroutine summaryRoutine;
     private TMP_Text debugText;
     private string lastDebug;
     private float debugShownAt;
@@ -286,15 +288,45 @@ public class GameHUD : MonoBehaviour
         if (GameSettings.SessionToasts)
         {
             string next = timer.IsTimerRunning ? "started" : "ready when you are";
-            ShowToast(!timer.IsStudySession
-                ? $"Session complete!  +{timer.MoneyReward} coins, +{timer.ExperienceReward} XP.  Break {next}"
-                : $"Break's over.  Next session {next}");
+            if (!timer.IsStudySession) ShowSummary(next);
+            else ShowToast($"Break's over.  Next session {next}");
         }
         if (chime != null && GameSettings.SessionChime)
         {
             chime.volume = GameSettings.EffectsVolume;
             chime.Play();
         }
+    }
+
+    // The finish moment: what the session was worth and how the day and streak stand. Click to dismiss.
+    private void ShowSummary(string breakState)
+    {
+        string muted = ColorUtility.ToHtmlStringRGB(MutedText), accent = ColorUtility.ToHtmlStringRGB(AccentColor);
+        int streak = StudyLog.DayStreak();
+        summaryText.text =
+            $"<size={HeadingSize}><b>Session complete!</b></size>\n" +
+            $"{timer.LastSessionMinutes} min of {StudyLog.Subject}\n" +
+            $"<color=#{accent}><b>+{timer.MoneyReward} coins   +{timer.ExperienceReward} XP</b></color>" +
+            (timer.FocusBonus ? $"  <color=#{muted}>(focus bonus)</color>" : "") + "\n" +
+            $"<size={CaptionSize}><color=#{muted}>Today {StudyLog.Format(StudyLog.MinutesOn(System.DateTime.Now.Date))}" +
+            (streak > 1 ? $"  ·  {streak}-day study streak" : "") + $"  ·  Break {breakState}</color></size>";
+        if (summaryRoutine != null) StopCoroutine(summaryRoutine);
+        summaryRoutine = StartCoroutine(PlaySummary());
+    }
+
+    private IEnumerator PlaySummary()
+    {
+        var rect = (RectTransform)summary.transform;
+        summary.blocksRaycasts = true;
+        for (float t = 0; t < 8f && summary.blocksRaycasts; t += Time.unscaledDeltaTime)
+        {
+            rect.localScale = Vector3.one * (t < 0.3f ? 1 + Mathf.Sin(t / 0.3f * Mathf.PI) * 0.08f : 1);
+            summary.alpha = t < 0.2f ? t / 0.2f : t > 7.2f ? (8f - t) / 0.8f : 1;
+            yield return null;
+        }
+        summary.alpha = 0;
+        summary.blocksRaycasts = false;
+        summaryRoutine = null;
     }
 
     // Toasts queue up so a level-up and a session reward don't overwrite each other.
@@ -397,6 +429,24 @@ public class GameHUD : MonoBehaviour
         toastText.fontSizeMax = 24;
         Stretch((RectTransform)toastText.transform);
         toastText.margin = new Vector4(16, 0, 16, 0);
+
+        // Session card, in the same spot as the toast but taller.
+        GameObject card = Make("SessionCard", canvas, typeof(Image), typeof(CanvasGroup), typeof(Button));
+        var cardRect = (RectTransform)card.transform;
+        cardRect.anchorMin = cardRect.anchorMax = cardRect.pivot = new Vector2(0.5f, 1);
+        cardRect.sizeDelta = new Vector2(560, 150);
+        cardRect.anchoredPosition = new Vector2(0, -190); // below the toast, so a level-up shows too
+        Style(card.GetComponent<Image>(), PanelColor);
+        card.GetComponent<Button>().onClick.AddListener(() => summary.blocksRaycasts = false); // ends PlaySummary's loop
+        summary = card.GetComponent<CanvasGroup>();
+        summary.alpha = 0;
+        summary.blocksRaycasts = false;
+        summaryText = MakeText("Text", card.transform, "", BodySize, TextColor, TextAlignmentOptions.Center);
+        summaryText.enableAutoSizing = false;
+        summaryText.textWrappingMode = TextWrappingModes.Normal;
+        summaryText.lineSpacing = 8;
+        Stretch(summaryText.rectTransform);
+        summaryText.margin = new Vector4(16, 10, 16, 10);
     }
 
     // Soft two-note chime made in code, so there's an audible cue without adding an audio asset.

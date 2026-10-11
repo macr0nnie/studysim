@@ -12,13 +12,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Coffin_New
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Coffin_New
+  displayName: Coffin New
   description: A coffin_new to add some personality to your space.
   category: 12
   tags:
   - coffin
   - new
   - halloween
-  price: 15
+  price: 45
   prefab: {fileID: 2892411712762447531, guid: 213d2b56253be4d4cbfb202ddb822757, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

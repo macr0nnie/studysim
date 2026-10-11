@@ -18,6 +18,19 @@ MonoBehaviour:
   tags:
   - rocking
   - chair
-  price: 40
+  price: 45
   prefab: {fileID: 7467325893926728372, guid: a22d4eb5d42bd5d4eae3ede291a2bf4b, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

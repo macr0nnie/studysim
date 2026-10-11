@@ -1320,13 +1320,16 @@ public class RoomManager : MonoBehaviour
     private static Vector3 WallAxis(Vector3 v) =>
         Mathf.Abs(v.x) >= Mathf.Abs(v.z) ? new Vector3(Mathf.Sign(v.x), 0, 0) : new Vector3(0, 0, Mathf.Sign(v.z));
 
-    // The given desk, else the first store item that is a desk (Desk 1 if the catalog has it), set down mid-room
+    // The given desk, else the first store item that is a desk (the cute Study Desk if the catalog has it), set down mid-room
     // towards the back, square to the walls and facing the camera side.
+    // A new room's desk and chair until the player picks others: a matching study desk and desk chair.
+    private const string StarterDeskItem = "Work_Table_06", StarterChairItem = "Chair_PC_04";
+
     private GameObject SpawnStarterDesk(FurnitureItem item)
     {
         FurnitureCatalog catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
         if (catalog == null || !hasRoomFloor) { Debug.LogWarning("RoomManager: no catalog or floor, so no starter desk."); return null; }
-        item ??= catalog.items.Find(i => i != null && i.prefab != null && i.name == "Desk 1")
+        item ??= catalog.items.Find(i => i != null && i.prefab != null && i.name == StarterDeskItem)
             ?? catalog.items.Find(i => i != null && i.prefab != null && FurnitureRole.Is(i.prefab, i, "desk"));
         if (item == null) { Debug.LogWarning("RoomManager: no desk in the furniture catalog; no starter desk."); return null; }
         Vector3 toCamera = WallAxis(Vector3.ProjectOnPlane(mainCamera.transform.position - roomFloor.center, Vector3.up));
@@ -1374,8 +1377,8 @@ public class RoomManager : MonoBehaviour
     {
         if (desk == null) { Debug.LogWarning("RoomManager: no desk in the scene to put a starter chair at."); return; }
         FurnitureCatalog catalog = Resources.Load<FurnitureCatalog>("FurnitureCatalog");
-        item ??= catalog != null ? catalog.items.Find(i => i != null && i.prefab != null && i.name == "Chair 1") : null;
-        if (item == null) { Debug.LogWarning("RoomManager: no 'Chair 1' in the furniture catalog; no starter chair."); return; }
+        item ??= catalog != null ? catalog.items.Find(i => i != null && i.prefab != null && i.name == StarterChairItem) : null;
+        if (item == null) { Debug.LogWarning($"RoomManager: no '{StarterChairItem}' in the furniture catalog; no starter chair."); return; }
         Physics.SyncTransforms();
         Bounds d = GetBounds(desk);
         Vector3 toCamera = WallAxis(Vector3.ProjectOnPlane(mainCamera.transform.position - d.center, Vector3.up));

@@ -20,6 +20,19 @@ MonoBehaviour:
   - stove
   - shelf
   - table
-  price: 40
+  price: 50
   prefab: {fileID: 3519235802384136717, guid: 5bdbdd62ab62084449c537cea2a8f71f, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

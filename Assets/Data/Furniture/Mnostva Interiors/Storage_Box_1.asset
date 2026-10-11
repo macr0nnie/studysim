@@ -12,12 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Storage_Box_1
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Storage_Box_1
+  displayName: Storage Box 1
   description: A storage_box_1 to add some personality to your space.
   category: 3
   tags:
   - storage
   - box
-  price: 15
+  price: 10
   prefab: {fileID: 1967674582170259659, guid: 45749487ebe5d4a469e2a26e10808b5c, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

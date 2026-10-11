@@ -19,6 +19,19 @@ MonoBehaviour:
   - storage
   - rack
   - racks
-  price: 15
+  price: 35
   prefab: {fileID: 2924594522576559996, guid: f0779e45688ecf84ca957a5fbe539958, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

@@ -19,6 +19,19 @@ MonoBehaviour:
   - pillow
   - bed
   - bedding
-  price: 40
+  price: 10
   prefab: {fileID: 8246957569673157771, guid: e4e15df421ccc0d4a85be091eb971a9f, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

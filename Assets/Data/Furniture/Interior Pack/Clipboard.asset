@@ -19,6 +19,19 @@ MonoBehaviour:
   - clipboard
   - office
   - items
-  price: 15
+  price: 8
   prefab: {fileID: 9012027051804040855, guid: 908837576bc376d4d80f156b9a27452d, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

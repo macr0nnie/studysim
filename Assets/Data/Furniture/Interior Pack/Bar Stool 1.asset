@@ -19,6 +19,19 @@ MonoBehaviour:
   - bar
   - stool
   - chair
-  price: 40
+  price: 25
   prefab: {fileID: 1410077314591203688, guid: b25619e4d7217a04698692fc74769b0f, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Cabinet_1
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Cabinet_1
+  displayName: Cabinet 1
   description: A cabinet_1 to make your room your own.
   category: 3
   tags:
@@ -20,3 +20,16 @@ MonoBehaviour:
   price: 40
   prefab: {fileID: 4857611856465497357, guid: 288dd58dbcd034448af410848148ea1e, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

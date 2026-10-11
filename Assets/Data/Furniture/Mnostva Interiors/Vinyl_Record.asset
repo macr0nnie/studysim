@@ -12,12 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Vinyl_Record
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Vinyl_Record
+  displayName: Vinyl Record
   description: A vinyl_record to add some personality to your space.
   category: 10
   tags:
   - vinyl
   - record
-  price: 15
+  price: 45
   prefab: {fileID: 2368901788415406592, guid: f0a4a3295e9f5db448b6e04347ab6da9, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

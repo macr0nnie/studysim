@@ -12,12 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Stone_F
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Stone_F
+  displayName: Stone F
   description: A stone_f to add some personality to your space.
   category: 5
   tags:
   - stone
   - rocks
-  price: 15
+  price: 20
   prefab: {fileID: 1624934613708217177, guid: 135cfa328d7fcb14abf14ee831d9d7d2, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

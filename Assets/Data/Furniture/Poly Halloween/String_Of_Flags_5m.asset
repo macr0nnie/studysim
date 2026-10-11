@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: String_Of_Flags_5m
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: String_Of_Flags_5m
+  displayName: String Of Flags 5m
   description: A string_of_flags_5m to add some personality to your space.
   category: 12
   tags:
@@ -24,3 +24,16 @@ MonoBehaviour:
   price: 15
   prefab: {fileID: 6819139947600422862, guid: e599aac102f3b92438c6de45169052e4, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

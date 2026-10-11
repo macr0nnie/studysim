@@ -12,12 +12,25 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Vinyl_Player
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Vinyl_Player
+  displayName: Vinyl Player
   description: A vinyl_player to add some personality to your space.
   category: 10
   tags:
   - vinyl
   - player
-  price: 15
+  price: 45
   prefab: {fileID: 5312235095817008196, guid: 40f7c93fed58e2240868fcc9d81787fe, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

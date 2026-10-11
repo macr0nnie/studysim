@@ -271,7 +271,7 @@ public static class FurnitureStoreTools
     // First guess at store details for a new item; the Inspector is where they get polished.
     static void Describe(FurnitureItem item, string assetName, string sourcePath)
     {
-        string name = ObjectNames.NicifyVariableName(assetName);
+        string name = PrettyName(assetName);
         string folders = Path.GetDirectoryName(sourcePath).Replace('\\', '/');
         string lowerName = name.ToLowerInvariant(), lowerFolders = folders.ToLowerInvariant();
         var match = CategoryWords.FirstOrDefault(c => lowerName.Contains(c.word));
@@ -286,7 +286,7 @@ public static class FurnitureStoreTools
             .Distinct().ToArray();
 
         item.displayName = name;
-        item.price = CategoryPrices[(int)item.category];
+        item.price = GuessPrice(name, item.category);
         item.description = item.category switch
         {
             StoreCategory.Lighting => $"A {lowerName} to keep your study corner warm and bright.",
@@ -299,6 +299,70 @@ public static class FurnitureStoreTools
             item.price = 35;
             item.description = $"A {lowerName} that lets daylight, and moonlight at night, into the room.";
         }
+    }
+
+    // "Candle_Stick_A_Lit" -> "Candle Stick A (lit)", "Man_Ghost_Halloween" -> "Man Ghost".
+    static string PrettyName(string assetName)
+    {
+        string name = ObjectNames.NicifyVariableName(assetName.Replace('_', ' ').Replace('-', ' ')).Replace("Blancket", "Blanket");
+        var words = name.Split(new[] { ' ' }, System.StringSplitOptions.RemoveEmptyEntries).ToList();
+        if (words.Count > 1 && words[words.Count - 1] == "Halloween") words.RemoveAt(words.Count - 1);
+        string state = words.Count > 1 && (words[words.Count - 1] == "Lit" || words[words.Count - 1] == "Unlit") ? words[words.Count - 1].ToLowerInvariant() : null;
+        if (state != null) words.RemoveAt(words.Count - 1);
+        return string.Join(" ", words) + (state != null ? $" ({state})" : "");
+    }
+
+    // Pack pieces were priced by category alone, so a pillow cost as much as a sofa. First matching word wins,
+    // so the specific ones ("bunk bed", "desk lamp") come before the general ones ("bed", "lamp").
+    static readonly (string word, int price)[] PriceWords =
+    {
+        ("bunk bed", 95), ("bed", 75), ("sofa", 70), ("couch", 70), ("loveseat", 70), ("armchair", 50), ("rocking chair", 45),
+        ("office chair", 45), ("bar stool", 25), ("stool", 20), ("chair", 30), ("toilet", 30), ("bathtub", 80),
+        ("pillow", 10), ("cushion", 10), ("blanket", 15), ("quilt", 20), ("rug", 25),
+        ("wardrobe", 60), ("bookcase", 50), ("safe vault", 80), ("shelving unit", 45), ("display", 40), ("file cabinet", 35),
+        ("drawer unit", 35), ("nightstand", 25), ("wall shelf", 20), ("storage box", 10), ("storage rack", 35), ("tv", 40),
+        ("l shape desk", 70), ("desk with storage", 65), ("sink desk", 40), ("desk lamp", 20), ("desk", 50), ("dining table", 50),
+        ("coffee table", 35), ("side table", 25), ("table lamp", 20), ("table", 40), ("cabinet", 40), ("shelf", 30),
+        ("refrigerat", 60), ("freezer", 70), ("fridge", 60), ("washing machine", 55), ("stove", 50), ("counter", 45),
+        ("vanity", 45), ("sink", 35), ("wash basin", 30),
+        ("ceiling light", 30), ("hanging light", 35), ("track light", 30), ("floor lamp", 35), ("wall light", 20),
+        ("lamp", 25), ("lantern", 20), ("candle", 10), ("string of flags", 15),
+        ("book", 8), ("notebook", 8), ("binder", 8), ("clipboard", 8), ("paper", 5), ("pen", 5),
+        ("tree", 45), ("plant", 20), ("flower", 15), ("cactus", 15), ("mushroom", 10),
+        ("window", 35), ("painting", 25), ("picture", 20), ("mirror", 30), ("clock", 20),
+        ("printer", 35), ("monitor", 40), ("vinyl player", 45), ("keyboard", 15), ("mouse", 10),
+        ("coffin", 45), ("gravestone", 20), ("scarecrow", 35), ("cauldron", 40), ("candy", 5), ("lollipop", 5), ("pumpkin", 15),
+        ("alarm", 15), ("bottle", 5), ("jar", 5), ("cup", 5), ("plate", 5), ("teapot", 10), ("iron", 15), ("faucet", 10), ("hanger", 5),
+    };
+
+    static int GuessPrice(string name, StoreCategory category)
+    {
+        string lower = name.ToLowerInvariant();
+        var match = PriceWords.FirstOrDefault(p => lower.Contains(p.word));
+        return match.word != null ? match.price : CategoryPrices[(int)category];
+    }
+
+    // Re-applies the two guesses above to items that came from packs (not Cute Furniture's hand-written ones,
+    // nor the hand-made items at the top of the item folder), so earlier imports get tidy names and fair prices.
+    [MenuItem("Study Sim/Tidy Pack Item Names And Prices")]
+    public static void TidyPackItems()
+    {
+        int changed = 0;
+        foreach (FurnitureItem item in LoadOrCreateCatalog().items)
+        {
+            if (item == null || item.prefab == null) continue;
+            string path = AssetDatabase.GetAssetPath(item);
+            if (!path.StartsWith(ItemFolder + "/") || !path.Substring(ItemFolder.Length + 1).Contains("/") || path.Contains("/Cute Furniture/")) continue;
+            string name = item.displayName.Contains("_") || item.displayName.Contains("Blancket") ? PrettyName(item.displayName) : item.displayName;
+            int price = GuessPrice(name, item.category);
+            if (name == item.displayName && price == item.price) continue;
+            item.displayName = name;
+            item.price = price;
+            EditorUtility.SetDirty(item);
+            changed++;
+        }
+        AssetDatabase.SaveAssets();
+        Debug.Log($"Furniture setup: tidied the name or price of {changed} pack item(s).");
     }
 
     // Hand-written details and the pack's own icon for Cute Furniture pieces; other items keep their guesses.

@@ -12,11 +12,24 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Bottle_2
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Bottle_2
+  displayName: Bottle 2
   description: A bottle_2 to add some personality to your space.
   category: 11
   tags:
   - bottle
-  price: 15
+  price: 5
   prefab: {fileID: 1635549793174514358, guid: c3bfea07cf90cf14cbd5b7e0bbbfa0d3, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

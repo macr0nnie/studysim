@@ -19,6 +19,19 @@ MonoBehaviour:
   - wall
   - clock
   - alarms
-  price: 15
+  price: 20
   prefab: {fileID: 1360306073556489957, guid: 091cb45d5c01abb4ead9ded8a2ed6df9, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

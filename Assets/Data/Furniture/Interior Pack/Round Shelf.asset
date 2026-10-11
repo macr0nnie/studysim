@@ -19,6 +19,19 @@ MonoBehaviour:
   - round
   - shelf
   - table
-  price: 40
+  price: 30
   prefab: {fileID: 1826754682296083586, guid: 3d24d96ff09576b41bfd73385c16cda3, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

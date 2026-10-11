@@ -18,6 +18,19 @@ MonoBehaviour:
   tags:
   - armchair
   - chair
-  price: 40
+  price: 50
   prefab: {fileID: 1021457315639583412, guid: ff5712216886a4e4c88b404e25f6a6dc, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

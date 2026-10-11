@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
   m_Name: Witch_Hat
   m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
-  displayName: Witch_Hat
+  displayName: Witch Hat
   description: A witch_hat to add some personality to your space.
   category: 12
   tags:
@@ -22,3 +22,16 @@ MonoBehaviour:
   price: 15
   prefab: {fileID: 8960535863122508357, guid: b9599586d827bb44ab2627d1bc2a9c9a, type: 3}
   icon: {fileID: 0}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

@@ -325,6 +325,17 @@ public class SettingsUI : MonoBehaviour
             () => GameSettings.AutoStartBreak, v => GameSettings.AutoStartBreak = v);
         Switch(page, "Start the next session automatically", "After a break, the next session starts by itself.",
             () => GameSettings.AutoStartStudy, v => GameSettings.AutoStartStudy = v);
+
+        GameObject nameRow = Row("Your name", page, 48, 12, false);
+        nameRow.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
+        Label(nameRow.transform, "Your name", "What your study buddy calls you.");
+        TMP_InputField nameField = MakeInput(nameRow.transform, "Your name");
+        nameField.GetComponent<LayoutElement>().flexibleWidth = 0;
+        nameField.GetComponent<LayoutElement>().preferredWidth = 220;
+        nameField.GetComponent<LayoutElement>().preferredHeight = 40;
+        nameField.characterLimit = 20;
+        nameField.text = CharacterDialogue.PlayerName;
+        nameField.onEndEdit.AddListener(v => CharacterDialogue.PlayerName = v);
     }
 
     // Look of the room and the window: lighting and mini mode.

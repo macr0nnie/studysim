@@ -61,7 +61,7 @@ public class MiniMode : MonoBehaviour
 
     private static void EnsureMiniMode()
     {
-        if (FindAnyObjectByType<RoomManager>() != null && instance == null)
+        if (!GameSettings.Web && FindAnyObjectByType<RoomManager>() != null && instance == null) // needs a desktop window
             instance = new GameObject("MiniMode").AddComponent<MiniMode>();
     }
 

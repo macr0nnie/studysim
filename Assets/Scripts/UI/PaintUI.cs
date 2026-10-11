@@ -121,7 +121,16 @@ public class PaintUI : MonoBehaviour
     }
 
     private Renderer[] Renderers(Target t) => t == Target.Walls ? room.WallRenderers : room.FloorRenderers;
-    private Material[] Materials(Target t) => surfaces == null ? new Material[0] : t == Target.Walls ? surfaces.walls : surfaces.floors;
+    // The pack's plain materials first (saved indices stay put), then the textured ones made in code.
+    private Material[] Materials(Target t)
+    {
+        Material[] plain = surfaces == null ? new Material[0] : t == Target.Walls ? surfaces.walls : surfaces.floors;
+        Material[] textured = t == Target.Walls ? RoomTextures.Walls : RoomTextures.Floors;
+        var all = new Material[plain.Length + textured.Length];
+        plain.CopyTo(all, 0);
+        textured.CopyTo(all, plain.Length);
+        return all;
+    }
 
     private void Refresh()
     {

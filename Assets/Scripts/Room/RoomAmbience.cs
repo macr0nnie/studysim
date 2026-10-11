@@ -346,10 +346,12 @@ public class RoomAmbience : MonoBehaviour
         // dense, longer and brighter, which read as a storm; drizzle is the same layer, fainter.
         rainTexture = Dots(64, 128, 8, 12, (x, y) => new Color(0.85f, 0.9f, 1f, 0.12f + Hash(x, y) * 0.18f));
         rain = SkyLayer("Rain", rainTexture, new Rect(0, 0, 5f * cam.aspect, 2.5f));
+        rain.gameObject.AddComponent<Canvas>(); // its own canvas: scrolling it every frame rebuilds only this layer, not the whole sky
         rain.gameObject.SetActive(false);
         // Snow: soft dots drifting slowly.
         snowTexture = Dots(128, 128, 30, 2, (x, y) => new Color(1f, 1f, 1f, 0.5f + Hash(x, y) * 0.4f));
         snow = SkyLayer("Snow", snowTexture, new Rect(0, 0, 3f * cam.aspect, 2f));
+        snow.gameObject.AddComponent<Canvas>();
         snow.gameObject.SetActive(false);
         PaintSky();
     }
@@ -367,10 +369,11 @@ public class RoomAmbience : MonoBehaviour
     }
 
     // A transparent, tiling texture with `count` marks at seeded random spots, each `length` pixels tall and leaning
-    // one pixel right every six down (1 = a single dot).
+    // one pixel right every six down (1 = a single dot). Point filtered so marks stay crisp pixels when the layer is
+    // stretched across the screen; a streak fades out towards its tail so rain reads soft rather than as hard lines.
     private static Texture2D Dots(int width, int height, int count, int length, Func<int, int, Color> color)
     {
-        var tex = new Texture2D(width, height, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };
+        var tex = new Texture2D(width, height, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Point };
         var pixels = new Color32[width * height];
         var rng = new System.Random(7);
         for (int i = 0; i < count; i++)
@@ -378,7 +381,11 @@ public class RoomAmbience : MonoBehaviour
             int x = rng.Next(width), y = rng.Next(height);
             Color c = color(x, y);
             for (int j = 0; j < length; j++)
-                pixels[(y - j + height) % height * width + (x + j / 6) % width] = c;
+            {
+                Color t = c;
+                t.a *= (j + 1f) / length; // brightest at the falling (lower) end, fading up the tail
+                pixels[(y - j + height) % height * width + (x + j / 6) % width] = t;
+            }
         }
         tex.SetPixels32(pixels);
         tex.Apply();
@@ -395,7 +402,7 @@ public class RoomAmbience : MonoBehaviour
         if (rain != null)
         {
             rain.gameObject.SetActive(on);
-            rain.color = new Color(1f, 1f, 1f, now == Weather.Rain ? 0.45f : 0.22f);
+            rain.color = new Color(1f, 1f, 1f, now == Weather.Rain ? 0.35f : 0.18f); // soft: the room stays the focus
         }
         if (snow != null) snow.gameObject.SetActive(now == Weather.Snow);
         if (on && rainSound == null)

@@ -11,7 +11,7 @@ public static class SaveSystem
 {
     public const int SlotCount = 4; // slot 0 + 3 menu slots
     public const string GameScene = "Protoype_2", MenuScene = "MainMenu", SelectScene = "SaveSelect";
-    private static readonly string[] StringKeys = { "RoomLayout", "RoomPaint", "MenuColor", "TodoTasks", "StudyHabits", "iPodPlayerData" };
+    private static readonly string[] StringKeys = { "RoomLayout", "RoomPaint", "MenuColor", "TodoTasks", "StudyHabits", "iPodPlayerData", "StudyLog", "StudySubject", "PlayerName" };
     private static readonly string[] IntKeys = { "PlayerLevel", "PlayerExperience", "PlayerCoins", "EmptyRoom" };
     private static readonly string[] FloatKeys = { "StudySessionSeconds", "BreakSessionSeconds" };
 

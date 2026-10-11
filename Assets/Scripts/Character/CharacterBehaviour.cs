@@ -27,7 +27,7 @@ public class CharacterBehaviour : MonoBehaviour
     private MoodIcons icons;
     private float nextSay, hideBubble, nextCheck;
     private GameObject usedPiece;
-    private bool lying;
+    private bool lying, greeted;
 
     private void Start()
     {
@@ -40,6 +40,7 @@ public class CharacterBehaviour : MonoBehaviour
         Happiness = Target();
         nextSay = Time.time + 8f;
         MakeOverlays();
+        if (timer != null) timer.OnTimerComplete += OnTimerComplete;
     }
 
     private void Update()
@@ -50,7 +51,7 @@ public class CharacterBehaviour : MonoBehaviour
         Mood = Distraction.Reported ? Mood.Stressed : Happiness >= 70f ? Mood.Happy : Happiness < 30f ? Mood.Sad : Mood.Content;
 
         if (Time.time >= nextCheck) { nextCheck = Time.time + 0.25f; UseFurniture(); }
-        if (Time.time >= nextSay && !lying) { Say(CharacterDialogue.Line(Mood, CharacterDialogue.Stage)); nextSay = Time.time + SayEvery * Random.Range(0.8f, 1.6f); }
+        if (Time.time >= nextSay && !lying) { Say(greeted ? CharacterDialogue.Line(Mood, CharacterDialogue.Stage) : CharacterDialogue.Greeting()); greeted = true; nextSay = Time.time + SayEvery * Random.Range(0.8f, 1.6f); }
         if (line != null && Time.time >= hideBubble) { line = null; Layout(); }
         if (walking) Walk();
         else if (usedPiece != null) Hold();
@@ -573,8 +574,17 @@ public class CharacterBehaviour : MonoBehaviour
         }
     }
 
+    // The timer has already flipped: on a break means a study session just finished.
+    private void OnTimerComplete()
+    {
+        if (timer.IsStudySession) return;
+        Say(CharacterDialogue.SessionDone(timer.LastSessionMinutes, StudyLog.Subject));
+        nextSay = Time.time + SayEvery;
+    }
+
     private void OnDestroy()
     {
+        if (timer != null) timer.OnTimerComplete -= OnTimerComplete;
         if (overlay != null) Destroy(overlay.gameObject);
     }
 }

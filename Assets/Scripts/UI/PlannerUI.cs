@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static UIKit;
 
-// To-do list and daily habits in one left drawer (shares the store's slot, so only one is open).
+// To-do list, daily habits and study stats in one left drawer (shares the store's slot, so only one is open).
 // Ticking things off earns XP. Press P to toggle it.
 // Habits follow "don't break the chain": each habit shows this week as dots joined into a chain while the
 // streak holds, a month calendar shows how full each day was, and a missed day warns "never miss twice"
@@ -21,10 +21,11 @@ public class PlannerUI : MonoBehaviour
     private TaskList taskList;
     private HabitTracker habits;
     private Experience experience;
-    private GameObject panel, todoPage, habitPage;
-    private Transform todoRows, habitRows;
-    private TMP_Text todoEmpty, habitEmpty;
-    private Image todoTab, habitTab;
+    private GameObject panel;
+    private GameObject[] pages;
+    private Image[] tabs;
+    private Transform todoRows, habitRows, statsRows;
+    private TMP_Text todoEmpty, habitEmpty, statsEmpty;
     // Something just ticked off: after the list is rebuilt its new dot or check pops with "+XP".
     private object celebrate;
     private string celebrateText;
@@ -61,18 +62,73 @@ public class PlannerUI : MonoBehaviour
         if (ToggleDrawer(this, panel)) RefreshAll();
     }
 
-    private void ShowPage(bool todo)
+    private void ShowPage(int page)
     {
-        todoPage.SetActive(todo);
-        habitPage.SetActive(!todo);
-        todoTab.color = todo ? SelectedColor : TabColor;
-        habitTab.color = todo ? TabColor : SelectedColor;
+        for (int i = 0; i < pages.Length; i++)
+        {
+            pages[i].SetActive(i == page);
+            tabs[i].color = i == page ? SelectedColor : TabColor;
+        }
     }
 
     private void RefreshAll()
     {
         RefreshTodos();
         RefreshHabits();
+        RefreshStats();
+    }
+
+    // Stats: the subject sessions count towards, totals, this week as bars, and time per subject.
+    private void RefreshStats()
+    {
+        Clear(statsRows);
+        DateTime today = DateTime.Now.Date;
+        int streak = StudyLog.DayStreak();
+
+        GameObject now = Card("Now", statsRows);
+        MakeText("Subject", now.transform, $"Studying: <b>{StudyLog.Subject}</b>", BodySize, TextColor, TextAlignmentOptions.Left)
+            .gameObject.AddComponent<LayoutElement>().preferredHeight = 26;
+        MakeText("Totals", now.transform,
+            $"Today {StudyLog.Format(StudyLog.MinutesOn(today))}   ·   Last 7 days {StudyLog.Format(StudyLog.MinutesThisWeek())}   ·   All time {StudyLog.Format(StudyLog.TotalMinutes())}" +
+            (streak > 0 ? $"\n{streak}-day study streak (one missed day is forgiven)" : ""),
+            CaptionSize, MutedText, TextAlignmentOptions.Left).gameObject.AddComponent<LayoutElement>().preferredHeight = streak > 0 ? 36 : 18;
+
+        bool any = StudyLog.TotalMinutes() > 0;
+        statsEmpty.gameObject.SetActive(!any);
+        if (!any) return;
+
+        // The last seven days as bars, today on the right.
+        GameObject week = Card("Week", statsRows);
+        GameObject bars = Row("Bars", week.transform, 90, 6, true);
+        GameObject letters = Row("Letters", week.transform, 16, 6, true);
+        int most = 1;
+        for (int i = 0; i < 7; i++) most = Math.Max(most, StudyLog.MinutesOn(today.AddDays(i - 6)));
+        for (int i = 0; i < 7; i++)
+        {
+            DateTime day = today.AddDays(i - 6);
+            int minutes = StudyLog.MinutesOn(day);
+            Transform cell = Make(day.ToString("ddd"), bars.transform, typeof(LayoutElement)).transform;
+            cell.GetComponent<LayoutElement>().flexibleWidth = 1;
+            GameObject bar = Make("Bar", cell, typeof(Image));
+            Anchor(bar, new Vector2(0.2f, 0), new Vector2(0.8f, Mathf.Max(0.04f, (float)minutes / most)));
+            Style(bar.GetComponent<Image>(), minutes > 0 ? (day == today ? AccentColor : XpColor) : TabColor);
+            bar.GetComponent<Image>().raycastTarget = false;
+            MakeText("Letter", letters.transform, DayLetters[Monday(day)], CaptionSize, day == today ? TextColor : MutedText, TextAlignmentOptions.Center)
+                .gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+        }
+
+        // Tap a subject to study it again.
+        foreach (var pair in StudyLog.BySubject())
+        {
+            string subject = pair.Key;
+            GameObject row = ListRow(statsRows);
+            MakeText("Name", row.transform, subject == StudyLog.Subject ? $"<b>{subject}</b>" : subject, BodySize, TextColor, TextAlignmentOptions.Left)
+                .gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
+            MakeText("Time", row.transform, StudyLog.Format(pair.Value), LabelSize, MutedText, TextAlignmentOptions.Right)
+                .gameObject.AddComponent<LayoutElement>().preferredWidth = 80;
+            if (subject != StudyLog.Subject)
+                SmallButton(row.transform, "Study", AccentButtonColor, 70).onClick.AddListener(() => { StudyLog.Subject = subject; RefreshStats(); });
+        }
     }
 
     private void RefreshTodos()
@@ -289,16 +345,16 @@ public class PlannerUI : MonoBehaviour
         }
 
         string status = doneToday ? $"Done today. Best streak: {Math.Max(habit.bestStreak, streak)} days."
-            : slipping ? "Missed yesterday. Never miss twice: tick it today!"
+            : slipping ? $"Missed yesterday. Tick it today to keep your {streak}-day streak (never miss twice)."
             : streak > 0 ? $"Tick today to keep your {streak}-day chain going."
             : "Tap today's dot to start a chain.";
         MakeText("Status", card.transform, status, CaptionSize, slipping ? AccentColor : MutedText, TextAlignmentOptions.Left)
             .gameObject.AddComponent<LayoutElement>().preferredHeight = 18;
     }
 
-    private GameObject Card(string name)
+    private GameObject Card(string name, Transform parent = null)
     {
-        GameObject card = Make(name, habitRows, typeof(Image), typeof(VerticalLayoutGroup));
+        GameObject card = Make(name, parent != null ? parent : habitRows, typeof(Image), typeof(VerticalLayoutGroup));
         Style(card.GetComponent<Image>(), CardColor);
         var v = card.GetComponent<VerticalLayoutGroup>();
         v.padding = new RectOffset(10, 8, 8, 8);
@@ -420,26 +476,32 @@ public class PlannerUI : MonoBehaviour
         panel = MakeDrawer("PlannerPanel", canvas);
         Header(panel.transform, "Planner", Toggle);
 
-        GameObject tabs = Row("Tabs", panel.transform, 34, 6, true);
-        Button todoButton = TextButton("To-do", tabs.transform, "To-do", TabColor, LabelSize);
-        Button habitButton = TextButton("Habits", tabs.transform, "Daily habits", TabColor, LabelSize);
-        todoTab = todoButton.GetComponent<Image>();
-        habitTab = habitButton.GetComponent<Image>();
-        todoButton.onClick.AddListener(() => ShowPage(true));
-        habitButton.onClick.AddListener(() => ShowPage(false));
+        GameObject tabRow = Row("Tabs", panel.transform, 34, 6, true);
+        string[] tabNames = { "To-do", "Daily habits", "Stats" };
+        tabs = new Image[tabNames.Length];
+        for (int i = 0; i < tabNames.Length; i++)
+        {
+            int index = i;
+            Button tab = TextButton(tabNames[i], tabRow.transform, tabNames[i], TabColor, LabelSize);
+            tab.onClick.AddListener(() => ShowPage(index));
+            tabs[i] = tab.GetComponent<Image>();
+        }
 
-        todoPage = Page("TodoPage", "What do you need to get done?", name => { taskList.AddTask(name); RefreshTodos(); },
+        GameObject todoPage = Page("TodoPage", "What do you need to get done?", name => { taskList.AddTask(name); RefreshTodos(); },
             out todoRows, out todoEmpty, "Nothing on your list yet. Add a task above.");
-        habitPage = Page("HabitPage", "A small daily habit, e.g. Read 10 pages", name =>
+        GameObject habitPage = Page("HabitPage", "A small daily habit, e.g. Read 10 pages", name =>
         {
             if (habits.habits.Exists(h => h.habitName == name)) return;
             habits.AddHabit(name, "", 0);
             RefreshHabits();
         }, out habitRows, out habitEmpty, "Add a small habit and tap today's dot each day. Don't break the chain!");
+        GameObject statsPage = Page("StatsPage", "What are you studying? e.g. Maths", name => { StudyLog.Subject = name; RefreshStats(); },
+            out statsRows, out statsEmpty, "Finish a study session and your hours show up here.");
+        pages = new[] { todoPage, habitPage, statsPage };
 
         MakeText("Hint", panel.transform, $"+{TaskExperience} XP per task, +{HabitExperience} XP per habit a day, bonus at 3, 7, 14, 30 days", CaptionSize, MutedText, TextAlignmentOptions.Center)
             .gameObject.AddComponent<LayoutElement>().preferredHeight = 20;
-        ShowPage(true);
+        ShowPage(0);
     }
 
     // Input row + scrolling list + empty-state message.

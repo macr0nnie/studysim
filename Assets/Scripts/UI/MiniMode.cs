@@ -39,11 +39,6 @@ public class MiniMode : MonoBehaviour
     private float shakeUntil;
     static readonly Color FocusRing = new Color(1f, 0.78f, 0.4f, 0.9f), BreakRing = new Color(0.55f, 0.85f, 0.65f, 0.9f), NudgeRing = new Color(1f, 0.35f, 0.3f, 1f);
     private float lastClick = -1, blockUntil;
-    // Mini mode frames the character close up instead of the whole room, which is too small to read at 360x300.
-    private CharacterBehaviour character;
-    private IsometricCameraController cameraController;
-    private Vector3 cameraPosition;
-    private float cameraSize;
     private UnityEngine.UI.CanvasScaler bubbleScaler;
     private UnityEngine.UI.CanvasScaler.ScaleMode bubbleMode;
     private int shownTimer = -1;
@@ -88,7 +83,7 @@ public class MiniMode : MonoBehaviour
         // Leaving mini mode re-enables the key action, which can report the same key press once more.
         if (!Active && Time.unscaledTime > blockUntil && Controls.Pressed(Controls.Act.MiniMode) && !Typing()) Toggle();
         else if (Active) Overlay();
-        if (Active) { Progress(); FollowCharacter(false); }
+        if (Active) Progress();
         if (timerText != null && timer != null)
         {
             int s = Mathf.Max(0, Mathf.CeilToInt(timer.CurrentTime));
@@ -115,42 +110,6 @@ public class MiniMode : MonoBehaviour
         ((RectTransform)ring.transform).anchoredPosition = new Vector2(shake, 0f);
     }
 
-    // Keeps the camera on the character (it walks about on breaks), centred in the ring. The isometric camera's own
-    // script is paused meanwhile, since it resets the zoom every frame; the view is put back on the way out.
-    private void FollowCharacter(bool start)
-    {
-        Camera cam = Camera.main;
-        if (cam == null) return;
-        if (start)
-        {
-            character = FindAnyObjectByType<CharacterBehaviour>();
-            if (character == null) return;
-            cameraPosition = cam.transform.position;
-            cameraSize = cam.orthographicSize;
-            if (cam.TryGetComponent(out cameraController)) cameraController.enabled = false;
-        }
-        if (character == null) return;
-        Bounds b = default; bool found = false;
-        foreach (Renderer r in character.GetComponentsInChildren<Renderer>())
-            if (r.enabled && !(r is SpriteRenderer)) { if (!found) { b = r.bounds; found = true; } else b.Encapsulate(r.bounds); }
-        if (!found) return;
-        float size = Mathf.Clamp(b.size.y * 1.6f, 0.5f, cameraSize);
-        // Slide the camera across its own view plane (keeping its distance) so the character sits at the ring's centre.
-        Vector3 offset = b.center - cam.transform.position;
-        Vector3 aim = cam.transform.position + offset - cam.transform.forward * Vector3.Dot(offset, cam.transform.forward) + cam.transform.up * (size * 0.16f);
-        float k = start ? 1f : Mathf.Clamp01(Time.unscaledDeltaTime * 3f);
-        cam.transform.position = Vector3.Lerp(cam.transform.position, aim, k);
-        cam.orthographicSize = Mathf.Lerp(cam.orthographicSize, size, k);
-    }
-
-    private void RestoreCamera()
-    {
-        Camera cam = Camera.main;
-        if (character != null && cam != null) { cam.transform.position = cameraPosition; cam.orthographicSize = cameraSize; }
-        if (cameraController != null) cameraController.enabled = true;
-        character = null; cameraController = null;
-    }
-
     // A thin annulus, made once: the radial fill of an Image turns it into a progress ring.
     private Sprite RingSprite()
     {
@@ -162,7 +121,7 @@ public class MiniMode : MonoBehaviour
             for (int x = 0; x < size; x++)
             {
                 float d = new Vector2(x - size / 2f + 0.5f, y - size / 2f + 0.5f).magnitude;
-                float a = Mathf.Clamp01(size / 2f - 1f - d) * Mathf.Clamp01(d - (size / 2f - 12f)); // 11 px wide, soft edges
+                float a = Mathf.Clamp01(size / 2f - 1f - d) * Mathf.Clamp01(d - (size / 2f - 30f)); // a thick band, so it reads at 64 px
                 pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255));
             }
         tex.SetPixels32(pixels);
@@ -216,7 +175,6 @@ public class MiniMode : MonoBehaviour
                 Show(c, false); hidden.Add(c);
             }
             ShowTimer();
-            FollowCharacter(true);
         }
         else
         {
@@ -225,7 +183,6 @@ public class MiniMode : MonoBehaviour
             hidden.Clear();
             if (bubbleScaler != null) bubbleScaler.uiScaleMode = bubbleMode;
             bubbleScaler = null;
-            RestoreCamera();
         }
         Economy(Active);
         blockUntil = Time.unscaledTime + 0.5f;
@@ -254,8 +211,8 @@ public class MiniMode : MonoBehaviour
         {
             GameObject go = Make(i == 0 ? "MiniRingTrack" : "MiniRing", canvas.transform, typeof(Image));
             var rect = (RectTransform)go.transform;
-            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.42f);
-            rect.sizeDelta = new Vector2(230, 230);
+            rect.anchorMin = rect.anchorMax = new Vector2(0.87f, 0.16f); // a small corner dial, clear of the room
+            rect.sizeDelta = new Vector2(64, 64);
             var image = go.GetComponent<Image>();
             image.sprite = RingSprite();
             image.raycastTarget = false;

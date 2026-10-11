@@ -31,7 +31,7 @@ public class SavesUI : MonoBehaviour
     private void Awake()
     {
         BuildUI();
-        if (GameSettings.Web) autosaveSeconds = Mathf.Min(autosaveSeconds, 30f); // closing a tab doesn't reliably call OnApplicationQuit
+        if (!GameSettings.Desktop) autosaveSeconds = Mathf.Min(autosaveSeconds, 30f); // closing a tab or swiping an app away doesn't reliably call OnApplicationQuit
         nextAutosave = Time.unscaledTime + autosaveSeconds;
         SaveSystem.Saved += OnSaved;
     }
@@ -40,10 +40,10 @@ public class SavesUI : MonoBehaviour
 
     private void OnApplicationQuit() => SaveSystem.Save(SaveSystem.CurrentSlot);
 
-    // In a browser, switching tabs or clicking off the itch.io frame is the last reliable moment to save.
+    // In a browser, switching tabs or clicking off the itch.io frame is the last reliable moment to save; on iOS, leaving the app.
     private void OnApplicationFocus(bool focused)
     {
-        if (!focused && GameSettings.Web) SaveSystem.Save(SaveSystem.CurrentSlot);
+        if (!focused && !GameSettings.Desktop) SaveSystem.Save(SaveSystem.CurrentSlot);
     }
 
     private void Update()

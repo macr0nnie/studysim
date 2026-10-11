@@ -56,7 +56,7 @@ public class ChromeWebEx : MonoBehaviour
     [SerializeField] private TMP_Text debugText;
 
 
-    void Start() { if (!GameSettings.Web) StartListening(); } // a web page can't listen on a port
+    void Start() { if (GameSettings.Desktop) StartListening(); } // a web page or phone app can't take the extension's messages
 
     // Settings > Browser extension "Reconnect": e.g. after closing whatever held the port.
     public void Restart()

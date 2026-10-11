@@ -191,6 +191,7 @@ public static class UIKit
         // Expand keeps the whole 1920x1080 layout on screen at any aspect: ultrawide gets extra width,
         // 16:10 and 4:3 get extra height, and nothing scales off the edge.
         scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
+        if (Application.isMobilePlatform) go.AddComponent<SafeArea>();
         return canvas;
     }
 

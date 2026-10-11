@@ -78,7 +78,7 @@ public static class SaveSystem
         }
         CurrentSlot = slot;
         UIKit.LoadSavedTheme();
-        SceneManager.LoadScene(GameScene);
+        LoadingScreen.Load(GameScene);
     }
 
     // Writes a slot's snapshot back into the live keys. False when the slot is empty.

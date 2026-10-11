@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Guitar_01
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Acoustic Guitar
+  description: A little guitar for strumming on breaks.
+  category: 8
+  tags:
+  - guitar
+  - music
+  - cute
+  price: 40
+  prefab: {fileID: 6093456521913328735, guid: 2bbce9741ba19a84ca5b3b8d7591d2ba, type: 3}
+  icon: {fileID: 21300000, guid: 868f8fcc8f059564ebb16f35cfff1119, type: 3}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

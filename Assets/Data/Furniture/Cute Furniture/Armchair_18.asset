@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ed52eb2e87e04489a3906808a24770d0, type: 3}
+  m_Name: Armchair_18
+  m_EditorClassIdentifier: Assembly-CSharp::FurnitureItem
+  displayName: Red Wingback Armchair
+  description: A cosy red armchair with wooden arms.
+  category: 0
+  tags:
+  - armchair
+  - comfy
+  - cute
+  price: 60
+  prefab: {fileID: 1315755215366512931, guid: 1a7ca4ae1867e824d852f488df629700, type: 3}
+  icon: {fileID: 21300000, guid: 67e73ee59f0719c4b835a018a0528382, type: 3}
+  colorable: 1
+  frontYaw: 0
+  sit:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  lie:
+    enabled: 0
+    height: 0
+    offset: {x: 0, y: 0}
+    yaw: 0
+  comfort: 1

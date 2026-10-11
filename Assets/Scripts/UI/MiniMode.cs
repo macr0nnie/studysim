@@ -65,6 +65,19 @@ public class MiniMode : MonoBehaviour
             instance = new GameObject("MiniMode").AddComponent<MiniMode>();
     }
 
+    // A small square button just right of the dock. Its canvas is a root canvas, so going mini hides it with the rest.
+    private void Start()
+    {
+        Canvas canvas = MakeCanvas("MiniButtonCanvas", transform, 10);
+        Button button = TextButton("MiniButton", canvas.transform, "Mini", TabColor, CaptionSize);
+        button.gameObject.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.25f);
+        var rect = (RectTransform)button.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
+        rect.sizeDelta = new Vector2(NavHeight, NavHeight);
+        rect.anchoredPosition = new Vector2((DockSlots - 1) / 2f * (NavWidth + NavGap) + NavWidth / 2 + NavGap + NavHeight / 2, NavY);
+        button.onClick.AddListener(() => { if (!Active) Toggle(); });
+    }
+
     public static void Set(bool on)
     {
         if (instance != null && on != Active) instance.Toggle();

@@ -102,8 +102,8 @@ public static class UIKit
     // The dock: one row of room buttons centred along the bottom (Edit, Shop, Paint, Planner, Settings), one
     // shared slot per button so they line up whichever script builds them. Bottom-centred things (the edit-mode
     // key bar) sit above DockTop.
-    const int DockSlots = 5;
-    const float NavWidth = 120, NavHeight = 44, NavGap = 8, NavY = 20;
+    public const int DockSlots = 5;
+    public const float NavWidth = 120, NavHeight = 44, NavGap = 8, NavY = 20;
     public const float DockTop = NavY + NavHeight;
 
     public static Button NavButton(Transform canvas, int slot, string label, Controls.Act? key)

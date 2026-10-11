@@ -11,7 +11,7 @@ public static class PieceRecolor
     const int MaxSize = 256;  // the atlases are flat swatches, so a small copy loses nothing
     const int Tolerance = 24; // per channel, out of 255: texels this close to the main swatch count as it
     static readonly Dictionary<Texture, Texture2D> readable = new Dictionary<Texture, Texture2D>();
-    static readonly Dictionary<string, Material> painted = new Dictionary<string, Material>();
+    static readonly Dictionary<KeyValuePair<Material, string>, Material> painted = new Dictionary<KeyValuePair<Material, string>, Material>();
 
     public static bool Apply(Renderer[] renderers, Color color)
     {
@@ -65,7 +65,7 @@ public static class PieceRecolor
     // Shared between pieces painted the same, so a room of red chairs holds one material, not one each.
     static Material Painted(Material source, Color32 swatch, Color color)
     {
-        string key = source.GetInstanceID() + "/" + ColorUtility.ToHtmlStringRGB(Quantize(swatch)) + "/" + ColorUtility.ToHtmlStringRGB(color);
+        var key = new KeyValuePair<Material, string>(source, ColorUtility.ToHtmlStringRGB(Quantize(swatch)) + "/" + ColorUtility.ToHtmlStringRGB(color));
         if (painted.TryGetValue(key, out Material done) && done != null) return done;
         var m = new Material(source) { name = source.name + " (painted)" };
         Texture2D tex = Readable(source.mainTexture);

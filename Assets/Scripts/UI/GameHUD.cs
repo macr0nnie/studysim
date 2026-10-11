@@ -167,7 +167,7 @@ public class GameHUD : MonoBehaviour
     private void FadeWhenIdle()
     {
         bool input = (Mouse.current != null && (Mouse.current.delta.ReadValue() != Vector2.zero || Mouse.current.scroll.ReadValue() != Vector2.zero))
-            || (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame);
+            || (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame) || Controls.ClickHeld; // a touch counts too
         if (input || toastPlaying || DrawerOpen || (room != null && room.IsEditMode)) lastInput = Time.unscaledTime;
         float idleAfter = timer != null && timer.IsTimerRunning && timer.IsStudySession ? IdleAfter / 2 : IdleAfter; // step back sooner while studying
         float target = Time.unscaledTime - lastInput > idleAfter ? IdleAlpha : 1f;

@@ -5,6 +5,8 @@ public static class GameSettings
 {
     // Browser (WebGL) build, e.g. on itch.io: no extension bridge, mini mode, Spotify or Quit there.
     public static bool Web => Application.platform == RuntimePlatform.WebGLPlayer;
+    // Windows/Mac/Linux app: the only place the extension bridge, mini mode, Spotify and Quit work (not web, iPhone or iPad).
+    public static bool Desktop => !Web && !Application.isMobilePlatform;
 
     public enum FocusMode { Pomodoro, DeepFocus, Sprint, Custom }
 

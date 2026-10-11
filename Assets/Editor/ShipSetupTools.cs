@@ -1,4 +1,5 @@
 using UnityEditor;
+using UnityEditor.Build;
 using UnityEditor.PackageManager;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -44,6 +45,27 @@ public static class ShipSetupTools
             target = BuildTarget.WebGL,
         });
         Debug.Log($"Study Sim web build: {report.summary.result}, {report.summary.totalSize / (1024 * 1024)} MB in Builds/WebGL.");
+    }
+
+    // iPhone/iPad: writes an Xcode project to Builds/iOS. Needs Unity's iOS Build Support module (works on Windows);
+    // the project is then opened in Xcode on a Mac to sign, run on a phone and upload to TestFlight.
+    [MenuItem("Study Sim/Build for iOS (Xcode project)")]
+    public static void BuildIOS()
+    {
+        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.macronnie.studysim");
+        // Landscape only: the UI is laid out for 1920x1080.
+        PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
+        PlayerSettings.allowedAutorotateToPortrait = false;
+        PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
+        PlayerSettings.allowedAutorotateToLandscapeLeft = true;
+        PlayerSettings.allowedAutorotateToLandscapeRight = true;
+        var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+        {
+            scenes = System.Array.ConvertAll(System.Array.FindAll(EditorBuildSettings.scenes, s => s.enabled), s => s.path),
+            locationPathName = "Builds/iOS",
+            target = BuildTarget.iOS,
+        });
+        Debug.Log($"Study Sim iOS build: {report.summary.result}. Open Builds/iOS/Unity-iPhone.xcodeproj in Xcode on a Mac.");
     }
 
     // Separate so it can wait until testing is done.

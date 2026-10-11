@@ -9,7 +9,7 @@ using UnityEngine.UI;
 // placing furniture, coins, lamps and warnings. Volume follows Settings > Sound > Effects.
 public class UISound : MonoBehaviour
 {
-    public enum Cue { Click, Toggle, Denied, Place, Coin, Light, Warning, Recovered, TimerEnd }
+    public enum Cue { Click, Toggle, Denied, Place, Coin, Light, Warning, Recovered }
 
     private const float PackVolume = 0.5f; // the pack's clips are mastered much louder than the synth ones
 
@@ -51,7 +51,7 @@ public class UISound : MonoBehaviour
         clips[(int)Cue.Recovered] = Synth("Recovered", 0.45f, t => Sweep(t, 330, 660, 0.45f) * Env(t, 5) * 0.16f);
 
         // Dustyroom's Casual Game SFX replace the synth sounds where present (Resources/UISounds); swap a number to
-        // try another clip from Assets/Casual Game Sounds U6. TimerEnd has no synth version, so it's silent without one.
+        // try another clip from Assets/Casual Game Sounds U6.
         foreach (var (cue, clip) in PackClips)
         {
             var loaded = Resources.Load<AudioClip>("UISounds/DM-CGS-" + clip);
@@ -62,7 +62,7 @@ public class UISound : MonoBehaviour
     private static readonly (Cue cue, string clip)[] PackClips =
     {
         (Cue.Click, "16"), (Cue.Toggle, "41"), (Cue.Denied, "14"), (Cue.Place, "35"), (Cue.Coin, "31"),
-        (Cue.Light, "44"), (Cue.Warning, "38"), (Cue.Recovered, "33"), (Cue.TimerEnd, "45"),
+        (Cue.Light, "44"), (Cue.Warning, "38"), (Cue.Recovered, "33"),
     };
 
     private void Update()

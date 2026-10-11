@@ -45,6 +45,7 @@ public static class GameSettings
 
     public static RoomAmbience.Style Ambience { get => (RoomAmbience.Style)PlayerPrefs.GetInt("Ambience", 1); set => PlayerPrefs.SetInt("Ambience", (int)value); }
     public static bool UISounds { get => Get("UISounds", true); set => Set("UISounds", value); }
+    public static bool Rain { get => Get("Rain", false); set => Set("Rain", value); }
     public static bool DistractionPenalty { get => Get("DistractionPenalty", true); set => Set("DistractionPenalty", value); }
     public static int DistractionCoinsPerMinute { get => PlayerPrefs.GetInt("DistractionCoins", 6); set => PlayerPrefs.SetInt("DistractionCoins", value); }
 

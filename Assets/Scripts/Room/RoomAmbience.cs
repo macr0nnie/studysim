@@ -9,8 +9,8 @@ using UnityEngine.UI;
 // Cozy room lighting, built at runtime so the scene stays untouched: a warm key light, a cool ambient fill,
 // warm soft lamps, and a light URP Volume (bloom, vignette, grading). The room dims and warms while a study
 // session runs or every lamp is off, and brightens on a break. Settings > Sound > Lighting picks Off / Cozy / Bright.
-// Behind the room is a sky gradient that follows the clock (hidden while Paint > Background has a colour), and a few
-// dust motes drift in the room, with a soft shadow under it so it doesn't float.
+// Behind the room is a sky that follows the clock (clouds by day, stars at night, optional rain; hidden while
+// Paint > Background has a colour), and a few dust motes drift in the room, with a soft shadow under it so it doesn't float.
 // Mini mode owns shadows and post-processing while it is active, so this only turns the Volume off there.
 public class RoomAmbience : MonoBehaviour
 {
@@ -48,9 +48,12 @@ public class RoomAmbience : MonoBehaviour
     public static bool SkyHidden; // set by PaintUI while a background colour is picked
 
     private static RoomAmbience instance;
-    private RawImage skyImage, skyPhoto;
-    private Texture2D skyTexture;
+    private Canvas skyCanvas;
+    private RawImage skyImage, skyPhoto, stars, rain;
+    private Texture2D skyTexture, starTexture, rainTexture;
     private float skyClock;
+    private bool raining;
+    private AudioSource rainSound;
     private ParticleSystem dust;
     private Material shadowMaterial;
     private RoomManager room;
@@ -121,6 +124,9 @@ public class RoomAmbience : MonoBehaviour
     {
         if (volume != null) Destroy(volume.sharedProfile);
         if (skyTexture != null) Destroy(skyTexture);
+        if (starTexture != null) Destroy(starTexture);
+        if (rainTexture != null) Destroy(rainTexture);
+        if (rainSound != null) Destroy(rainSound.clip);
         if (shadowMaterial != null) Destroy(shadowMaterial);
         if (dust != null) { Destroy(dust.GetComponent<ParticleSystemRenderer>().sharedMaterial.mainTexture); Destroy(dust.GetComponent<ParticleSystemRenderer>().sharedMaterial); }
         if (instance == this) instance = null;
@@ -129,11 +135,19 @@ public class RoomAmbience : MonoBehaviour
     private void Update()
     {
         bool mini = MiniMode.Active;
-        if (skyImage != null)
+        if (GameSettings.Rain != raining) SetRain(GameSettings.Rain);
+        if (rainSound != null) rainSound.volume = GameSettings.EffectsVolume * 0.35f;
+        if (skyCanvas != null)
         {
             bool showSky = !SkyHidden && !mini; // mini mode's window needs the camera's own clear colour
-            if (skyImage.enabled != showSky) { skyImage.enabled = showSky; if (skyPhoto != null) skyPhoto.enabled = showSky; }
+            if (skyCanvas.enabled != showSky) skyCanvas.enabled = showSky;
             if (showSky && (skyClock -= Time.unscaledDeltaTime) <= 0) { skyClock = 30; PaintSky(); }
+            if (showSky && raining)
+            {
+                Rect r = rain.uvRect;
+                r.y = Mathf.Repeat(r.y + Time.unscaledDeltaTime * 1.4f, 1f); // scrolling one small texture is the whole effect
+                rain.uvRect = r;
+            }
         }
         if (key == null) return;
         if ((scanClock -= Time.unscaledDeltaTime) <= 0) { scanClock = LampScan; ScanLamps(); if (dust == null) BuildDust(); }
@@ -215,34 +229,104 @@ public class RoomAmbience : MonoBehaviour
         if (cam == null) return;
         var canvasGO = new GameObject("Sky", typeof(Canvas));
         canvasGO.transform.SetParent(transform, false);
-        var canvas = canvasGO.GetComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceCamera;
-        canvas.worldCamera = cam;
-        canvas.planeDistance = cam.farClipPlane * 0.95f;
-        canvas.sortingOrder = -100;
-        skyImage = new GameObject("Gradient", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
-        skyImage.transform.SetParent(canvasGO.transform, false);
-        var rect = (RectTransform)skyImage.transform;
-        rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = rect.offsetMax = Vector2.zero;
-        skyImage.raycastTarget = false;
+        skyCanvas = canvasGO.GetComponent<Canvas>();
+        skyCanvas.renderMode = RenderMode.ScreenSpaceCamera;
+        skyCanvas.worldCamera = cam;
+        skyCanvas.planeDistance = cam.farClipPlane * 0.95f;
+        skyCanvas.sortingOrder = -100;
         skyTexture = new Texture2D(1, 2, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
-        skyImage.texture = skyTexture;
-        skyImage.uvRect = new Rect(0, 0.25f, 1, 0.5f); // texel centre to texel centre: a full bottom-to-top blend
+        skyImage = SkyLayer("Gradient", skyTexture, new Rect(0, 0.25f, 1, 0.5f)); // texel centre to texel centre: a full bottom-to-top blend
+
+        // Stars fade in at night: one small generated texture, tiled.
+        starTexture = Dots(256, 256, 90, 1, (x, y) => new Color(1f, 1f, 1f, 0.5f + Hash(x, y) * 0.5f));
+        stars = SkyLayer("Stars", starTexture, new Rect(0, 0, 2f * cam.aspect, 2f));
 
         // A cloudy daytime sky photo over the gradient, faded out towards night so the gradient's dusk and night show.
         // One static texture: the photo is never redrawn, only its tint and fade change every 30 seconds.
         var photo = Resources.Load<Texture2D>("RoomSky");
-        if (photo != null)
-        {
-            skyPhoto = new GameObject("Clouds", typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
-            skyPhoto.transform.SetParent(canvasGO.transform, false);
-            rect = (RectTransform)skyPhoto.transform;
-            rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = rect.offsetMax = Vector2.zero;
-            skyPhoto.raycastTarget = false;
-            skyPhoto.texture = photo;
-            skyPhoto.uvRect = new Rect(0.3f, 0.48f, 0.4f, 0.4f); // the wispy clouds just above the panorama's horizon
-        }
+        if (photo != null) skyPhoto = SkyLayer("Clouds", photo, new Rect(0.3f, 0.48f, 0.4f, 0.4f)); // the wispy clouds above the horizon
+
+        // Rain: short slanted streaks on one small tiled texture, scrolled down while it rains (Settings > Display).
+        rainTexture = Dots(64, 128, 14, 18, (x, y) => new Color(0.85f, 0.9f, 1f, 0.2f + Hash(x, y) * 0.3f));
+        rain = SkyLayer("Rain", rainTexture, new Rect(0, 0, 6f * cam.aspect, 3f));
+        rain.color = new Color(1f, 1f, 1f, 0.7f);
+        rain.gameObject.SetActive(raining);
         PaintSky();
+    }
+
+    private RawImage SkyLayer(string name, Texture texture, Rect uv)
+    {
+        var image = new GameObject(name, typeof(RectTransform), typeof(RawImage)).GetComponent<RawImage>();
+        image.transform.SetParent(skyCanvas.transform, false);
+        var rect = (RectTransform)image.transform;
+        rect.anchorMin = Vector2.zero; rect.anchorMax = Vector2.one; rect.offsetMin = rect.offsetMax = Vector2.zero;
+        image.raycastTarget = false;
+        image.texture = texture;
+        image.uvRect = uv;
+        return image;
+    }
+
+    // A transparent, tiling texture with `count` marks at seeded random spots, each `length` pixels tall and leaning
+    // one pixel right every six down (1 = a single dot).
+    private static Texture2D Dots(int width, int height, int count, int length, Func<int, int, Color> color)
+    {
+        var tex = new Texture2D(width, height, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };
+        var pixels = new Color32[width * height];
+        var rng = new System.Random(7);
+        for (int i = 0; i < count; i++)
+        {
+            int x = rng.Next(width), y = rng.Next(height);
+            Color c = color(x, y);
+            for (int j = 0; j < length; j++)
+                pixels[(y - j + height) % height * width + (x + j / 6) % width] = c;
+        }
+        tex.SetPixels32(pixels);
+        tex.Apply();
+        return tex;
+    }
+
+    private static float Hash(int x, int y) => Mathf.Repeat(Mathf.Sin(x * 12.9898f + y * 78.233f) * 43758.5453f, 1f);
+
+    private void SetRain(bool on)
+    {
+        raining = on;
+        skyClock = 0; // repaint: rain greys the sky and hides the stars
+        if (rain != null) rain.gameObject.SetActive(on);
+        if (on && rainSound == null)
+        {
+            rainSound = gameObject.AddComponent<AudioSource>();
+            rainSound.clip = RainLoop();
+            rainSound.loop = true;
+            rainSound.spatialBlend = 0;
+        }
+        if (rainSound == null) return;
+        if (on) rainSound.Play(); else rainSound.Stop();
+    }
+
+    // Three seconds of softened noise, made once in code: the patter of steady rain, no audio file needed.
+    private static AudioClip RainLoop()
+    {
+        const int rate = 22050, length = rate * 3, fade = rate / 4;
+        var data = new float[length + fade];
+        var rng = new System.Random(3);
+        float low = 0, slow = 0;
+        for (int i = 0; i < data.Length; i++)
+        {
+            low += ((float)rng.NextDouble() * 2 - 1 - low) * 0.2f; // take the edge off the hiss
+            slow += (low - slow) * 0.01f; // and the rumble out
+            data[i] = (low - slow) * 0.8f;
+        }
+        // Fade the extra tail into the start, so the loop point is seamless.
+        var loop = new float[length];
+        Array.Copy(data, loop, length);
+        for (int i = 0; i < fade; i++)
+        {
+            float t = (float)i / fade;
+            loop[i] = data[i] * t + data[length + i] * (1 - t);
+        }
+        AudioClip clip = AudioClip.Create("Rain", length, 1, rate, false);
+        clip.SetData(loop, 0);
+        return clip;
     }
 
     private void PaintSky()
@@ -252,15 +336,25 @@ public class RoomAmbience : MonoBehaviour
         while (i < SkyKeys.Length - 2 && hour > SkyKeys[i + 1].hour) i++;
         float t = Mathf.InverseLerp(SkyKeys[i].hour, SkyKeys[i + 1].hour, hour);
         Color bottom = Color.Lerp(SkyKeys[i].bottom, SkyKeys[i + 1].bottom, t), top = Color.Lerp(SkyKeys[i].top, SkyKeys[i + 1].top, t);
+        float day = Mathf.InverseLerp(0.15f, 0.8f, top.grayscale);
+        if (raining) { bottom = Overcast(bottom); top = Overcast(top); }
         skyTexture.SetPixel(0, 0, bottom);
         skyTexture.SetPixel(0, 1, top);
         skyTexture.Apply();
+        stars.color = new Color(1f, 1f, 1f, raining ? 0f : 1f - day);
         if (skyPhoto != null)
         {
-            Color tint = Color.Lerp(bottom, Color.white, 0.6f); // warm at dawn and dusk, plain by day
-            tint.a = Mathf.InverseLerp(0.15f, 0.8f, top.grayscale); // gone at night, full by day
+            Color tint = Color.Lerp(bottom, Color.white, raining ? 0.2f : 0.6f); // warm at dawn and dusk, plain by day
+            tint.a = day; // gone at night, full by day
             skyPhoto.color = tint;
         }
+    }
+
+    // Grey and a little darker, for a rainy sky.
+    private static Color Overcast(Color c)
+    {
+        float g = c.grayscale * 0.8f;
+        return Color.Lerp(c, new Color(g, g, g, 1f), 0.75f);
     }
 
     // A few slow warm motes over the floor. Cheap: at most 40 particles, no lights or collisions.

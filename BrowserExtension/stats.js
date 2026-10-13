@@ -1,10 +1,9 @@
 const $ = id => document.getElementById(id);
 const fmt = m => m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m` : `${m}m`;
-// Same colours as habits in the game's planner.
-const PALETTE = ["#E86A6A", "#F2A33A", "#D9B52B", "#5BBF7A", "#39B5A8", "#4A90D9", "#8E7CD6", "#D870B0", "#8A9A5B", "#C98A5E"];
+// Soft lofi colours, one per tag.
+const PALETTE = ["#8b7fd1", "#e9a8bd", "#8fc19b", "#9cc3e6", "#f2c879", "#c7a2d9", "#7fb8b0", "#e6b49a", "#a7a3c4", "#d4c27a"];
 let entries = [], range = "days", only = null;
 
-chrome.storage.local.get("theme").then(r => applyTheme(r.theme));
 
 async function load() {
   const status = await gameStatus();
@@ -14,7 +13,6 @@ async function load() {
   $("pill").className = "pill " + (history ? "on" : "off");
   $("offline").hidden = !!history;
   $("content").hidden = !history;
-  if (status && status.theme) applyTheme(status.theme);
   if (!history) return;
   entries = history.entries || [];
   draw();

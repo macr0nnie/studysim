@@ -1,8 +1,6 @@
-# lofilife privacy policy (draft)
+# lofilife privacy policy
 
-_Draft written for review. It is not legal advice; check it before publishing and fill in the contact line._
-
-Last updated: 2026-10-11
+Last updated: 2026-10-13
 
 ## The game
 - lofilife has no accounts, ads, analytics or crash reporting.
@@ -14,8 +12,10 @@ Last updated: 2026-10-11
 ## The browser extension (lofilife Focus)
 - The extension reads the address of your active tab to check it against your lists of distracting and study sites.
 - It sends only the site's host name (for example `youtube.com`) and timer commands to the game on your computer at `localhost:8080`. Nothing is sent to any other server.
+- The focus stats page reads your session history and tags from the game on your computer. The extension doesn't keep its own copy.
+- Your colour theme is saved in the extension's local storage on your computer.
 - Your site lists and blocking choice are saved with Chrome's storage (`chrome.storage.sync`), which Chrome may sync between your own browsers if you are signed in to Chrome.
 - The extension does not sell, share or transfer any data, and does not use it for anything other than the features above.
 
 ## Contact
-Questions: [ronnie: add a contact email]
+Questions or requests: open an issue at https://github.com/macr0nnie/studysim/issues

@@ -35,7 +35,7 @@ Channels: `playtest-web` (browser build) and `playtest-windows` (zip download).
 
 ### 3. Chrome Web Store (optional)
 
-The API can only update an extension that already exists in the store, so the first submission is done by hand in the Developer Dashboard (listing, privacy tab, screenshots). After that:
+The API can only update an extension that already exists in the store, so the first submission is done by hand in the Developer Dashboard (listing, privacy tab, screenshots). On that first submission, set Visibility to **Private** (trusted testers) until you want it public: the workflow publishes with whatever visibility the dashboard has, so testers get each update and the public doesn't. After that:
 
 1. In Google Cloud Console: create a project, enable the **Chrome Web Store API**, set up the OAuth consent screen, and create an OAuth client (Web application). Your Google account needs 2-step verification.
 2. Get a refresh token for the `https://www.googleapis.com/auth/chromewebstore` scope from the OAuth 2.0 Playground (use your own client ID and secret in its settings).

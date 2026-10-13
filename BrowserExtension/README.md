@@ -6,7 +6,7 @@ A Chrome extension that connects your browser to the lofilife desktop game while
 - **Focus stats:** level and XP, minutes focused, sessions and distractions today, your day streak, a bar chart of the last 7 days and your most studied subject this week.
 - **Graphs and tags:** "See all stats" opens a page with focus time by day, week, month and year, stacked by tag, plus totals, averages and a per-tag breakdown (click a tag to show only it). The tag is the game's study subject: set it in the popup (or pick a recent one) and each finished session is logged under it.
 - **Game colours:** the popup uses the game's menu colours and follows Paint > Menus when you change them.
-- **Badge:** the toolbar icon shows the minutes left: terracotta while studying, green on a break, grey when paused, blank when the game isn't running.
+- **Badge:** the toolbar icon shows the minutes left: red while studying, green on a break, grey when paused, blank when the game isn't running.
 - **Distracting sites** (YouTube, TikTok, Reddit and so on, editable in the popup): during a study session, being on one makes the room in the game fall apart and drains coins until you leave.
 - **Blocking:** the extension can also block distracting sites. It does this during strict focus sessions by default, during every study session if you choose, or never.
 - **Study sites** (Google Docs, Notion, Wikipedia and so on): these earn focus XP, at most 1 XP a minute.

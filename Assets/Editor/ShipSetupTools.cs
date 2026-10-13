@@ -45,6 +45,27 @@ public static class ShipSetupTools
             target = BuildTarget.WebGL,
         });
         Debug.Log($"Study Sim web build: {report.summary.result}, {report.summary.totalSize / (1024 * 1024)} MB in Builds/WebGL.");
+        FailCI(report);
+    }
+
+    [MenuItem("Study Sim/Build for Windows")]
+    public static void BuildWindows()
+    {
+        var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+        {
+            scenes = System.Array.ConvertAll(System.Array.FindAll(EditorBuildSettings.scenes, s => s.enabled), s => s.path),
+            locationPathName = "Builds/Windows/lofilife.exe",
+            target = BuildTarget.StandaloneWindows64,
+        });
+        Debug.Log($"Study Sim Windows build: {report.summary.result} in Builds/Windows.");
+        FailCI(report);
+    }
+
+    // The CI workflow runs these with -batchmode; a non-zero exit code is how it learns the build failed.
+    static void FailCI(UnityEditor.Build.Reporting.BuildReport report)
+    {
+        if (Application.isBatchMode && report.summary.result != UnityEditor.Build.Reporting.BuildResult.Succeeded)
+            EditorApplication.Exit(1);
     }
 
     // iPhone/iPad: writes an Xcode project to Builds/iOS. Needs Unity's iOS Build Support module (works on Windows);

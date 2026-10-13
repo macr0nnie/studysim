@@ -49,6 +49,8 @@ public static class GameSettings
     public static bool AutosaveBadge { get => Get("NotifyAutosave", true); set => Set("NotifyAutosave", value); }
 
     public static RoomAmbience.Style Ambience { get => (RoomAmbience.Style)PlayerPrefs.GetInt("Ambience", 1); set => PlayerPrefs.SetInt("Ambience", (int)value); }
+    // shortcut: defaults to Low on Intel graphics only; AMD/Apple integrated chips start on normal, widen if players report lag.
+    public static bool LowGraphics { get => Get("LowGraphics", SystemInfo.graphicsDeviceName.Contains("Intel")); set { Set("LowGraphics", value); GameManager.ApplyGraphics(); } }
     public static bool UISounds { get => Get("UISounds", true); set => Set("UISounds", value); }
     public static bool OnlineCovers { get => Get("OnlineCovers", false); set => Set("OnlineCovers", value); } // off by default: it sends the song to Apple
     // Changing by default; a player who had the old Rain switch on keeps rain.

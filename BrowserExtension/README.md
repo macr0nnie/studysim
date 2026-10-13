@@ -3,6 +3,8 @@
 A Chrome extension that connects your browser to the lofilife desktop game while it runs. It works in Chrome, Edge, Brave and other Chromium browsers (version 120 or newer). The web and iOS versions of the game don't talk to it.
 
 - **Popup:** shows the game's timer. You can start, pause and reset it, and set the study length (5 to 120 minutes, while the timer is stopped).
+- **Focus stats:** level and XP, minutes focused, sessions and distractions today, your day streak, a bar chart of the last 7 days and your most studied subject this week.
+- **Game colours:** the popup uses the game's menu colours and follows Paint > Menus when you change them.
 - **Badge:** the toolbar icon shows the minutes left: terracotta while studying, green on a break, grey when paused, blank when the game isn't running.
 - **Distracting sites** (YouTube, TikTok, Reddit and so on, editable in the popup): during a study session, being on one makes the room in the game fall apart and drains coins until you leave.
 - **Blocking:** the extension can also block distracting sites. It does this during strict focus sessions by default, during every study session if you choose, or never.
@@ -24,7 +26,7 @@ The listing text, permission justifications and images are in [`store/`](store/)
 ## How it talks to the game
 The extension uses plain HTTP on `http://localhost:8080/`, which `ChromeWebEx.cs` serves while the game runs.
 
-- **GET** returns `{"running","studying","secondsLeft","mode","strict","distracted"}`.
+- **GET** returns `{"running","studying","secondsLeft","phaseSeconds","mode","strict","distracted"}`, plus stats (`level`, `xp`, `xpNext`, `todayMinutes`, `todaySessions`, `distractionsToday`, `streak`, `week` (7 days, today last), `topSubject`) and `theme` (the menu palette as hex). Older game builds leave the stats out and the popup hides them.
 - **POST** sends a JSON body `{"action": ...}`. The actions are:
   - `start`, `pause`, `reset`
   - `set` with `minutes`

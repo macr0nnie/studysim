@@ -15,6 +15,8 @@ Focus companion for the lofilife desktop game: control your study timer, earn XP
 >
 > • See your study timer in the toolbar. The icon shows the minutes left.
 > • Start, pause, reset or change the length of a session from any tab.
+> • See your focus stats: time focused, sessions and distractions today, your streak, and a chart of your week.
+> • The popup matches the menu colours you pick in the game.
 > • Open a distracting site during a study session and your room in the game starts falling apart until you leave.
 > • Study sites like Google Docs, Notion and Wikipedia earn focus XP.
 > • Block distracting sites during strict focus sessions, during every study session, or never.

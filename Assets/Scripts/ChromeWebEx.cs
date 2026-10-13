@@ -36,17 +36,33 @@ public class ChromeWebEx : MonoBehaviour
     private HttpListener _httpListener;
     private Thread _listenerThread;
     private volatile string _status = "{}"; // written on the main thread, served by the listener thread
-    private float _nextStatus;
+    private float _nextStatus, _nextStats;
+    private readonly Status _state = new Status();
 
     [Serializable]
     private class Status
     {
         public bool running, studying, strict, distracted;
-        public int secondsLeft;
+        public int secondsLeft, phaseSeconds;
         public string mode;
+        // Progress for the extension popup, refreshed every few seconds.
+        public int level, xp, xpNext, todayMinutes, todaySessions, distractionsToday, streak;
+        public string topSubject = ""; // most studied subject this week
+        public int[] week = new int[7]; // minutes studied per day, oldest first, today last
+        public Theme theme = new Theme();
+    }
+
+    // The menu palette as hex, so the extension popup matches the game (and follows Paint > Menus).
+    [Serializable]
+    private class Theme
+    {
+        public bool light;
+        public string panel, card, selected, tab, muted, button, text, accent, xp, danger;
     }
 
     public const string Address = "http://localhost:8080/";
+    // Chrome Web Store page for the extension; Settings > Browser extension opens it. Paste the item's URL here once it's listed.
+    public const string StoreUrl = "";
     public bool IsListening => _httpListener != null && _httpListener.IsListening;
     public string ListenError { get; private set; } = "";
     public float LastExtensionMessageAt { get; private set; } = -1; // unscaled time; pings don't count
@@ -155,16 +171,54 @@ public class ChromeWebEx : MonoBehaviour
         {
             _nextStatus = Time.unscaledTime + 0.5f;
             TimerManager timer = FindAnyObjectByType<TimerManager>();
-            _status = JsonUtility.ToJson(new Status
+            _state.running = timer != null && timer.IsTimerRunning;
+            _state.studying = timer == null || timer.IsStudySession;
+            _state.secondsLeft = timer != null ? Mathf.CeilToInt(timer.CurrentTime) : 0;
+            _state.phaseSeconds = timer == null ? 0 : Mathf.RoundToInt((timer.IsStudySession ? timer.StudyMinutes : timer.BreakMinutes) * 60f);
+            _state.mode = GameSettings.Modes[(int)GameSettings.Mode].name;
+            _state.strict = GameSettings.StrictFocus;
+            _state.distracted = Distraction.Reported;
+            if (Time.unscaledTime >= _nextStats) // the study log is parsed from PlayerPrefs, so not every half second
             {
-                running = timer != null && timer.IsTimerRunning,
-                studying = timer == null || timer.IsStudySession,
-                secondsLeft = timer != null ? Mathf.CeilToInt(timer.CurrentTime) : 0,
-                mode = GameSettings.Modes[(int)GameSettings.Mode].name,
-                strict = GameSettings.StrictFocus,
-                distracted = Distraction.Reported,
-            });
+                _nextStats = Time.unscaledTime + 5f;
+                UpdateStats();
+            }
+            _status = JsonUtility.ToJson(_state);
         }
+    }
+
+    private void UpdateStats()
+    {
+        Experience experience = FindAnyObjectByType<Experience>();
+        _state.level = experience != null ? experience.GetPlayerLevel() : 1;
+        _state.xp = experience != null ? experience.GetExperience() : 0;
+        _state.xpNext = experience != null ? experience.ExperienceToNextLevel : 100;
+        DateTime today = DateTime.Now.Date;
+        for (int i = 0; i < 7; i++) _state.week[i] = 0;
+        _state.todaySessions = 0;
+        var subjects = new System.Collections.Generic.Dictionary<string, int>();
+        foreach (StudyLog.Entry e in StudyLog.Entries)
+        {
+            if (!DateTime.TryParseExact(e.day, StudyHabit.Day, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime day)) continue;
+            int ago = (today - day).Days;
+            if (ago < 0 || ago >= 7) continue;
+            _state.week[6 - ago] += e.minutes;
+            if (ago == 0) _state.todaySessions += e.sessions;
+            subjects[e.subject] = (subjects.TryGetValue(e.subject, out int m) ? m : 0) + e.minutes;
+        }
+        _state.todayMinutes = _state.week[6];
+        _state.topSubject = "";
+        int best = 0;
+        foreach (var pair in subjects) if (pair.Value > best) { best = pair.Value; _state.topSubject = pair.Key; }
+        _state.distractionsToday = PlayerPrefs.GetString(DistractionDayKey, "") == StudyHabit.Today ? PlayerPrefs.GetInt(DistractionCountKey, 0) : 0;
+        _state.streak = StudyLog.DayStreak();
+
+        Theme t = _state.theme;
+        string Hex(Color c) => "#" + ColorUtility.ToHtmlStringRGB(c);
+        t.light = UIKit.LightTheme;
+        t.panel = Hex(UIKit.PanelColor); t.card = Hex(UIKit.CardColor); t.selected = Hex(UIKit.SelectedColor);
+        t.tab = Hex(UIKit.TabColor); t.muted = Hex(UIKit.MutedText); t.button = Hex(UIKit.AccentButtonColor);
+        t.text = Hex(UIKit.TextColor); t.accent = Hex(UIKit.AccentColor); t.xp = Hex(UIKit.XpColor); t.danger = Hex(UIKit.DangerColor);
     }
 
     private string Handle(string body)
@@ -194,6 +248,8 @@ public class ChromeWebEx : MonoBehaviour
                 GameSettings.Mode = GameSettings.FocusMode.Custom; // no longer one of the presets
                 return $"Extension: sessions are now {timer.StudyMinutes:0} minutes";
             case "distracted":
+                // a new visit during a study session, not the 30 s re-report or a break
+                if (!Distraction.Reported && timer != null && timer.IsTimerRunning && timer.IsStudySession) CountDistraction();
                 Distraction.Report(command.site);
                 return $"Extension: distracted by {Distraction.Site}";
             case "back":
@@ -208,6 +264,15 @@ public class ChromeWebEx : MonoBehaviour
                 return "Extension: +1 XP for staying focused";
         }
         return $"Extension: can't {command.action} right now";
+    }
+
+    private const string DistractionDayKey = "ExtDistractionDay", DistractionCountKey = "ExtDistractions";
+
+    private static void CountDistraction()
+    {
+        bool sameDay = PlayerPrefs.GetString(DistractionDayKey, "") == StudyHabit.Today;
+        PlayerPrefs.SetString(DistractionDayKey, StudyHabit.Today);
+        PlayerPrefs.SetInt(DistractionCountKey, sameDay ? PlayerPrefs.GetInt(DistractionCountKey, 0) + 1 : 1);
     }
 
     private static Command Parse(string body)

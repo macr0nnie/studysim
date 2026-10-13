@@ -1,12 +1,12 @@
-# Builds lofilife for WebGL and Windows on ronnie's own PC (a self-hosted GitHub runner, so it uses the
-# Unity that is already installed and signed in there), keeps both builds as downloads on the run page,
-# and pushes them to the itch.io playtest page. Main updates the "Early Access" GitHub pre-release;
-# the release branch publishes a new versioned GitHub release. Setup: docs/CI-SETUP.md
+# Builds lofilife for WebGL and Windows on GitHub's machines on every push, keeps both builds as
+# downloads on the run page, and pushes main builds to the itch.io playtest page. Main updates the
+# "Early Access" GitHub pre-release; the release branch publishes a new versioned GitHub release.
+# Setup: docs/CI-SETUP.md
 name: Playtest build
 
 on:
   push:
-    branches: [main, release] # never pull_request: on a public repo that would let anyone's PR run code on the PC
+    branches: [main, release]
   workflow_dispatch:
 
 concurrency:
@@ -14,50 +14,67 @@ concurrency:
   cancel-in-progress: true # a newer push makes the running build pointless
 
 jobs:
-  build:
-    runs-on: [self-hosted, Windows]
-    timeout-minutes: 180
-    defaults:
-      run:
-        shell: powershell
+  # Skips the build (instead of failing and emailing) until the Unity licence secret is added.
+  licence:
+    runs-on: ubuntu-latest
+    outputs:
+      ready: ${{ steps.check.outputs.ready }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          clean: false # keep Library between runs so only changed assets re-import
-
-      - name: Build WebGL and Windows
-        run: |
-          $version = (Select-String 'm_EditorVersion: (.+)' ProjectSettings/ProjectVersion.txt).Matches[0].Groups[1].Value
-          $unity = if ($env:UNITY_PATH) { $env:UNITY_PATH } else { "C:\Program Files\Unity\Hub\Editor\$version\Editor\Unity.exe" }
-          if (-not (Test-Path $unity)) { throw "Unity $version not found at $unity. Set the UNITY_PATH repo variable." }
-          Remove-Item Builds -Recurse -Force -ErrorAction SilentlyContinue
-          foreach ($method in 'ShipSetupTools.BuildWeb', 'ShipSetupTools.BuildWindows') {
-            $log = "$method.log"
-            $p = Start-Process $unity -Wait -PassThru -NoNewWindow -ArgumentList '-batchmode', '-quit', '-projectPath', "`"$PWD`"", '-executeMethod', $method, '-logFile', "`"$PWD\$log`""
-            Get-Content $log -Tail 40
-            if ($p.ExitCode -ne 0) { throw "$method failed (exit $($p.ExitCode)). Full log is in the build-logs download." }
-          }
-          Remove-Item Builds/Windows/*_BurstDebugInformation_DoNotShip -Recurse -Force -ErrorAction SilentlyContinue
+      - id: check
         env:
-          UNITY_PATH: ${{ vars.UNITY_PATH }}
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        run: |
+          if [ -n "$UNITY_LICENSE" ]; then echo "ready=true" >> "$GITHUB_OUTPUT"
+          else echo "::warning::No UNITY_LICENSE secret yet, so nothing was built. See docs/CI-SETUP.md."; fi
+
+  build:
+    name: Build ${{ matrix.name }}
+    needs: licence
+    if: needs.licence.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - targetPlatform: WebGL
+            name: WebGL
+            output: build/WebGL/lofilife # index.html must sit at the root of what itch gets
+            channel: playtest-web
+          - targetPlatform: StandaloneWindows64
+            name: Windows
+            output: build/StandaloneWindows64
+            channel: playtest-windows
+    steps:
+      # The Unity image plus Library don't fit in the runner's default free space.
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: Library-${{ matrix.targetPlatform }}-
+
+      - uses: game-ci/unity-builder@v5
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: ${{ matrix.targetPlatform }}
+          buildName: lofilife
+          versioning: None # keep the bundleVersion set in Player Settings
+
+      - name: Drop files that must not ship
+        run: sudo rm -rf build/*/*_BurstDebugInformation_DoNotShip
 
       - uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: build-logs-${{ github.run_number }}
-          path: '*.log'
-          retention-days: 7
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: lofilife-WebGL-${{ github.run_number }}
-          path: Builds/WebGL
-          retention-days: 14
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: lofilife-Windows-${{ github.run_number }}
-          path: Builds/Windows
+          name: lofilife-${{ matrix.name }}-${{ github.run_number }}
+          path: ${{ matrix.output }}
           retention-days: 14
 
       - name: Push to itch.io
@@ -66,16 +83,12 @@ jobs:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
           ITCH_TARGET: ${{ vars.ITCH_TARGET || 'macronnie/lofilife-playtest' }}
         run: |
-          if (-not $env:BUTLER_API_KEY) { Write-Output "No BUTLER_API_KEY secret, skipping itch.io"; exit 0 }
-          Invoke-WebRequest https://broth.itch.zone/butler/windows-amd64/LATEST/archive/default -OutFile butler.zip
-          Expand-Archive butler.zip -DestinationPath butler -Force
-          $v = "0.1.${{ github.run_number }}-$($env:GITHUB_SHA.Substring(0,7))"
-          butler\butler.exe push Builds/WebGL "$($env:ITCH_TARGET):playtest-web" --userversion $v
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          butler\butler.exe push Builds/Windows "$($env:ITCH_TARGET):playtest-windows" --userversion $v
-          exit $LASTEXITCODE
+          if [ -z "$BUTLER_API_KEY" ]; then echo "No BUTLER_API_KEY secret, skipping itch.io"; exit 0; fi
+          curl -sSfL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler && chmod +x butler/butler
+          butler/butler push "${{ matrix.output }}" "$ITCH_TARGET:${{ matrix.channel }}" \
+            --userversion "0.1.${{ github.run_number }}-${GITHUB_SHA::7}"
 
-  # Runs on GitHub's machines (they have the gh tool); only the Unity build needs the PC.
   github-release:
     needs: build
     runs-on: ubuntu-latest

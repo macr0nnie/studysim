@@ -2,7 +2,7 @@
 
 Two GitHub Actions workflows live in `.github/workflows/`:
 
-- **Playtest build** (`playtest-build.yml`) runs on every push to `main` (or by hand from the Actions tab). It runs on your own PC through GitHub's runner app, using the Unity already installed there (the version in `ProjectSettings/ProjectVersion.txt`). It builds WebGL and Windows with the same code as the Study Sim menu items, keeps each build as a download on the run page for 14 days, and pushes it to a playtest page on itch.io. If your PC is off, the build waits until the runner is back.
+- **Playtest build** (`playtest-build.yml`) runs on every push to `main` or `release` (or by hand from the Actions tab). It builds lofilife for WebGL and Windows on GitHub's own machines (with game-ci and the Unity version in `ProjectSettings/ProjectVersion.txt`), so no computer of yours needs to be on. It keeps each build as a download on the run page for 14 days. Until the Unity licence secret is added, it skips the build instead of failing.
   - Push to `main`: the **Early Access** pre-release on the repo's Releases page is replaced with the new build (web and Windows zips), and the playtest itch page is updated.
   - Push to `release`: a new GitHub release is published, named after the version in Player Settings plus the build number (e.g. `lofilife 0.1.0 (build 12)`), with a change list made from the merged PRs. It becomes the "Latest" release. Bump the version in Player Settings when you want the number to change.
 - **Browser extension** (`extension.yml`) runs when anything in `BrowserExtension/` changes on `main`. It zips the extension (without `store/` and the README) and keeps the zip on the run page. If the `version` in `manifest.json` went up, it uploads the zip to the Chrome Web Store and submits it for review.
@@ -13,19 +13,20 @@ Nothing here pushes to the `release` branch or touches the public lofilife itch 
 
 All secrets go in GitHub: repo **Settings > Secrets and variables > Actions**. "Secret" means the Secrets tab, "variable" means the Variables tab. Never paste them into chat or commit them.
 
-### 1. Runner on your PC (required for game builds)
+### 1. Unity licence (once, from your main PC)
 
-No Unity licence or password goes to GitHub: the builds use your PC's Unity, which is already signed in.
+GitHub's machines need a copy of your free Unity licence. You do this once.
 
-1. Open https://github.com/macr0nnie/studysim/settings/actions/runners/new and pick **Windows**.
-2. Open PowerShell (not as admin), and paste the commands from that page one block at a time. Put the runner in a short folder such as `C:\actions-runner`, **not** inside your studysim project folder.
-3. When `config.cmd` asks questions, press Enter for the defaults, except **"Would you like to run the runner as service?" answer N**. A service runs as a different Windows account that isn't signed in to Unity.
-4. Start it with `.\run.cmd`. Leave that window open while you want builds to run (minimise it). To start it again later, open PowerShell in that folder and run `.\run.cmd`.
-5. If Unity isn't installed at `C:\Program Files\Unity\Hub\Editor\<version>\Editor\Unity.exe`, add a variable `UNITY_PATH` with the full path to `Unity.exe`.
+1. On the computer where Unity Hub is installed and signed in, open File Explorer, type `C:\ProgramData\Unity` in the address bar and press Enter. Look for `Unity_lic.ulf`.
+   - Not there? In Unity Hub: gear icon (Preferences) > Licenses > Add > Get a free personal license, then look again.
+2. Right-click `Unity_lic.ulf` > Open with > Notepad. Press Ctrl+A, Ctrl+C.
+3. Go to https://github.com/macr0nnie/studysim/settings/secrets/actions > **New repository secret**:
+   - Name `UNITY_LICENSE`, paste the file's contents, **Add secret**.
+   - Again with name `UNITY_EMAIL` and your Unity account email.
+   - Again with name `UNITY_PASSWORD` and your Unity account password.
+4. Actions tab > **Playtest build** > **Run workflow**.
 
-The runner checks the project out into its own folder (inside `C:\actions-runner\_work`), separate from the copy you work in, so builds never touch your working files. The first build imports everything; later ones reuse its Library.
-
-The workflow only runs on pushes to `main` and manual runs, never on pull requests, so nobody else's code can run on your PC.
+If your Unity account uses a login code (two-step), the build may fail at activation; send the log if so.
 
 ### 2. itch.io (optional; without it builds still appear on GitHub)
 
@@ -51,7 +52,7 @@ To ship an extension update, bump `version` in `BrowserExtension/manifest.json`.
 
 ## Cost and limits
 
-- Game builds run on your PC, so they use no GitHub minutes. The extension workflow runs on GitHub's machines and is free on a public repo.
+- The repo is public, so GitHub's machines are free for these builds. If it goes private, the free plan has 2,000 minutes a month, and each push uses both builds' time (I'd guess 30 to 60 minutes per push; not measured).
 - Builds are kept 14 days. On a private repo, artifact storage counts against 500 MB on the free plan, which a couple of builds would fill.
-- Your PC is busy while a build runs. The runner's Library and builds take a few GB on disk.
+- The Unity Library is cached between runs (per platform, up to GitHub's 10 GB per repo), so only the first build imports everything.
 - A newer push to `main` cancels a build still running.

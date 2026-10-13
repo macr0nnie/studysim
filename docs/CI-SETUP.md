@@ -3,9 +3,11 @@
 Two GitHub Actions workflows live in `.github/workflows/`:
 
 - **Playtest build** (`playtest-build.yml`) runs on every push to `main` (or by hand from the Actions tab). It runs on your own PC through GitHub's runner app, using the Unity already installed there (the version in `ProjectSettings/ProjectVersion.txt`). It builds WebGL and Windows with the same code as the Study Sim menu items, keeps each build as a download on the run page for 14 days, and pushes it to a playtest page on itch.io. If your PC is off, the build waits until the runner is back.
+  - Push to `main`: the **Early Access** pre-release on the repo's Releases page is replaced with the new build (web and Windows zips), and the playtest itch page is updated.
+  - Push to `release`: a new GitHub release is published, named after the version in Player Settings plus the build number (e.g. `lofilife 0.1.0 (build 12)`), with a change list made from the merged PRs. It becomes the "Latest" release. Bump the version in Player Settings when you want the number to change.
 - **Browser extension** (`extension.yml`) runs when anything in `BrowserExtension/` changes on `main`. It zips the extension (without `store/` and the README) and keeps the zip on the run page. If the `version` in `manifest.json` went up, it uploads the zip to the Chrome Web Store and submits it for review.
 
-Nothing here touches the `release` branch or the public lofilife itch page.
+Nothing here pushes to the `release` branch or touches the public lofilife itch page; it only reacts when you push to `release`.
 
 ## What you do once, by hand
 

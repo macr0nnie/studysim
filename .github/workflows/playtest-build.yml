@@ -7,11 +7,12 @@ name: Playtest build
 on:
   push:
     branches: [main, release]
+    paths-ignore: ['BrowserExtension/**', 'docs/**', '**.md'] # nothing in the game changed
   workflow_dispatch:
 
 concurrency:
   group: playtest-build-${{ github.ref }}
-  cancel-in-progress: true # a newer push makes the running build pointless
+  cancel-in-progress: false # let a running build finish; GitHub keeps only the newest waiting push
 
 jobs:
   # Skips the build (instead of failing and emailing) until the Unity licence secret is added.

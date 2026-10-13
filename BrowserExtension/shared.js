@@ -37,7 +37,7 @@ async function gameStatus() {
   }
 }
 
-// Toolbar badge: minutes left while connected (terracotta = studying, green = break, grey = paused), blank otherwise.
+// Toolbar badge: minutes left while connected (red = studying, green = break, grey = paused), blank otherwise.
 function showBadge(status) {
   chrome.action.setBadgeText({ text: status ? String(Math.ceil(Math.max(0, status.secondsLeft) / 60)) : "" });
   if (status) chrome.action.setBadgeBackgroundColor({ color: !status.running ? "#786657" : status.studying ? "#c24d47" : "#5c8f52" });

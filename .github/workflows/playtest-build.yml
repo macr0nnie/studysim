@@ -1,15 +1,16 @@
 # Builds lofilife for WebGL and Windows on ronnie's own PC (a self-hosted GitHub runner, so it uses the
 # Unity that is already installed and signed in there), keeps both builds as downloads on the run page,
-# and pushes them to the itch.io playtest page. Setup: docs/CI-SETUP.md
+# and pushes them to the itch.io playtest page. Main updates the "Early Access" GitHub pre-release;
+# the release branch publishes a new versioned GitHub release. Setup: docs/CI-SETUP.md
 name: Playtest build
 
 on:
   push:
-    branches: [main] # never pull_request: on a public repo that would let anyone's PR run code on the PC
+    branches: [main, release] # never pull_request: on a public repo that would let anyone's PR run code on the PC
   workflow_dispatch:
 
 concurrency:
-  group: playtest-build
+  group: playtest-build-${{ github.ref }}
   cancel-in-progress: true # a newer push makes the running build pointless
 
 jobs:
@@ -60,6 +61,7 @@ jobs:
           retention-days: 14
 
       - name: Push to itch.io
+        if: github.ref == 'refs/heads/main'
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
           ITCH_TARGET: ${{ vars.ITCH_TARGET || 'macronnie/lofilife-playtest' }}
@@ -72,3 +74,38 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           butler\butler.exe push Builds/Windows "$($env:ITCH_TARGET):playtest-windows" --userversion $v
           exit $LASTEXITCODE
+
+  # Runs on GitHub's machines (they have the gh tool); only the Unity build needs the PC.
+  github-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: ProjectSettings
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: lofilife-*-${{ github.run_number }}
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN: ${{ github.run_number }}
+        run: |
+          version=$(sed -n 's/^  bundleVersion: //p' ProjectSettings/ProjectSettings.asset)
+          (cd "lofilife-WebGL-$RUN" && zip -qr "../lofilife-$version-web.zip" .)
+          (cd "lofilife-Windows-$RUN" && zip -qr "../lofilife-$version-windows.zip" .)
+          files="lofilife-$version-web.zip lofilife-$version-windows.zip"
+          if [ "$GITHUB_REF_NAME" = main ]; then
+            # One rolling pre-release that always holds the newest main build.
+            gh release delete early-access --yes --cleanup-tag || true
+            gh release create early-access $files --prerelease --target "$GITHUB_SHA" \
+              --title "Early Access (build $RUN)" \
+              --notes "Newest build from main, $(date -u +%Y-%m-%d). Unfinished and may have bugs."
+          else
+            gh release create "v$version-build.$RUN" $files --target "$GITHUB_SHA" --latest \
+              --title "lofilife $version (build $RUN)" --generate-notes
+          fi

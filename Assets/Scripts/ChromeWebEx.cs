@@ -28,7 +28,12 @@ public class ChromeWebEx : MonoBehaviour
         public string action;
         public float minutes;
         public string site;
+        public string tag;
     }
+
+    // GET /stats: the whole study log (minutes and sessions per day and tag), for the extension's graphs page.
+    [Serializable]
+    private class History { public System.Collections.Generic.List<StudyLog.Entry> entries; }
 
     private readonly ConcurrentQueue<string> _messages = new ConcurrentQueue<string>(); // filled by the listener thread
     private float _lastFocusReward = -999f;
@@ -36,6 +41,7 @@ public class ChromeWebEx : MonoBehaviour
     private HttpListener _httpListener;
     private Thread _listenerThread;
     private volatile string _status = "{}"; // written on the main thread, served by the listener thread
+    private volatile string _history = "{\"entries\":[]}";
     private float _nextStatus, _nextStats;
     private readonly Status _state = new Status();
 
@@ -48,6 +54,8 @@ public class ChromeWebEx : MonoBehaviour
         // Progress for the extension popup, refreshed every few seconds.
         public int level, xp, xpNext, todayMinutes, todaySessions, distractionsToday, streak;
         public string topSubject = ""; // most studied subject this week
+        public string tag = "";         // what the current sessions are logged under (StudyLog.Subject)
+        public string[] tags = new string[0]; // tags used before, most studied first
         public int[] week = new int[7]; // minutes studied per day, oldest first, today last
         public Theme theme = new Theme();
     }
@@ -145,7 +153,7 @@ public class ChromeWebEx : MonoBehaviour
                 if (origin != null) response.AddHeader("Access-Control-Allow-Origin", origin);
                 bool get = request.HttpMethod == "GET";
                 if (get) response.ContentType = "application/json";
-                string responseString = get ? _status : "Unity received your request!";
+                string responseString = !get ? "Unity received your request!" : request.Url.AbsolutePath == "/stats" ? _history : _status;
                 byte[] buffer = Encoding.UTF8.GetBytes(responseString);
                 response.ContentLength64 = buffer.Length;
                 response.OutputStream.Write(buffer, 0, buffer.Length);
@@ -197,7 +205,13 @@ public class ChromeWebEx : MonoBehaviour
         for (int i = 0; i < 7; i++) _state.week[i] = 0;
         _state.todaySessions = 0;
         var subjects = new System.Collections.Generic.Dictionary<string, int>();
-        foreach (StudyLog.Entry e in StudyLog.Entries)
+        var entries = StudyLog.Entries;
+        _history = JsonUtility.ToJson(new History { entries = entries });
+        _state.tag = StudyLog.Subject;
+        var allTags = StudyLog.BySubject();
+        _state.tags = new string[Mathf.Min(allTags.Count, 12)];
+        for (int i = 0; i < _state.tags.Length; i++) _state.tags[i] = allTags[i].Key;
+        foreach (StudyLog.Entry e in entries)
         {
             if (!DateTime.TryParseExact(e.day, StudyHabit.Day, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out DateTime day)) continue;
             int ago = (today - day).Days;
@@ -252,6 +266,11 @@ public class ChromeWebEx : MonoBehaviour
                 if (!Distraction.Reported && timer != null && timer.IsTimerRunning && timer.IsStudySession) CountDistraction();
                 Distraction.Report(command.site);
                 return $"Extension: distracted by {Distraction.Site}";
+            case "tag":
+                // shown in the HUD and planner, so drop rich-text tags; the Subject setter trims and caps the length
+                StudyLog.Subject = (command.tag ?? "").Replace("<", "").Replace(">", "");
+                _nextStats = 0; // send the new tag on the next status
+                return $"Extension: now studying {StudyLog.Subject}";
             case "back":
                 Distraction.Clear();
                 return "Extension: back on task";

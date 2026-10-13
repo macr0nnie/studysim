@@ -51,11 +51,34 @@ async function refresh() {
   $("mode").textContent = status.mode + (status.strict ? " · strict focus" : "");
   $("toggle").textContent = running ? "Pause" : "Start";
   $("setForm").hidden = running; // the game only accepts a new length while the timer is stopped
+  showTags(status);
   $("distracted").hidden = !(status.distracted && running && status.studying);
+}
+
+// The tag (the game's study subject) is what each finished session is logged under.
+let lastTags = "";
+function showTags(status) {
+  if (status.tag === undefined) { $("tagForm").hidden = true; return; } // older game build
+  if (document.activeElement !== $("tag")) $("tag").value = status.tag;
+  const key = JSON.stringify([status.tag, status.tags]);
+  if (key === lastTags) return;
+  lastTags = key;
+  $("tagOptions").replaceChildren(...status.tags.map(t => Object.assign(document.createElement("option"), { value: t })));
+  $("chips").replaceChildren(...status.tags.filter(t => t !== status.tag).slice(0, 4).map(t => {
+    const chip = Object.assign(document.createElement("button"), { textContent: t, type: "button" });
+    chip.addEventListener("click", () => act("tag", { tag: t }));
+    return chip;
+  }));
 }
 
 async function act(action, extra) { try { await send(action, extra); } catch {} refresh(); }
 $("toggle").addEventListener("click", () => act(running ? "pause" : "start"));
+$("tagForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const tag = $("tag").value.trim();
+  if (tag) { $("tag").blur(); act("tag", { tag }); }
+});
+$("allStats").addEventListener("click", () => chrome.tabs.create({ url: chrome.runtime.getURL("stats.html") }));
 $("reset").addEventListener("click", () => act("reset"));
 $("setForm").addEventListener("submit", e => {
   e.preventDefault();

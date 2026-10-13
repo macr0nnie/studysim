@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Focus stats · lofilife</title>
+  <link rel="icon" href="icons/icon32.png">
+  <link rel="stylesheet" href="popup.css">
+  <link rel="stylesheet" href="stats.css">
+</head>
+<body class="page">
+  <header class="top">
+    <img src="icons/icon48.png" alt="" class="logo" width="36" height="36">
+    <h1>Focus stats</h1>
+    <span id="pill" class="pill" role="status">Connecting</span>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Range">
+    <button role="tab" data-range="days" aria-selected="true">Days</button>
+    <button role="tab" data-range="weeks">Weeks</button>
+    <button role="tab" data-range="months">Months</button>
+    <button role="tab" data-range="years">Years</button>
+  </nav>
+
+  <section id="offline" class="card offline" hidden>
+    <p class="big">Open lofilife to see your stats</p>
+    <p class="muted small">Your focus history is saved in the game, so it shows here while the game is running.</p>
+  </section>
+
+  <div id="content" hidden>
+    <div class="tiles wide">
+      <div><b id="total">0m</b><span>total focus</span></div>
+      <div><b id="average">0m</b><span id="averageLabel">a day on average</span></div>
+      <div><b id="sessions">0</b><span>sessions</span></div>
+      <div><b id="best">–</b><span id="bestLabel">best day</span></div>
+    </div>
+
+    <section class="card">
+      <div class="chart-head"><strong id="rangeLabel">Last 30 days</strong><span id="filterNote" class="muted small"></span></div>
+      <div id="chart" class="chart" role="img"></div>
+    </section>
+
+    <section class="card">
+      <div class="chart-head"><strong>Tags</strong><span class="muted small">Click a tag to show only it</span></div>
+      <div id="tagList" class="tag-list"></div>
+      <p id="noTags" class="muted small" hidden>No focus sessions in this range yet.</p>
+    </section>
+  </div>
+  <script src="shared.js"></script>
+  <script src="stats-data.js"></script>
+  <script src="stats.js"></script>
+</body>
+</html>

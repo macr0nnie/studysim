@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "lofilife Focus",
   "short_name": "lofilife",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Focus companion for the lofilife desktop game: control your study timer, earn XP on study sites, and block distractions.",
   "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
   "permissions": ["tabs", "storage", "alarms"],

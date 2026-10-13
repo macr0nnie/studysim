@@ -23,15 +23,17 @@ function hostOf(url) {
 }
 
 async function send(action, extra = {}) {
-  const res = await fetch(GAME, { method: "POST", body: JSON.stringify({ action, ...extra }) });
+  const res = await fetch(GAME, { method: "POST", body: JSON.stringify({ action, ...extra }), signal: AbortSignal.timeout(2000) });
   return res.text();
 }
 
 // {running, studying, secondsLeft, mode, strict, distracted}, or null when the game isn't running.
 async function gameStatus() {
   try {
-    const res = await fetch(GAME, { cache: "no-store" });
-    return await res.json();
+    // A short timeout so a stuck port reads as offline instead of "Connecting" forever.
+    const res = await fetch(GAME, { cache: "no-store", signal: AbortSignal.timeout(2000) });
+    const status = await res.json();
+    return status && typeof status.secondsLeft === "number" ? status : null; // something else on port 8080 isn't the game
   } catch {
     return null;
   }

@@ -11,6 +11,7 @@
     main img { border-radius: 18px; }
     h1 { font-size: 44px; margin: 14px 0 6px; flex: none; }
     .clock { font-size: 56px; }
+    a.button { display: inline-block; margin: 6px 0 4px; padding: 9px 16px; border-radius: 10px; font-weight: 600; text-decoration: none; background: var(--primary); color: var(--on-primary); }
   </style>
 </head>
 <body>
@@ -19,6 +20,7 @@
     <h1>Back to studying</h1>
     <p><strong id="site">This site</strong> is blocked until your study session ends.</p>
     <div id="clock" class="clock" hidden></div>
+    <a id="back" class="button" hidden></a>
     <p class="muted small">You can change blocking in the lofilife extension's popup, under Sites and blocking.</p>
   </main>
   <script src="shared.js"></script>

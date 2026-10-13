@@ -8,7 +8,7 @@ A Chrome extension that connects your browser to the lofilife desktop game while
 - **Game colours:** the popup uses the game's menu colours and follows Paint > Menus when you change them.
 - **Badge:** the toolbar icon shows the minutes left: red while studying, green on a break, grey when paused, blank when the game isn't running.
 - **Distracting sites** (YouTube, TikTok, Reddit and so on, editable in the popup): during a study session, being on one makes the room in the game fall apart and drains coins until you leave.
-- **Blocking:** the extension can also block distracting sites. It does this during strict focus sessions by default, during every study session if you choose, or never.
+- **Blocking:** the extension can also block distracting sites. It does this during strict focus sessions by default, during every study session if you choose, or never. When the session ends, the blocked page offers a link back to the site.
 - **Study sites** (Google Docs, Notion, Wikipedia and so on): these earn focus XP, at most 1 XP a minute.
 
 ## Install for development

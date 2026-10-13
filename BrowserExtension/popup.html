@@ -18,6 +18,12 @@
     <div class="bar" aria-hidden="true"><div id="phaseBar"></div></div>
     <div id="mode" class="muted center"></div>
     <div id="distracted" class="alert" hidden>You're on a distracting site. Your room is falling apart!</div>
+    <form id="tagForm" class="row tagrow">
+      <label class="inline grow">Tag <input id="tag" list="tagOptions" maxlength="24" placeholder="e.g. Maths" aria-label="Tag for this session"></label>
+      <datalist id="tagOptions"></datalist>
+      <button type="submit">Set</button>
+    </form>
+    <div id="chips" class="chips"></div>
     <div class="row">
       <button id="toggle" class="primary">Start</button>
       <button id="reset">Reset</button>
@@ -43,6 +49,7 @@
     <div class="week-head"><span>This week</span><span id="weekTotal" class="muted"></span></div>
     <div id="week" class="week" role="img"></div>
     <div id="subject" class="muted small center subject"></div>
+    <button id="allStats" class="wide">See all stats</button>
   </section>
 
   <section id="offline" class="card offline" hidden>

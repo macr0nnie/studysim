@@ -356,6 +356,8 @@ public class SettingsUI : MonoBehaviour
             PlayerPrefs.Save();
             cycle.GetComponentInChildren<TMP_Text>().text = GameSettings.Ambience.ToString();
         });
+        Switch(page, "Low graphics", "Simpler shadows and 30 fps. For laptops without a graphics card.",
+            () => GameSettings.LowGraphics, v => GameSettings.LowGraphics = v);
         if (!GameSettings.Desktop) return; // mini mode needs the desktop version
         Heading(page, "Mini mode");
         Note(page, "Your character, timer and a progress ring, like a game overlay: top right, on top of other windows and click-through. "

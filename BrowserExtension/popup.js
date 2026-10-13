@@ -1,5 +1,34 @@
 const $ = id => document.getElementById(id);
 let running = false;
+const fmt = m => m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, "0")}m` : `${m}m`;
+
+chrome.storage.local.get("theme").then(r => applyTheme(r.theme));
+let lastTheme = "";
+
+function showStats(st) {
+  $("level").textContent = `Level ${st.level}`;
+  $("xpText").textContent = `${st.xp} / ${st.xpNext} XP`;
+  $("xpBar").style.width = `${Math.min(100, 100 * st.xp / Math.max(1, st.xpNext))}%`;
+  $("today").textContent = fmt(st.todayMinutes);
+  $("sessions").textContent = st.todaySessions;
+  $("distractions").textContent = st.distractionsToday;
+  $("subject").textContent = st.topSubject ? `Most studied this week: ${st.topSubject}` : "";
+  $("streak").textContent = st.streak;
+  const week = st.week || [], max = Math.max(30, ...week), names = ["S", "M", "T", "W", "T", "F", "S"], now = new Date();
+  $("weekTotal").textContent = fmt(week.reduce((a, b) => a + b, 0));
+  $("week").setAttribute("aria-label", "Minutes studied in the last 7 days: " + week.join(", "));
+  $("week").replaceChildren(...week.map((m, i) => {
+    const col = document.createElement("div"), bar = document.createElement("div"), day = document.createElement("div");
+    col.className = "col" + (i === 6 ? " today" : "");
+    bar.className = "b" + (m > 0 ? " on" : "");
+    bar.style.height = `${(m / max) * 100}%`;
+    bar.title = fmt(m);
+    day.className = "d";
+    day.textContent = names[(now.getDay() - 6 + i + 7) % 7];
+    col.append(bar, day);
+    return col;
+  }));
+}
 
 async function refresh() {
   const status = await gameStatus();
@@ -8,7 +37,12 @@ async function refresh() {
   $("pill").className = "pill " + (status ? "on" : "off");
   $("timer").hidden = !status;
   $("offline").hidden = !!status;
+  $("stats").hidden = !status || status.level === undefined; // older game builds don't send stats
   if (!status) return;
+  const theme = JSON.stringify(status.theme || "");
+  if (theme !== lastTheme) { lastTheme = theme; applyTheme(status.theme); if (status.theme) chrome.storage.local.set({ theme: status.theme }); }
+  if (status.level !== undefined) showStats(status);
+  $("phaseBar").style.width = status.phaseSeconds ? `${Math.min(100, 100 * (1 - status.secondsLeft / status.phaseSeconds))}%` : "0";
   running = status.running;
   const s = Math.max(0, status.secondsLeft);
   $("clock").textContent = `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;

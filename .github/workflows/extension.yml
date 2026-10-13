@@ -1,0 +1,53 @@
+# Zips the browser extension on every change to BrowserExtension/ on main. When the manifest
+# version went up and the Chrome Web Store secrets exist, uploads it and submits it for review.
+# Setup: docs/CI-SETUP.md
+name: Browser extension
+
+on:
+  push:
+    branches: [main]
+    paths: ['BrowserExtension/**']
+  workflow_dispatch:
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: BrowserExtension
+          fetch-depth: 2
+
+      - name: Zip
+        id: zip
+        run: |
+          version=$(jq -r .version BrowserExtension/manifest.json)
+          old=$(git show HEAD~1:BrowserExtension/manifest.json 2>/dev/null | jq -r .version || true)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "bumped=$([ "$version" != "$old" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          cd BrowserExtension && zip -qr "../lofilife-focus-$version.zip" . -x 'store/*' 'README.md'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lofilife-focus-${{ steps.zip.outputs.version }}
+          path: lofilife-focus-${{ steps.zip.outputs.version }}.zip
+
+      - name: Publish to Chrome Web Store
+        if: steps.zip.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
+        env:
+          CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          PUBLISHER_ID: ${{ vars.CWS_PUBLISHER_ID }}
+          EXTENSION_ID: ${{ vars.CWS_EXTENSION_ID }}
+          ZIP: lofilife-focus-${{ steps.zip.outputs.version }}.zip
+        run: |
+          if [ -z "$REFRESH_TOKEN" ] || [ -z "$EXTENSION_ID" ]; then echo "Chrome Web Store not set up, skipping"; exit 0; fi
+          token=$(curl -sSf https://oauth2.googleapis.com/token \
+            -d "client_id=$CLIENT_ID&client_secret=$CLIENT_SECRET&refresh_token=$REFRESH_TOKEN&grant_type=refresh_token" | jq -r .access_token)
+          api=https://chromewebstore.googleapis.com
+          item="publishers/$PUBLISHER_ID/items/$EXTENSION_ID"
+          upload=$(curl -sS -H "Authorization: Bearer $token" -X POST -T "$ZIP" "$api/upload/v2/$item:upload")
+          echo "$upload"
+          if echo "$upload" | jq -e '.uploadState == "FAILURE" or has("error")' > /dev/null; then exit 1; fi
+          curl -sSf -H "Authorization: Bearer $token" -X POST "$api/v2/$item:publish"

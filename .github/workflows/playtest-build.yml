@@ -1,0 +1,70 @@
+# Builds lofilife for WebGL and Windows on every push to main, keeps each build as a
+# downloadable artifact, and pushes it to the itch.io playtest page. Setup: docs/CI-SETUP.md
+name: Playtest build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: playtest-build
+  cancel-in-progress: true # a newer push makes the running build pointless
+
+jobs:
+  build:
+    name: Build ${{ matrix.targetPlatform }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - targetPlatform: WebGL
+            output: build/WebGL/lofilife # index.html must sit at the root of what itch gets
+            channel: playtest-web
+          - targetPlatform: StandaloneWindows64
+            output: build/StandaloneWindows64
+            channel: playtest-windows
+    steps:
+      # The Unity image plus Library don't fit in the runner's default free space.
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: Library-${{ matrix.targetPlatform }}-
+
+      - uses: game-ci/unity-builder@v5
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: ${{ matrix.targetPlatform }}
+          buildName: lofilife
+          versioning: None # keep the bundleVersion set in Player Settings
+
+      - name: Drop files that must not ship
+        run: sudo rm -rf build/*/*_BurstDebugInformation_DoNotShip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lofilife-${{ matrix.targetPlatform }}-${{ github.run_number }}
+          path: ${{ matrix.output }}
+          retention-days: 14
+
+      - name: Push to itch.io
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          ITCH_TARGET: ${{ vars.ITCH_TARGET || 'macronnie/lofilife-playtest' }}
+        run: |
+          if [ -z "$BUTLER_API_KEY" ]; then echo "No BUTLER_API_KEY secret, skipping itch.io"; exit 0; fi
+          curl -sSfL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
+          unzip -q butler.zip -d butler && chmod +x butler/butler
+          butler/butler push "${{ matrix.output }}" "$ITCH_TARGET:${{ matrix.channel }}" \
+            --userversion "0.1.${{ github.run_number }}-${GITHUB_SHA::7}"

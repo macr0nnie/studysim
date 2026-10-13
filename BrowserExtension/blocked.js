@@ -1,3 +1,4 @@
+chrome.storage.local.get("theme").then(r => applyTheme(r.theme));
 const site = new URLSearchParams(location.search).get("site");
 if (site) document.getElementById("site").textContent = site;
 

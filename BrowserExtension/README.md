@@ -2,10 +2,10 @@
 
 A Chrome extension that connects your browser to the lofilife desktop game while it runs. It works in Chrome, Edge, Brave and other Chromium browsers (version 120 or newer). The web and iOS versions of the game don't talk to it.
 
-- **Popup:** shows the game's timer. You can start, pause and reset it, and set the study length (5 to 120 minutes, while the timer is stopped).
+- **Popup:** three tabs. Timer shows the game's timer on a progress ring with one play/pause button, reset, and −5/+5 to change the study length while the timer is stopped (5 to 120 minutes), plus your tag and today's totals. Stats and Sites are below.
 - **Focus stats:** level and XP, minutes focused, sessions and distractions today, your day streak, a bar chart of the last 7 days and your most studied subject this week.
 - **Graphs and tags:** "See all stats" opens a page with focus time by day, week, month and year, stacked by tag, plus totals, averages and a per-tag breakdown (click a tag to show only it). The tag is the game's study subject: set it in the popup (or pick a recent one) and each finished session is logged under it.
-- **Colours:** a dark plum night look taken from the game's backdrop. If you pick a menu colour in Paint > Menus, the popup follows it.
+- **Colours:** a dusk sky (plum to rose, with a few stars) with frosted cards and pixel numbers. If you pick a menu colour in Paint > Menus, the popup follows it.
 - **Badge:** the toolbar icon shows the minutes left: red while studying, green on a break, grey when paused, blank when the game isn't running.
 - **Distracting sites** (YouTube, TikTok, Reddit and so on, editable in the popup): during a study session, being on one makes the room in the game fall apart and drains coins until you leave.
 - **Blocking:** the extension can also block distracting sites. It does this during strict focus sessions by default, during every study session if you choose, or never. When the session ends, the blocked page offers a link back to the site.

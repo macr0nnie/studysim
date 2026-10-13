@@ -48,7 +48,7 @@ function showBadge(status) {
 // The game sends its menu palette, so a colour picked in Paint > Menus carries over to the popup. It's cached so pages open in the right colours.
 function applyTheme(t) {
   if (!t || !t.panel || t.light) return; // the default cream menus keep the extension's own night look
-  const vars = { bg: t.panel, card: t.card, text: t.text, muted: t.muted, accent: t.accent, line: t.selected,
+  const vars = { sky: t.panel, bg: t.panel, card: t.card, well: t.tab, track: t.tab, text: t.text, muted: t.muted, accent: t.accent, line: t.selected,
     button: t.tab, primary: t.button, "on-primary": t.text, ok: t.xp, bad: t.danger };
   for (const [k, v] of Object.entries(vars)) document.documentElement.style.setProperty("--" + k, v);
   document.documentElement.style.colorScheme = t.light ? "light" : "dark";

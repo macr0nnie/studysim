@@ -7,34 +7,52 @@
 </head>
 <body>
   <header class="top">
-    <img src="icons/icon48.png" alt="" class="logo" width="28" height="28">
+    <img src="icons/icon48.png" alt="" class="logo" width="26" height="26">
     <h1>lofilife</h1>
     <span id="pill" class="pill" role="status">Connecting</span>
   </header>
 
-  <section id="timer" class="card" hidden>
-    <div id="phase" class="phase">Study</div>
-    <div id="clock" class="clock" aria-live="off">--:--</div>
-    <div class="bar" aria-hidden="true"><div id="phaseBar"></div></div>
-    <div id="mode" class="muted center"></div>
-    <div id="distracted" class="alert" hidden>You're on a distracting site. Your room is falling apart!</div>
-    <form id="tagForm" class="row tagrow">
-      <label class="inline grow">Tag <input id="tag" list="tagOptions" maxlength="24" placeholder="e.g. Maths" aria-label="Tag for this session"></label>
-      <datalist id="tagOptions"></datalist>
-      <button type="submit">Set</button>
-    </form>
-    <div id="chips" class="chips"></div>
-    <div class="row">
-      <button id="toggle" class="primary">Start</button>
-      <button id="reset">Reset</button>
-    </div>
-    <form id="setForm" class="row set">
-      <label class="inline"><input id="minutes" type="number" min="5" max="120" value="25" aria-label="Study length in minutes"> min</label>
-      <button type="submit">Set length</button>
-    </form>
+  <nav class="seg" role="tablist" aria-label="Sections">
+    <button role="tab" data-view="timer" aria-selected="true">Timer</button>
+    <button role="tab" data-view="stats" aria-selected="false">Stats</button>
+    <button role="tab" data-view="sites" aria-selected="false">Sites</button>
+  </nav>
+
+  <section id="offline" class="card offline" hidden>
+    <p class="big">Open lofilife to connect</p>
+    <p class="muted small">This extension works with the lofilife desktop game on this computer. Start the game and open your room, and it connects by itself.</p>
   </section>
 
-  <section id="stats" class="card" hidden>
+  <section id="view-timer" hidden>
+    <div class="ring">
+      <svg viewBox="0 0 196 196" aria-hidden="true"><circle class="track" cx="98" cy="98" r="88"/><circle id="arc" class="arc" cx="98" cy="98" r="88"/></svg>
+      <div class="inner">
+        <div id="phase" class="phase">Study</div>
+        <div id="clock" class="clock" aria-live="off">--:--</div>
+        <div id="mode" class="mode"></div>
+      </div>
+    </div>
+    <div id="distracted" class="alert" hidden>You're on a distracting site. Your room is falling apart!</div>
+    <div id="tagline" class="tagline"><button id="tagChip" class="chip" title="Change what this session is logged under">No tag</button></div>
+    <form id="tagForm" class="tagform" hidden>
+      <input id="tag" list="tagOptions" maxlength="24" placeholder="e.g. Maths" aria-label="Tag for this session">
+      <datalist id="tagOptions"></datalist>
+      <button type="submit" class="primary">Set</button>
+    </form>
+    <div class="controls">
+      <button id="minus" class="round" title="5 minutes shorter (while stopped)" aria-label="5 minutes shorter">−5</button>
+      <button id="toggle" class="round main primary" aria-label="Start"></button>
+      <button id="reset" class="round" title="Reset" aria-label="Reset"><svg viewBox="0 0 24 24"><path d="M12 5a7 7 0 1 1-6.6 4.7l1.9.6A5 5 0 1 0 12 7v3L7.5 6 12 2z"/></svg></button>
+      <button id="plus" class="round" title="5 minutes longer (while stopped)" aria-label="5 minutes longer">+5</button>
+    </div>
+    <div id="todayRow" class="todayrow" hidden>
+      <div><b id="todayMin">0m</b><span>today</span></div>
+      <div><b id="todaySessions">0</b><span>sessions</span></div>
+      <div><b id="todayStreak">0</b><span>day streak</span></div>
+    </div>
+  </section>
+
+  <section id="view-stats" class="card" hidden>
     <div class="level">
       <strong id="level">Level 1</strong>
       <span id="xpText" class="muted small">0 / 100 XP</span>
@@ -52,13 +70,7 @@
     <button id="allStats" class="wide">See all stats</button>
   </section>
 
-  <section id="offline" class="card offline" hidden>
-    <p class="big">Open lofilife to connect</p>
-    <p class="muted small">This extension works with the lofilife desktop game on this computer. Start the game and open your room, and it connects by itself.</p>
-  </section>
-
-  <details class="card">
-    <summary>Sites and blocking</summary>
+  <section id="view-sites" class="card" hidden>
     <label for="block">Block distracting sites</label>
     <select id="block">
       <option value="off">Never</option>
@@ -71,7 +83,7 @@
     <textarea id="study" rows="4" spellcheck="false"></textarea>
     <button id="save" class="primary wide">Save</button>
     <div id="saved" class="muted small center" role="status"></div>
-  </details>
+  </section>
   <script src="shared.js"></script>
   <script src="popup.js"></script>
 </body>

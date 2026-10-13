@@ -1,0 +1,25 @@
+body.page { width: auto; max-width: 860px; margin: 0 auto; padding: 28px 20px; }
+.page h1 { font-size: 34px; }
+.tabs { display: flex; gap: 6px; margin: 4px 0 14px; }
+.tabs button { flex: none; padding: 7px 16px; }
+.tabs button[aria-selected="true"] { background: var(--primary); color: var(--on-primary); }
+.tiles.wide { grid-template-columns: repeat(4, 1fr); margin: 0 0 12px; }
+.tiles.wide div { background: var(--card); padding: 12px 6px; }
+.tiles.wide b { font-size: 30px; }
+.chart-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+.chart { display: flex; gap: 3px; height: 240px; align-items: stretch; }
+.chart .col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; min-width: 0; }
+.chart .stack { width: 100%; display: flex; flex-direction: column-reverse; border-radius: 5px 5px 2px 2px; overflow: hidden; background: transparent; }
+.chart .stack div { width: 100%; }
+.chart .empty { height: 3px; width: 100%; border-radius: 2px; background: var(--button); }
+.chart .d { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; max-width: 100%; height: 13px; }
+.chart .now .d { color: var(--text); font-weight: 700; }
+.tag-list { display: grid; gap: 6px; }
+.tag { display: grid; grid-template-columns: 14px 1fr 70px 90px; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: var(--bg); cursor: pointer; border: 2px solid transparent; text-align: left; font-weight: 400; }
+.tag.active { border-color: var(--primary); }
+.tag .sw { width: 12px; height: 12px; border-radius: 4px; }
+.tag .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tag .t { text-align: right; font-variant-numeric: tabular-nums; }
+.tag .pct { height: 6px; border-radius: 99px; background: var(--button); overflow: hidden; }
+.tag .pct div { height: 100%; }
+@media (max-width: 560px) { .tiles.wide { grid-template-columns: repeat(2, 1fr); } .tag { grid-template-columns: 14px 1fr 60px; } .tag .pct { display: none; } }

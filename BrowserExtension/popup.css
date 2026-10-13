@@ -35,6 +35,13 @@ h1 { font: 26px/1 "Jersey 15", system-ui, sans-serif; margin: 0; flex: 1; letter
 .row.set { margin-top: 8px; align-items: center; }
 .inline { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--muted); }
 .inline input { width: 64px; }
+.inline.grow { flex: 1; min-width: 0; }
+.inline.grow input { width: auto; flex: 1; min-width: 0; }
+.tagrow { margin-top: 10px; }
+.tagrow button { flex: none; }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.chips:empty { display: none; }
+.chips button { flex: none; padding: 3px 10px; font-size: 12px; font-weight: 500; border-radius: 999px; }
 .offline { text-align: center; padding: 18px 16px; }
 .offline .big { font: 22px/1.1 "Jersey 15", system-ui, sans-serif; margin: 0 0 6px; }
 .offline p:last-child { margin: 0; }

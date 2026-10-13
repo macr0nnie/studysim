@@ -73,7 +73,8 @@ public class ChromeWebEx : MonoBehaviour
     public const string StoreUrl = "";
     public bool IsListening => _httpListener != null && _httpListener.IsListening;
     public string ListenError { get; private set; } = "";
-    public float LastExtensionMessageAt { get; private set; } = -1; // unscaled time; pings don't count
+    public float LastExtensionMessageAt { get; private set; } = -1; // unscaled time of the last command or status poll; pings don't count
+    private volatile bool _extensionPolled; // set by the listener thread, read on the main thread
     public string LastResult { get; private set; } = "";
 
     // Debugging
@@ -152,6 +153,7 @@ public class ChromeWebEx : MonoBehaviour
                 // Send a response back to the client
                 if (origin != null) response.AddHeader("Access-Control-Allow-Origin", origin);
                 bool get = request.HttpMethod == "GET";
+                if (get && origin != null) _extensionPolled = true; // the popup only reads status, which still means it's connected
                 if (get) response.ContentType = "application/json";
                 string responseString = !get ? "Unity received your request!" : request.Url.AbsolutePath == "/stats" ? _history : _status;
                 byte[] buffer = Encoding.UTF8.GetBytes(responseString);
@@ -175,6 +177,7 @@ public class ChromeWebEx : MonoBehaviour
             LastResult = result;
             if (debugText) debugText.text = result;
         }
+        if (_extensionPolled) { _extensionPolled = false; LastExtensionMessageAt = Time.unscaledTime; }
         if (Time.unscaledTime >= _nextStatus)
         {
             _nextStatus = Time.unscaledTime + 0.5f;

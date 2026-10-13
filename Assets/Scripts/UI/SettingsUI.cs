@@ -138,7 +138,7 @@ public class SettingsUI : MonoBehaviour
         }
         float ago = bridge.LastExtensionMessageAt < 0 ? -1 : Time.unscaledTime - bridge.LastExtensionMessageAt;
         if (ago < 0) SetStatus(AccentColor, $"Listening on {ChromeWebEx.Address}. Waiting for the extension's first message.");
-        else SetStatus(XpColor, $"Connected. Last message {Ago(ago)}: {bridge.LastResult}");
+        else SetStatus(XpColor, $"Connected. Last heard from {Ago(ago)}" + (bridge.LastResult.Length > 0 ? $": {bridge.LastResult}" : "."));
     }
 
     private static string Ago(float seconds) =>

@@ -42,3 +42,12 @@ function showBadge(status) {
   chrome.action.setBadgeText({ text: status ? String(Math.ceil(Math.max(0, status.secondsLeft) / 60)) : "" });
   if (status) chrome.action.setBadgeBackgroundColor({ color: !status.running ? "#786657" : status.studying ? "#c24d47" : "#5c8f52" });
 }
+
+// The game sends its menu palette (Paint > Menus), so the popup always matches the game. It's cached so pages open in the right colours.
+function applyTheme(t) {
+  if (!t || !t.panel) return;
+  const vars = { bg: t.panel, card: t.card, text: t.text, muted: t.muted, accent: t.accent, line: t.selected,
+    button: t.tab, primary: t.button, "on-primary": t.text, ok: t.xp, bad: t.danger };
+  for (const [k, v] of Object.entries(vars)) document.documentElement.style.setProperty("--" + k, v);
+  document.documentElement.style.colorScheme = t.light ? "light" : "dark";
+}

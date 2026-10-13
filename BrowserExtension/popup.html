@@ -15,6 +15,7 @@
   <section id="timer" class="card" hidden>
     <div id="phase" class="phase">Study</div>
     <div id="clock" class="clock" aria-live="off">--:--</div>
+    <div class="bar" aria-hidden="true"><div id="phaseBar"></div></div>
     <div id="mode" class="muted center"></div>
     <div id="distracted" class="alert" hidden>You're on a distracting site. Your room is falling apart!</div>
     <div class="row">
@@ -25,6 +26,23 @@
       <label class="inline"><input id="minutes" type="number" min="5" max="120" value="25" aria-label="Study length in minutes"> min</label>
       <button type="submit">Set length</button>
     </form>
+  </section>
+
+  <section id="stats" class="card" hidden>
+    <div class="level">
+      <strong id="level">Level 1</strong>
+      <span id="xpText" class="muted small">0 / 100 XP</span>
+    </div>
+    <div class="bar xp" aria-hidden="true"><div id="xpBar"></div></div>
+    <div class="tiles">
+      <div><b id="today">0m</b><span>focused today</span></div>
+      <div><b id="sessions">0</b><span>sessions today</span></div>
+      <div><b id="distractions">0</b><span>distractions today</span></div>
+      <div><b id="streak">0</b><span>day streak</span></div>
+    </div>
+    <div class="week-head"><span>This week</span><span id="weekTotal" class="muted"></span></div>
+    <div id="week" class="week" role="img"></div>
+    <div id="subject" class="muted small center subject"></div>
   </section>
 
   <section id="offline" class="card offline" hidden>

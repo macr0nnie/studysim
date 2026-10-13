@@ -406,7 +406,10 @@ public class SettingsUI : MonoBehaviour
         statusText.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
 
         GameObject buttons = Row("Buttons", page, 42, 10, false);
-        SmallButton(buttons.transform, "Test connection", AccentButtonColor, 160).onClick.AddListener(() => StartCoroutine(Test()));
+        // Chrome only installs extensions from its store page, so one click here opens that page and "Add to Chrome" finishes it.
+        SmallButton(buttons.transform, "Get the extension", AccentButtonColor, 170).onClick.AddListener(() =>
+            Application.OpenURL(string.IsNullOrEmpty(ChromeWebEx.StoreUrl) ? "https://chromewebstore.google.com/search/lofilife" : ChromeWebEx.StoreUrl));
+        SmallButton(buttons.transform, "Test connection", TabColor, 150).onClick.AddListener(() => StartCoroutine(Test()));
         SmallButton(buttons.transform, "Reconnect", TabColor, 120).onClick.AddListener(() => { if (bridge != null) bridge.Restart(); });
         SmallButton(buttons.transform, "Copy setup info", TabColor, 150).onClick.AddListener(() =>
         {
@@ -422,8 +425,8 @@ public class SettingsUI : MonoBehaviour
             v => GameSettings.DistractionCoinsPerMinute = Mathf.RoundToInt(v), out _);
 
         Note(page,
-            "Install the extension from the game's BrowserExtension folder (Chrome: Extensions, Developer mode, Load unpacked), "
-            + "keep the game running, and it connects by itself. It talks to the game at "
+            "Press Get the extension, then Add to Chrome on the store page (it works in Edge and Brave too). "
+            + "Keep the game running and it connects by itself. Its popup shows your timer, level, coins and this week's study time in the game's menu colours. It talks to the game at "
             + $"<color=#{ColorUtility.ToHtmlStringRGB(AccentColor)}>{ChromeWebEx.Address}</color>: it can start, pause and reset the timer, "
             + "set the session length, earn focus XP on study sites, and tell the game when you're on a distracting one. "
             + "Copy setup info gives the full message list.");

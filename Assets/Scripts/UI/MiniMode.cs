@@ -32,12 +32,9 @@ public class MiniMode : MonoBehaviour
     private readonly List<Canvas> hidden = new List<Canvas>();
     private RoomManager room;
     private TimerManager timer;
-    private TMP_Text timerText, nudgeText; // the UI kept while mini: the countdown, a progress ring and a nudge line
-    private Image ring;
-    private Sprite ringSprite;
+    private TMP_Text timerText; // the only UI kept while mini: the countdown
     private bool wasDistracted;
     private float shakeUntil;
-    static readonly Color FocusRing = new Color(1f, 0.78f, 0.4f, 0.9f), BreakRing = new Color(0.55f, 0.85f, 0.65f, 0.9f), NudgeRing = new Color(1f, 0.35f, 0.3f, 1f);
     private float lastClick = -1, blockUntil;
     private UnityEngine.UI.CanvasScaler bubbleScaler;
     private UnityEngine.UI.CanvasScaler.ScaleMode bubbleMode;
@@ -87,46 +84,19 @@ public class MiniMode : MonoBehaviour
         if (timerText != null && timer != null)
         {
             int s = Mathf.Max(0, Mathf.CeilToInt(timer.CurrentTime));
-            int key = s * 2 + (timer.IsStudySession ? 1 : 0);
-            if (key == shownTimer) return; // the string only changes once a second
-            shownTimer = key;
-            timerText.text = $"{s / 60:00}:{s % 60:00}  <size=60%>{(timer.IsStudySession ? "Focus" : "Break")}</size>";
+            if (s == shownTimer) return; // the string only changes once a second
+            shownTimer = s;
+            timerText.text = $"{s / 60:00}:{s % 60:00}";
         }
     }
 
-    // The ring fills as the session runs (warm while focusing, green on a break). A distracting site during a study
-    // session turns it red, shakes it (and the window, in a build) once, and shows a line naming the site.
+    // A distracting site during a study session shakes the window once (the character's face changes too).
     private void Progress()
     {
-        if (ring == null || timer == null) return;
-        float total = (timer.IsStudySession ? timer.StudyMinutes : timer.BreakMinutes) * 60f;
-        ring.fillAmount = total > 0f ? Mathf.Clamp01(1f - timer.CurrentTime / total) : 0f;
+        if (timer == null) return;
         bool distracted = timer.IsStudySession && timer.IsTimerRunning && Distraction.Reported;
         if (distracted && !wasDistracted) shakeUntil = Time.unscaledTime + 0.8f;
         wasDistracted = distracted;
-        ring.color = distracted ? NudgeRing : timer.IsStudySession ? FocusRing : BreakRing;
-        nudgeText.text = distracted ? (Distraction.Site.Length > 0 ? $"{Distraction.Site}? Back to it!" : "Back to it!") : "";
-        float shake = Time.unscaledTime < shakeUntil ? Mathf.Sin(Time.unscaledTime * 30f) * 6f : 0f;
-        ((RectTransform)ring.transform).anchoredPosition = new Vector2(shake, 0f);
-    }
-
-    // A thin annulus, made once: the radial fill of an Image turns it into a progress ring.
-    private Sprite RingSprite()
-    {
-        if (ringSprite != null) return ringSprite;
-        const int size = 256;
-        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
-        var pixels = new Color32[size * size];
-        for (int y = 0; y < size; y++)
-            for (int x = 0; x < size; x++)
-            {
-                float d = new Vector2(x - size / 2f + 0.5f, y - size / 2f + 0.5f).magnitude;
-                float a = Mathf.Clamp01(size / 2f - 1f - d) * Mathf.Clamp01(d - (size / 2f - 30f)); // a thick band, so it reads at 64 px
-                pixels[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255));
-            }
-        tex.SetPixels32(pixels);
-        tex.Apply();
-        return ringSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f));
     }
 
     // Wants to leave mini mode: the (editor-only) key, or a double-click / right-click while unlocked.
@@ -178,7 +148,7 @@ public class MiniMode : MonoBehaviour
         }
         else
         {
-            if (timerText != null) Destroy(timerText.canvas.gameObject); // takes the ring and nudge line with it
+            if (timerText != null) Destroy(timerText.canvas.gameObject);
             foreach (Canvas c in hidden) if (c != null) Show(c, true);
             hidden.Clear();
             if (bubbleScaler != null) bubbleScaler.uiScaleMode = bubbleMode;
@@ -206,28 +176,6 @@ public class MiniMode : MonoBehaviour
         timerText.outlineColor = Color.black;
         timerText.raycastTarget = false;
 
-        // Faint full track, then the ring that fills over it, around the room.
-        for (int i = 0; i < 2; i++)
-        {
-            GameObject go = Make(i == 0 ? "MiniRingTrack" : "MiniRing", canvas.transform, typeof(Image));
-            var rect = (RectTransform)go.transform;
-            rect.anchorMin = rect.anchorMax = new Vector2(0.87f, 0.16f); // a small corner dial, clear of the room
-            rect.sizeDelta = new Vector2(64, 64);
-            var image = go.GetComponent<Image>();
-            image.sprite = RingSprite();
-            image.raycastTarget = false;
-            if (i == 0) { image.color = new Color(1f, 1f, 1f, 0.18f); continue; }
-            image.type = Image.Type.Filled;
-            image.fillMethod = Image.FillMethod.Radial360;
-            image.fillOrigin = (int)Image.Origin360.Top;
-            image.fillClockwise = true;
-            ring = image;
-        }
-        nudgeText = MakeText("MiniNudge", canvas.transform, "", 20, NudgeRing, TextAlignmentOptions.Bottom, true);
-        Anchor(nudgeText.gameObject, new Vector2(0, 0), new Vector2(1, 0.15f));
-        nudgeText.outlineWidth = 0.25f;
-        nudgeText.outlineColor = Color.black;
-        nudgeText.raycastTarget = false;
         wasDistracted = false;
     }
 
@@ -276,6 +224,7 @@ public class MiniMode : MonoBehaviour
         f9 = nowF9; f10 = nowF10; left = nowLeft; right = nowRight;
         if (!placed) return;
 
+        if (pressF9 && Down(VK_CONTROL)) { ResetPosition(); return; }
         if (pressF9) { Toggle(); return; }
         if (pressF10) SetUnlocked(!unlocked);
         // Other topmost windows can push it down, so it's raised again now and then.
@@ -303,6 +252,16 @@ public class MiniMode : MonoBehaviour
 
         if (LeaveClick(pressLeft && Inside(), pressRight && Inside())) { Toggle(); return; }
         Drag(pressLeft, nowLeft);
+    }
+
+    private static int DefaultX => Display.main.systemWidth - Width - 24;
+    private const int DefaultY = 24;
+
+    // Ctrl+F9: back to the top right corner (and forget the saved spot).
+    private void ResetPosition()
+    {
+        PlayerPrefs.DeleteKey(PosX); PlayerPrefs.DeleteKey(PosY);
+        SetWindowPos(hwnd, HWND_TOPMOST, DefaultX, DefaultY, 0, 0, SWP_NOSIZE | SWP_NOACTIVATE);
     }
 
     private bool Inside() => GetCursorPos(out POINT p) && GetWindowRect(hwnd, out RECT r) && p.x >= r.left && p.x < r.right && p.y >= r.top && p.y < r.bottom;
@@ -358,8 +317,10 @@ public class MiniMode : MonoBehaviour
         yield return null; // Unity applies the resolution at the end of the frame and resets the window style
         if (!Active) yield break;
         // Top right corner unless it was dragged somewhere else before.
-        int x = PlayerPrefs.GetInt(PosX, Display.main.systemWidth - Width - 24);
-        int y = PlayerPrefs.GetInt(PosY, 24);
+        int x = PlayerPrefs.GetInt(PosX, DefaultX), y = PlayerPrefs.GetInt(PosY, DefaultY);
+        // A saved spot on a monitor that's gone would leave it unreachable: keep it inside the desktop.
+        int vx = GetSystemMetrics(76), vy = GetSystemMetrics(77), vw = GetSystemMetrics(78), vh = GetSystemMetrics(79);
+        if (vw > Width && vh > Height) { x = Mathf.Clamp(x, vx, vx + vw - Width); y = Mathf.Clamp(y, vy, vy + vh - Height); }
         fullExStyle = GetWindowLong(hwnd, GWL_EXSTYLE);
         ShowWindow(hwnd, SW_HIDE); // the taskbar entry only changes while the window is hidden
         SetWindowLong(hwnd, GWL_STYLE, WS_POPUP | WS_VISIBLE);
@@ -438,6 +399,7 @@ public class MiniMode : MonoBehaviour
     [DllImport("user32.dll")] static extern int GetWindowLong(IntPtr hWnd, int index);
     [DllImport("user32.dll")] static extern int SetWindowLong(IntPtr hWnd, int index, int value);
     [DllImport("user32.dll")] static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
+    [DllImport("user32.dll")] static extern int GetSystemMetrics(int index);
     [DllImport("user32.dll")] static extern short GetAsyncKeyState(int vKey);
     [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr hWnd, int cmd);
     [DllImport("user32.dll")] static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint key, byte alpha, uint flags);

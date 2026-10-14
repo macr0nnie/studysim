@@ -37,6 +37,7 @@ public class RoomManager : MonoBehaviour
     // Outline colours (see PieceOutline): green can go here, red can't.
     static readonly Color ValidTint = new Color(0.3f, 0.9f, 0.45f, 1f);
     static readonly Color InvalidTint = new Color(0.95f, 0.25f, 0.25f, 1f);
+    const float PreviewRim = 0.08f; // thicker than the edit-mode outline, so can/can't place reads at a glance
     private GameObject selectedObject;
     private bool isPlacementValid;
     private Camera mainCamera;
@@ -91,7 +92,7 @@ public class RoomManager : MonoBehaviour
     private readonly Dictionary<GameObject, float> lifts = new Dictionary<GameObject, float>();
     private readonly Dictionary<GameObject, float> sizes = new Dictionary<GameObject, float>();
     private readonly Dictionary<GameObject, Vector3> baseScales = new Dictionary<GameObject, Vector3>();
-    private const float MaxLift = 3f, MinSize = 0.5f, MaxSize = 2f;
+    private const float MaxLift = 3f, MinSize = 0.2f, MaxSize = 2f; // low enough for Fit to bring an oversized pack model down
     private readonly HashSet<GameObject> starterPieces = new HashSet<GameObject>();
     private readonly Dictionary<GameObject, Color> pieceColors = new Dictionary<GameObject, Color>();
     private readonly Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
@@ -225,12 +226,7 @@ public class RoomManager : MonoBehaviour
         Physics.SyncTransforms();
         Bounds start = GetBounds(currentPreview);
         previewSpin = start.extents.x < start.extents.z * 0.8f ? 90f : 0f;
-
-        if (currentPreview == null)
-        {
-            Debug.LogError("Failed to instantiate furniture preview!");
-            return;
-        }
+        Fit(currentPreview); // the ghost already has the size it will be placed at
         SetPreviewTint(true);
     }
 
@@ -254,8 +250,16 @@ public class RoomManager : MonoBehaviour
             }
         }
         previewOnSurface = false;
-        // Not over a surface this piece can go on: follow the cursor, red.
-        currentPreview.transform.position = mainCamera.ScreenToWorldPoint(new Vector3(Controls.PointerPosition.x, Controls.PointerPosition.y, 10f));
+        // Not over a surface this piece can go on: stand it on the floor's level under the cursor, red. (Floating it
+        // in front of the camera made every new piece look huge while the cursor was still over the store.)
+        Ray ray = mainCamera.ScreenPointToRay(Controls.PointerPosition);
+        float floorY = hasRoomFloor ? roomFloor.max.y : 0f;
+        if (new Plane(Vector3.up, new Vector3(0, floorY, 0)).Raycast(ray, out float along))
+        {
+            Physics.SyncTransforms();
+            Bounds b = GetBounds(currentPreview);
+            preview.position += ray.GetPoint(along) - new Vector3(b.center.x, b.min.y, b.center.z);
+        }
         isPlacementValid = false;
         SetPreviewTint(false);
     }
@@ -484,11 +488,23 @@ public class RoomManager : MonoBehaviour
                 && !IsRider(FurnitureRoot(overlapBuffer[i].gameObject))) return false;
         foreach (GameObject placedObj in placedObjects)
         {
-            if (placedObj != piece && placedObj != support && placedObj.activeInHierarchy && !IsRider(placedObj) && GetBounds(placedObj).Intersects(bounds))
+            if (placedObj != piece && placedObj != support && placedObj.activeInHierarchy && !IsRider(placedObj) && Overlaps(placedObj, bounds))
                 return false;
         }
         return true;
     }
+    // Each collider's own box, so an L-shaped or open desk only blocks where it actually is; the whole
+    // piece's box when it has no colliders.
+    private static readonly List<Collider> overlapColliders = new List<Collider>();
+    private static bool Overlaps(GameObject placed, Bounds bounds)
+    {
+        placed.GetComponentsInChildren(overlapColliders);
+        if (overlapColliders.Count == 0) return GetBounds(placed).Intersects(bounds);
+        foreach (Collider c in overlapColliders)
+            if (c.enabled && !c.isTrigger && c.bounds.Intersects(bounds)) return true;
+        return false;
+    }
+
     // Handles placement input.
     private void HandlePlacement()
     {
@@ -672,15 +688,15 @@ public class RoomManager : MonoBehaviour
         placedObjects.Add(placedObject);
         if (previewItem != null) boughtItems[placedObject] = previewItem;
         previewItem = null;
-        if (IsKind(placedObject, "desk")) FitDesk(placedObject);
+        if (sizes.TryGetValue(currentPreview, out float fitted)) { sizes[placedObject] = fitted; baseScales[placedObject] = baseScales[currentPreview]; }
         RecordAction(placedObject);
         ResetPreviewMaterial(placedObject);
+        PieceOutline.Show(placedObject, ValidTint); // brief green flash, cleared when the pop settles
         if (HasLights(placedObject)) SetLights(placedObject, true, false); // the pack's lamps start switched off
         UISound.Play(boughtItems.TryGetValue(placedObject, out FurnitureItem paid) && paid.price > 0 ? UISound.Cue.Coin : UISound.Cue.Place);
         StartCoroutine(PopIn(placedObject.transform));
         PlayPlacementEffect(position);
-        Destroy(currentPreview);
-        currentPreview = null;
+        DestroyPreview();
         Action placed = onPreviewPlaced;
         onPreviewPlaced = null;
         placed?.Invoke();
@@ -691,11 +707,15 @@ public class RoomManager : MonoBehaviour
     {
         onPreviewPlaced = null;
         previewItem = null;
-        if (currentPreview != null)
-        {
-            Destroy(currentPreview);
-            currentPreview = null;
-        }
+        if (currentPreview != null) DestroyPreview();
+    }
+
+    private void DestroyPreview()
+    {
+        sizes.Remove(currentPreview);
+        baseScales.Remove(currentPreview);
+        Destroy(currentPreview);
+        currentPreview = null;
     }
 
     // Outlines the preview green/red, so the furniture keeps its own look.
@@ -703,7 +723,7 @@ public class RoomManager : MonoBehaviour
     {
         if (previewTintValid == valid) return;
         previewTintValid = valid;
-        PieceOutline.Show(currentPreview, valid ? ValidTint : InvalidTint);
+        PieceOutline.Show(currentPreview, valid ? ValidTint : InvalidTint, PreviewRim);
     }
 
     // Clears the preview outline from a placed object (Instantiate copied it from the preview).
@@ -719,7 +739,9 @@ public class RoomManager : MonoBehaviour
             target.localScale = new Vector3(scale.x * (2 - s), scale.y * s, scale.z * (2 - s));
             yield return null;
         }
-        if (target != null) target.localScale = scale;
+        if (target == null) yield break;
+        target.localScale = scale;
+        PieceOutline.Show(target.gameObject, null);
     }
 
     // Edit mode: click a piece to select it (it glows), drag it to move it along its surface,
@@ -1356,20 +1378,34 @@ public class RoomManager : MonoBehaviour
         Physics.SyncTransforms();
         b = GetBounds(desk);
         desk.transform.position += position - new Vector3(b.center.x, b.min.y, b.center.z);
-        FitDesk(desk);
+        Fit(desk);
         return desk;
     }
 
-    // Pack desks come at very different scales. A desk is about 0.3 of the wall height; one far outside that is scaled
-    // to it through the saved size, so Reset size in edit mode gives the model's own size back.
-    private void FitDesk(GameObject desk)
+    // Pack models come at very different scales. A desk is about 0.3 of the wall height; one far outside that is scaled
+    // to it. Anything else is only shrunk, when it is taller than the room or wider than half the floor. Done through the
+    // saved size, so Reset size in edit mode gives the model's own size back.
+    private void Fit(GameObject piece)
     {
         float wall = ceilingY - roomFloor.max.y;
         if (!hasRoomFloor || ceilingY == float.MinValue || wall <= 0f) return;
         Physics.SyncTransforms();
-        float height = GetBounds(desk).size.y, target = wall * 0.3f;
-        if (height <= 0f || (height < target * 1.35f && height > target * 0.65f)) return;
-        SetSize(desk, (sizes.TryGetValue(desk, out float z) ? z : 1f) * target / height);
+        Bounds b = GetBounds(piece);
+        if (b.size.y <= 0f) return;
+        float factor;
+        if (IsKind(piece, "desk"))
+        {
+            float target = wall * 0.3f;
+            if (b.size.y < target * 1.35f && b.size.y > target * 0.65f) return;
+            factor = target / b.size.y;
+        }
+        else
+        {
+            float across = Mathf.Max(b.size.x, b.size.z), room = Mathf.Min(roomFloor.size.x, roomFloor.size.z) * 0.5f;
+            factor = Mathf.Min(1f, wall * 0.85f / b.size.y, across > 0f ? room / across : 1f);
+            if (factor > 0.99f) return;
+        }
+        SetSize(piece, (sizes.TryGetValue(piece, out float z) ? z : 1f) * factor);
     }
 
     // A chair in front of the desk (the side facing the camera), clear of the desk, walls and other pieces, facing the desk.

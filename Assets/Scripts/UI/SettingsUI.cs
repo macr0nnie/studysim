@@ -360,8 +360,8 @@ public class SettingsUI : MonoBehaviour
             () => GameSettings.LowGraphics, v => GameSettings.LowGraphics = v);
         if (!GameSettings.Desktop) return; // mini mode needs the desktop version
         Heading(page, "Mini mode");
-        Note(page, "Your character, timer and a progress ring, like a game overlay: top right, on top of other windows and click-through. "
-            + "Ctrl + drag moves it, F9 comes back.");
+        Note(page, "Your character and the countdown, like a game overlay: top right, on top of other windows and click-through. "
+            + "Ctrl + drag moves it, Ctrl+F9 resets its position, F9 comes back.");
         GameObject mini = Row("Mini mode", page, 40, 10, false);
         SmallButton(mini.transform, "Go mini", AccentButtonColor, 140).onClick.AddListener(() => { Toggle(); MiniMode.Set(true); });
         Button key = SmallButton(mini.transform, "", CardColor, 190);

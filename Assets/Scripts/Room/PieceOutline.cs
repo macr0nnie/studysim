@@ -9,37 +9,38 @@ public class PieceOutline : MonoBehaviour
     private const float Grow = 0.04f;
     private static Shader shader;
     private Material material;
-    private bool built; // not serialized: a copy made with Instantiate rebuilds its own hulls
+    private float built; // rim size the hulls were made with, 0 = none. Not serialized: an Instantiate copy rebuilds its own
 
-    // null removes the outline.
-    public static void Show(GameObject piece, Color? color)
+    // null removes the outline. grow: how much bigger the rim hull is (the placement ghost uses a thicker one).
+    public static void Show(GameObject piece, Color? color, float grow = Grow)
     {
         if (piece == null) return;
         var outline = piece.GetComponent<PieceOutline>();
         if (color == null) { if (outline != null) outline.RemoveHulls(); return; }
         if (outline == null) outline = piece.AddComponent<PieceOutline>();
-        outline.Set(color.Value);
+        outline.Set(color.Value, grow);
     }
 
-    private void Set(Color color)
+    private void Set(Color color, float grow)
     {
         if (material == null)
         {
-            if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
+            // URP/Unlit is stripped from builds when no material uses it; Particles/Unlit is in Always Included Shaders.
+            if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Universal Render Pipeline/Particles/Unlit");
             if (shader == null) return;
             material = new Material(shader) { name = HullName };
             material.SetFloat("_Cull", (float)CullMode.Front); // draw the inside, so only the rim past the piece shows
         }
         material.SetColor("_BaseColor", color);
-        if (built) return;
+        if (built == grow) return;
         RemoveHulls();
-        built = true;
+        built = grow;
         foreach (MeshFilter filter in GetComponentsInChildren<MeshFilter>())
         {
             if (filter.sharedMesh == null || filter.name == HullName) continue;
             var hull = new GameObject(HullName, typeof(MeshFilter), typeof(MeshRenderer));
             hull.transform.SetParent(filter.transform, false);
-            const float s = 1f + Grow;
+            float s = 1f + grow;
             hull.transform.localScale = Vector3.one * s;
             hull.transform.localPosition = filter.sharedMesh.bounds.center * (1f - s); // grow about the mesh's centre, not its pivot
             hull.GetComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
@@ -57,7 +58,7 @@ public class PieceOutline : MonoBehaviour
     {
         foreach (Transform t in GetComponentsInChildren<Transform>(true))
             if (t.name == HullName && t != transform) Destroy(t.gameObject);
-        built = false;
+        built = 0f;
     }
 
     private void OnDestroy()

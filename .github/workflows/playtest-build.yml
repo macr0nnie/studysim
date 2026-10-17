@@ -167,13 +167,10 @@ jobs:
           rm -rf Builds/macOS/*_BurstDebugInformation_DoNotShip
           curl -sSfL https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F0.29.0/apple-codesign-0.29.0-x86_64-unknown-linux-musl.tar.gz | tar xz
           rc=apple-codesign-0.29.0-x86_64-unknown-linux-musl/rcodesign
-          # shortcut: if re-signing fails, ship with Unity's own binary signatures and log them; fix the signing from that log
-          if ! $rc sign Builds/macOS/lofilife.app; then
-            echo "::warning::Ad-hoc signing failed, so the Mac app keeps Unity's own signatures."
-            for f in Builds/macOS/lofilife.app/Contents/MacOS/* Builds/macOS/lofilife.app/Contents/Frameworks/*.dylib; do
-              echo "== $f"; $rc print-signature-info "$f" 2>&1 | head -80 || true
-            done
-          fi
+          # Unity's dylibs carry entitlements ending in a stray quote ('</plist>"') that rcodesign can't parse; same-length fix
+          grep -rl '</plist>"' Builds/macOS/lofilife.app | xargs -r perl -0777 -pi -e 's{</plist>"}{</plist>\n}g'
+          # Unity's own signatures still run, so a signing failure warns instead of dropping the release
+          $rc sign Builds/macOS/lofilife.app || echo "::warning::Ad-hoc signing failed, so the Mac app keeps Unity's own signatures."
           # zip keeps the executable bit and symlinks; a plain artifact upload would drop them and break the app
           (cd Builds/macOS && zip -qry ../../lofilife-mac.zip lofilife.app)
 

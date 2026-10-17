@@ -153,8 +153,10 @@ public class RoomAmbience : MonoBehaviour
         if (rainSound != null) rainSound.volume = GameSettings.EffectsVolume * (weather == Weather.Rain ? 0.2f : 0.1f);
         if (skyCanvas != null)
         {
-            bool showSky = !SkyHidden && !mini; // mini mode's window needs the camera's own clear colour
+            bool showSky = !mini; // mini mode's window needs the camera's own clear colour
             if (skyCanvas.enabled != showSky) skyCanvas.enabled = showSky;
+            // A Paint background colour hides only the sky itself; rain and snow still fall in front of the colour.
+            if (skyImage.enabled == SkyHidden) skyImage.enabled = skyGlow.enabled = stars.enabled = !SkyHidden;
             if (showSky && (skyClock -= Time.unscaledDeltaTime) <= 0) { skyClock = 30; PaintSky(); }
             if (showSky && (weather == Weather.Drizzle || weather == Weather.Rain))
             {

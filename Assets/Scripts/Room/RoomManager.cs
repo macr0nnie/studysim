@@ -268,6 +268,7 @@ public class RoomManager : MonoBehaviour
     {
         support = null;
         hit = default;
+        shelfHit = false;
         Ray ray = mainCamera.ScreenPointToRay(Controls.PointerPosition);
         int count = Physics.RaycastNonAlloc(ray, surfaceHits, 100f);
         Array.Sort(surfaceHits, 0, count, HitDistance);
@@ -279,16 +280,92 @@ public class RoomManager : MonoBehaviour
             RaycastHit h = surfaceHits[i];
             if (h.collider.transform.IsChildOf(piece.transform)) continue;
             if (((1 << h.collider.gameObject.layer) & mask) != 0) { hit = h; return true; }
-            if (!canStack || h.normal.y < 0.7f) continue;
+            if (!canStack) continue;
             GameObject other = FurnitureRoot(h.collider.gameObject);
             if (!placedObjects.Contains(other) || other == piece || IsRider(other)) continue;
             Bounds top = GetBounds(other);
+            if (ShelfAt(other, top, own, h, out RaycastHit onShelf)) { hit = onShelf; support = other; return true; }
+            if (h.normal.y < 0.7f) continue;
             if (own.extents.x > top.extents.x + 0.01f || own.extents.z > top.extents.z + 0.01f) continue; // too big to stand on it
             hit = h;
             support = other;
             return true;
         }
         return false;
+    }
+
+    // Bookshelves, racks and shelving units: small pieces go on the board under the cursor, not only on top. The boards are
+    // found once per piece from its meshes (upward-facing faces, grouped by height), so any pack's shelf works.
+    private readonly Dictionary<GameObject, (Bounds box, float[] levels)> shelfLevels = new Dictionary<GameObject, (Bounds, float[])>();
+    private bool shelfHit; // the last FindSurface put the piece on a shelf board: Pose then skips the grid
+
+    private bool ShelfAt(GameObject shelf, Bounds box, Bounds own, RaycastHit h, out RaycastHit onShelf)
+    {
+        onShelf = h;
+        if (!IsShelfUnit(shelf) || own.size.x > box.size.x || own.size.z > box.size.z) return false;
+        if (!shelfLevels.TryGetValue(shelf, out var cached) || cached.box != box) shelfLevels[shelf] = cached = (box, BoardHeights(shelf, box)); // moved or resized: measure again
+        float[] levels = cached.levels;
+        // The board under the cursor: the highest one at or below where the ray met the piece.
+        int best = -1;
+        for (int i = 0; i < levels.Length; i++) if (levels[i] <= h.point.y + box.size.y * 0.02f) best = i;
+        if (best < 0) return false;
+        float room = (best + 1 < levels.Length ? levels[best + 1] : float.MaxValue) - levels[best];
+        if (own.size.y > room * 1.05f && best + 1 < levels.Length) return false; // too tall for the gap to the board above
+        bool deepAlongX = box.size.x < box.size.z; // the shelf's shallow side is its depth
+        Vector3 p = h.point;
+        p.y = levels[best];
+        if (deepAlongX) { p.x = box.center.x; p.z = Mathf.Clamp(p.z, box.min.z + own.extents.z, box.max.z - own.extents.z); }
+        else { p.z = box.center.z; p.x = Mathf.Clamp(p.x, box.min.x + own.extents.x, box.max.x - own.extents.x); }
+        onShelf.point = p;
+        onShelf.normal = Vector3.up;
+        shelfHit = true;
+        return true;
+    }
+
+    private bool IsShelfUnit(GameObject go)
+    {
+        FurnitureItem item = ItemOf(go);
+        string name = item != null && !string.IsNullOrEmpty(item.displayName) ? item.displayName : go.name;
+        foreach (string w in System.Text.RegularExpressions.Regex.Split(name, @"[^A-Za-z]+|(?<=[a-z])(?=[A-Z])"))
+            if (w.Equals("shelf", StringComparison.OrdinalIgnoreCase) || w.Equals("bookshelf", StringComparison.OrdinalIgnoreCase)
+                || w.Equals("bookcase", StringComparison.OrdinalIgnoreCase) || w.Equals("shelving", StringComparison.OrdinalIgnoreCase)
+                || w.Equals("rack", StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    // Heights of the piece's boards in world space, lowest first, skipping the base on the floor. Faces that point up
+    // and are at least a fifth as wide as the piece count; boards within 3% of the height of each other are one board.
+    private static float[] BoardHeights(GameObject shelf, Bounds box)
+    {
+        var heights = new List<float>();
+        foreach (MeshFilter f in shelf.GetComponentsInChildren<MeshFilter>())
+        {
+            Mesh m = f.sharedMesh;
+            if (m == null || !m.isReadable || f.name == PieceOutline.HullName) continue;
+            Vector3[] v = m.vertices;
+            int[] tris = m.triangles;
+            Matrix4x4 w = f.transform.localToWorldMatrix;
+            var area = new Dictionary<int, float>(); // height bucket -> upward area
+            float bucket = box.size.y * 0.03f;
+            for (int i = 0; i + 2 < tris.Length; i += 3)
+            {
+                Vector3 a = w.MultiplyPoint3x4(v[tris[i]]), b = w.MultiplyPoint3x4(v[tris[i + 1]]), c = w.MultiplyPoint3x4(v[tris[i + 2]]);
+                Vector3 n = Vector3.Cross(b - a, c - a);
+                float size = n.magnitude * 0.5f;
+                if (size <= 0f || n.y / (size * 2f) < 0.95f) continue;
+                int k = Mathf.RoundToInt((a.y + b.y + c.y) / 3f / bucket);
+                area[k] = (area.TryGetValue(k, out float sum) ? sum : 0f) + size;
+            }
+            float minArea = box.size.x * box.size.z * 0.2f;
+            foreach (var kv in area)
+            {
+                float y = kv.Key * bucket;
+                if (kv.Value >= minArea && y > box.min.y + box.size.y * 0.05f) heights.Add(y);
+            }
+        }
+        heights.Sort();
+        for (int i = heights.Count - 1; i > 0; i--) if (heights[i] - heights[i - 1] < box.size.y * 0.03f) heights.RemoveAt(i);
+        return heights.ToArray();
     }
 
     private static readonly System.Collections.Generic.Comparer<RaycastHit> HitDistance =
@@ -341,8 +418,9 @@ public class RoomManager : MonoBehaviour
                 position += InsideFloor(b, position - t.position);
                 break;
             default:
+                if (shelfHit) target = hit.point; // on a board: centred in its depth where the cursor is, no grid, no grab offset
                 position = t.position + new Vector3(target.x - b.center.x, hit.point.y - b.min.y, target.z - b.center.z);
-                if (useGridPlacement) position = SnapToGrid(position);
+                if (useGridPlacement && !shelfHit) position = SnapToGrid(position);
                 position += InsideFloor(b, position - t.position);
                 break;
         }

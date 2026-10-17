@@ -55,8 +55,11 @@ public class RoomAmbience : MonoBehaviour
 
     private static RoomAmbience instance;
     private Canvas skyCanvas;
-    private RawImage skyImage, skyGlow, stars, rain, snow;
-    private Texture2D skyTexture, starTexture, rainTexture, snowTexture, haloTexture;
+    private RawImage skyImage, skyGlow, stars, clouds, rain, snow;
+    private Texture2D skyTexture, starTexture, rainTexture, snowTexture, haloTexture, cloudTexture, beamTexture;
+    private float daylight = 1f; // 0 at night .. 1 by day, dimmed by weather; set by PaintSky
+    private readonly Dictionary<Light, Renderer[]> beams = new Dictionary<Light, Renderer[]>(); // visible light shafts, outside the window's hierarchy so they never count in its bounds or outline
+    private Material beamMaterial;
     private float skyClock;
     private Weather weather;
     private const string WindowLightName = "WindowLight";
@@ -135,6 +138,9 @@ public class RoomAmbience : MonoBehaviour
         if (volume != null) Destroy(volume.sharedProfile);
         if (skyTexture != null) Destroy(skyTexture);
         if (haloTexture != null) Destroy(haloTexture);
+        if (cloudTexture != null) Destroy(cloudTexture);
+        if (beamTexture != null) Destroy(beamTexture);
+        if (beamMaterial != null) Destroy(beamMaterial);
         if (starTexture != null) Destroy(starTexture);
         if (rainTexture != null) Destroy(rainTexture);
         if (snowTexture != null) Destroy(snowTexture);
@@ -156,7 +162,13 @@ public class RoomAmbience : MonoBehaviour
             bool showSky = !mini; // mini mode's window needs the camera's own clear colour
             if (skyCanvas.enabled != showSky) skyCanvas.enabled = showSky;
             // A Paint background colour hides only the sky itself; rain and snow still fall in front of the colour.
-            if (skyImage.enabled == SkyHidden) skyImage.enabled = skyGlow.enabled = stars.enabled = !SkyHidden;
+            if (skyImage.enabled == SkyHidden) skyImage.enabled = skyGlow.enabled = stars.enabled = clouds.enabled = !SkyHidden;
+            if (showSky && !SkyHidden)
+            {
+                Rect c = clouds.uvRect;
+                c.x = Mathf.Repeat(c.x + Time.unscaledDeltaTime * 0.004f, 1f); // a slow drift, about four minutes across
+                clouds.uvRect = c;
+            }
             if (showSky && (skyClock -= Time.unscaledDeltaTime) <= 0) { skyClock = 30; PaintSky(); }
             if (showSky && (weather == Weather.Drizzle || weather == Weather.Rain))
             {
@@ -188,17 +200,23 @@ public class RoomAmbience : MonoBehaviour
 
         Look look = style == Style.Bright ? Bright : Cozy;
         float mood = Mathf.Lerp(look.keyBreak, look.keyFocus, focus) * Mathf.Lerp(LampsOffDim, 1f, lampsLit);
+        // Day and night: the key light is the sun, low and gold at dawn and dusk, a dim blue moon at night. Each window
+        // (up to two) lets more of it in by day, so placing one visibly brightens the room.
+        float windows = Mathf.Min(windowLights.Count, 2) * daylight;
+        mood *= Mathf.Lerp(0.45f, 1f, daylight) * (1f + 0.12f * windows);
+        float golden = 1f - Mathf.Abs(daylight * 2f - 1f); // peaks halfway through sunrise and sunset
+        Color sun = Color.Lerp(new Color(0.6f, 0.7f, 1f), Color.white, daylight) * Color.Lerp(Color.white, new Color(1f, 0.78f, 0.58f), golden * 0.7f);
         float warm = Mathf.Clamp01(focus * 0.5f + (1 - lampsLit) * 0.5f);
 
         // strength 0 is the scene as it was authored.
-        key.color = Color.Lerp(keyColor, Color.Lerp(look.key, look.key * new Color(1f, 0.9f, 0.8f), warm), strength);
+        key.color = Color.Lerp(keyColor, Color.Lerp(look.key, look.key * new Color(1f, 0.9f, 0.8f), warm) * sun, strength);
         key.intensity = Mathf.Lerp(keyIntensity, keyIntensity * mood, strength);
         key.shadows = mini ? LightShadows.None : (strength > 0.5f ? LightShadows.Soft : keyShadows);
         key.shadowStrength = Mathf.Lerp(1f, 0.5f, strength); // soft shadows that ground pieces without dark patches
         if (ambientMode == AmbientMode.Trilight)
         {
             // The fill leans a little towards the window light, so the room follows the time of day.
-            RenderSettings.ambientSkyColor = Color.Lerp(sky, Color.Lerp(look.sky, windowColor * look.sky.maxColorComponent, 0.25f), strength);
+            RenderSettings.ambientSkyColor = Color.Lerp(sky, Color.Lerp(look.sky, windowColor * look.sky.maxColorComponent, 0.25f) * (1f + 0.1f * windows), strength);
             RenderSettings.ambientEquatorColor = Color.Lerp(equator, look.equator, strength);
             RenderSettings.ambientGroundColor = Color.Lerp(ground, look.ground, strength);
         }
@@ -280,6 +298,71 @@ public class RoomAmbience : MonoBehaviour
             light.intensity = windowIntensity;
             light.enabled = on;
             light.shadows = MiniMode.Active ? LightShadows.None : LightShadows.Soft;
+            Beam(light, b, floor, on && !MiniMode.Active);
+        }
+        foreach (Light gone in new List<Light>(beams.Keys))
+            if (gone == null) { foreach (Renderer r in beams[gone]) if (r != null) Destroy(r.gameObject); beams.Remove(gone); }
+    }
+
+    // A visible shaft of light from a window to the floor: two crossed soft quads, brightest at the glass, fading out
+    // across the room and towards their edges. Additive, so it reads as light in the air without hiding anything.
+    private void Beam(Light light, Bounds window, Bounds floor, bool show)
+    {
+        if (!beams.TryGetValue(light, out Renderer[] quads))
+        {
+            if (beamMaterial == null)
+            {
+                Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit"); // in Always Included Shaders
+                if (shader == null) return;
+                beamTexture = new Texture2D(32, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+                for (int y = 0; y < 64; y++)
+                    for (int x = 0; x < 32; x++)
+                    {
+                        float across = Mathf.Sin((x + 0.5f) / 32f * Mathf.PI), along = Mathf.Pow(1f - y / 63f, 1.6f);
+                        beamTexture.SetPixel(x, y, new Color(1f, 1f, 1f, across * across * along));
+                    }
+                beamTexture.Apply();
+                beamMaterial = new Material(shader) { mainTexture = beamTexture };
+                beamMaterial.SetFloat("_Surface", 1);
+                beamMaterial.SetFloat("_Blend", 2); // additive
+                beamMaterial.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
+                beamMaterial.SetFloat("_DstBlend", (float)BlendMode.One);
+                beamMaterial.SetFloat("_ZWrite", 0);
+                beamMaterial.SetFloat("_Cull", (float)CullMode.Off);
+                beamMaterial.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                beamMaterial.renderQueue = (int)RenderQueue.Transparent;
+            }
+            var mesh = new Mesh { name = "Beam" };
+            // Local z runs from the window (0) to the floor (1); the far end is wider, the way light spreads.
+            mesh.vertices = new[] { new Vector3(-0.5f, 0, 0), new Vector3(0.5f, 0, 0), new Vector3(-0.8f, 0, 1), new Vector3(0.8f, 0, 1) };
+            mesh.uv = new[] { new Vector2(0, 0), new Vector2(1, 0), new Vector2(0, 1), new Vector2(1, 1) };
+            mesh.colors = new[] { Color.white, Color.white, Color.white, Color.white };
+            mesh.triangles = new[] { 0, 2, 1, 1, 2, 3 };
+            quads = new Renderer[2];
+            for (int i = 0; i < 2; i++)
+            {
+                var go = new GameObject("WindowBeam", typeof(MeshFilter), typeof(MeshRenderer));
+                go.transform.SetParent(transform, false);
+                go.GetComponent<MeshFilter>().sharedMesh = mesh;
+                var r = go.GetComponent<MeshRenderer>();
+                r.sharedMaterial = beamMaterial;
+                r.shadowCastingMode = ShadowCastingMode.Off;
+                r.receiveShadows = false;
+                quads[i] = r;
+            }
+            beams[light] = quads;
+        }
+        Vector3 to = floor.center - window.center;
+        float width = Mathf.Max(window.size.x, window.size.z) * 0.8f;
+        var block = new MaterialPropertyBlock();
+        block.SetColor("_BaseColor", new Color(windowColor.r, windowColor.g, windowColor.b, Mathf.Lerp(0.04f, 0.22f, daylight)));
+        for (int i = 0; i < quads.Length; i++)
+        {
+            Transform t = quads[i].transform;
+            t.SetPositionAndRotation(window.center, Quaternion.LookRotation(to) * Quaternion.Euler(0, 0, i * 90f));
+            t.localScale = new Vector3(i == 0 ? width : window.size.y * 0.8f, 1f, to.magnitude * 1.1f);
+            quads[i].enabled = show;
+            quads[i].SetPropertyBlock(block);
         }
     }
 
@@ -327,6 +410,29 @@ public class RoomAmbience : MonoBehaviour
         // Stars fade in at night: one small generated texture, tiled.
         starTexture = Dots(256, 256, 90, 1, (x, y) => new Color(1f, 1f, 1f, 0.5f + Hash(x, y) * 0.5f));
         stars = SkyLayer("Stars", starTexture, new Rect(0, 0, 2f * cam.aspect, 2f));
+
+        // Clouds: a few soft wide puffs on one tiling texture, drifting slowly sideways; clearer at night, heavier when grey.
+        cloudTexture = new Texture2D(256, 128, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };
+        var puffs = new Vector4[14];
+        var cloudRng = new System.Random(11);
+        for (int i = 0; i < puffs.Length; i++) puffs[i] = new Vector4(cloudRng.Next(256), 30 + cloudRng.Next(70), 14 + cloudRng.Next(22), 0.5f + (float)cloudRng.NextDouble() * 0.5f);
+        var cloudPixels = new Color32[256 * 128];
+        for (int y = 0; y < 128; y++)
+            for (int x = 0; x < 256; x++)
+            {
+                float a = 0;
+                foreach (Vector4 p in puffs)
+                {
+                    float dx = Mathf.Abs(x - p.x); dx = Mathf.Min(dx, 256 - dx); // wraps, so the texture tiles
+                    float dy = (y - p.y) * 2f; // flattened: clouds are wider than tall
+                    a += p.w * Mathf.Exp(-(dx * dx + dy * dy) / (2f * p.z * p.z));
+                }
+                cloudPixels[y * 256 + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(a) * 0.9f);
+            }
+        cloudTexture.SetPixels32(cloudPixels);
+        cloudTexture.Apply();
+        clouds = SkyLayer("Clouds", cloudTexture, new Rect(0, 0, 1.2f * cam.aspect, 1f));
+        clouds.gameObject.AddComponent<Canvas>(); // scrolls every frame: rebuild only this layer
 
         // A soft glow behind the room instead of a sky photo (ronnie found the photo looked unpolished): the room
         // floats in a warm pool of light that follows the time-of-day colours.
@@ -465,6 +571,8 @@ public class RoomAmbience : MonoBehaviour
         windowColor = Color.Lerp(new Color(0.55f, 0.65f, 1f), SunColor, day);
         windowIntensity = Mathf.Lerp(0.1f, 1.6f, day) * (weather == Weather.Rain ? 0.45f : clear ? 1f : 0.65f);
         foreach (Light light in windowLights) if (light != null) { light.color = windowColor; light.intensity = windowIntensity; }
+        daylight = day * (weather == Weather.Rain ? 0.55f : clear ? 1f : 0.75f);
+        if (clouds != null) clouds.color = new Color(Mathf.Lerp(0.35f, 1f, day), Mathf.Lerp(0.38f, 0.95f, day), Mathf.Lerp(0.5f, 0.95f, day), Mathf.Lerp(0.08f, 0.22f, day) + grey * 0.25f);
 
         if (skyGlow != null)
         {

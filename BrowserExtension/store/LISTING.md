@@ -24,7 +24,7 @@ Focus companion for the lofilife desktop game: control your study timer, earn XP
 > • Allow-only mode: block everything except the sites you need.
 > • Focus hours: block distracting sites on a schedule, even when the game is closed.
 >
-> You need the lofilife desktop game running on the same computer (Windows). The extension talks only to the game on your own computer, at localhost. It has no accounts, no ads and no tracking, and it sends nothing to any server.
+> You need the lofilife desktop game running on the same computer (Windows or Mac). The extension talks only to the game on your own computer, at localhost. It has no accounts, no ads and no tracking, and it sends nothing to any server.
 
 **Category:** Productivity [I believe "Workflow & Planning" is the closest sub-category in the current dashboard; pick whatever it offers]
 **Language:** English

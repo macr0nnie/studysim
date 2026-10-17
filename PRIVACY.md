@@ -4,7 +4,7 @@ Last updated: 2026-10-13
 
 ## The game
 - lofilife has no accounts, ads, analytics or crash reporting.
-- Your saves and settings are stored only on your computer (Unity PlayerPrefs, in the Windows registry).
+- Your saves and settings are stored only on your computer (Unity PlayerPrefs: the registry on Windows, a preferences file on Mac).
 - On Windows, the game reads the title of the Spotify desktop app's window to show the song that is playing. This stays on your computer.
 - **Album covers (off by default).** If you turn on Settings > Sound > Spotify album covers, the game sends the playing song's artist and title to Apple's iTunes Search API (itunes.apple.com) to fetch its cover. Apple's own privacy policy applies to that request.
 - The game listens on `http://localhost:8080/` so the browser extension can talk to it. It only accepts requests from your own computer and from browser extensions, never from websites.

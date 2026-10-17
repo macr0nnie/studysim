@@ -43,10 +43,12 @@ function isDistracting(host, s) {
 }
 
 function inSchedule(sch, now = new Date()) {
-  if (!sch.on || !sch.days.includes(now.getDay())) return false;
+  if (!sch.on) return false;
   const mins = now.getHours() * 60 + now.getMinutes(), at = t => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
-  const from = at(sch.from), to = at(sch.to);
-  return from <= to ? mins >= from && mins < to : mins >= from || mins < to; // to before from runs past midnight
+  const from = at(sch.from), to = at(sch.to), day = now.getDay();
+  if (from <= to) return sch.days.includes(day) && mins >= from && mins < to;
+  // Runs past midnight: the hours after midnight belong to the day it started on.
+  return (sch.days.includes(day) && mins >= from) || (sch.days.includes((day + 6) % 7) && mins < to);
 }
 
 // Is blocking switched on right now: during a study session the settings cover, or inside the schedule.
@@ -59,6 +61,12 @@ function blockingNow(status, s) {
 function matches(host, list) {
   host = (host || "").toLowerCase();
   return list.some(d => host === d || host.endsWith("." + d));
+}
+
+// A "remind me" pass for this host. Matches either way round, so a pass for youtube.com also covers the
+// www.youtube.com it redirects to.
+function hasPass(host, passes, now = Date.now()) {
+  return Object.keys(passes).some(k => passes[k] > now && (matches(host, [k]) || matches(k, [host])));
 }
 
 function hostOf(url) {

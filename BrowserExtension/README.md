@@ -21,7 +21,7 @@ A Chrome extension that connects your browser to the lofilife desktop game while
 
 ## Publish an update to the Chrome Web Store
 1. Raise `version` in `manifest.json` (the store rejects a version it has already seen).
-2. Zip the **contents** of this folder, so `manifest.json` is at the top of the zip. `store/` and this README can be left out.
+2. Zip the **contents** of this folder, so `manifest.json` is at the top of the zip. Leave out `store/`, `tests/` and this README.
 3. In the Chrome Web Store developer dashboard, open the item, go to **Package**, upload the zip, and submit for review.
 
 The listing text, permission justifications and images are in [`store/`](store/).

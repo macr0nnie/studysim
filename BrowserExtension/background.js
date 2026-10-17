@@ -5,8 +5,9 @@ importScripts("shared.js");
 
 const CHECK_MINUTES = 0.5; // Chrome's shortest alarm; the game waits 45 s before a distraction counts as over
 
-chrome.runtime.onInstalled.addListener(() => chrome.alarms.create("check", { periodInMinutes: CHECK_MINUTES }));
-chrome.runtime.onStartup.addListener(() => chrome.alarms.create("check", { periodInMinutes: CHECK_MINUTES }));
+// Every time the worker starts, not only on install: an alarm can go missing (for example after the extension is
+// switched off and on), and then focus hours would never start.
+chrome.alarms.get("check").then(a => { if (!a) chrome.alarms.create("check", { periodInMinutes: CHECK_MINUTES }); });
 chrome.alarms.onAlarm.addListener(alarm => { if (alarm.name === "check") check(); });
 chrome.tabs.onActivated.addListener(() => check());
 chrome.tabs.onUpdated.addListener((tabId, change, tab) => { if (change.url && tab.active) check(); });
@@ -24,8 +25,8 @@ async function check() {
   // Block when a session or the schedule says so, unless a "remind me" page was clicked through for this site.
   if (distracting && blockingNow(status, settings)) {
     const { passes = {} } = await chrome.storage.session.get("passes");
-    if (!(passes[host] > Date.now()))
-      chrome.tabs.update(tab.id, { url: chrome.runtime.getURL("blocked.html") + "?site=" + encodeURIComponent(host) });
+    if (!hasPass(host, passes))
+      chrome.tabs.update(tab.id, { url: chrome.runtime.getURL("blocked.html") + "?site=" + encodeURIComponent(host) + "&url=" + encodeURIComponent(tab.url) });
   }
   if (!status) return; // game not running: nothing to report
 

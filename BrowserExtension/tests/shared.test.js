@@ -17,4 +17,14 @@ assert(!inSchedule({ ...sch, on: false }, new Date(2026, 9, 13, 10, 0)));
 assert(blockingNow({ running: true, studying: true, strict: true }, { ...s, block: 'strict', schedule: { on: false } }));
 assert(!blockingNow({ running: true, studying: true, strict: false }, { ...s, block: 'strict', schedule: { on: false } }));
 assert(!blockingNow(null, { ...s, schedule: { on: false } }));
+// past midnight: Tuesday 22:00-02:00 still blocks at 01:00 on Wednesday, not at 01:00 on Tuesday
+const night = { on: true, days: [2], from: '22:00', to: '02:00' };
+assert(inSchedule(night, new Date(2026, 9, 14, 1, 0)));
+assert(!inSchedule(night, new Date(2026, 9, 13, 1, 0)));
+assert(!inSchedule(night, new Date(2026, 9, 14, 23, 0)));
+// a pass for youtube.com covers the www. redirect, and expires
+assert(hasPass('www.youtube.com', { 'youtube.com': 2000 }, 1000));
+assert(hasPass('youtube.com', { 'www.youtube.com': 2000 }, 1000));
+assert(!hasPass('www.youtube.com', { 'youtube.com': 500 }, 1000));
+assert(!hasPass('reddit.com', { 'youtube.com': 2000 }, 1000));
 console.log('shared.js checks pass');

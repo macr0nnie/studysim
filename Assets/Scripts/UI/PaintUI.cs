@@ -38,7 +38,7 @@ public class PaintUI : MonoBehaviour
     private Transform swatchGrid, materialGrid;
     private TMP_Text info;
     private Button resetButton;
-    private GameObject weatherRow; // Background tab only
+    private GameObject weatherRow, skyButton; // Background tab only
     private TMP_Text weatherLabel;
     private Image[] tabs;
     private Target target = Target.Walls;
@@ -176,6 +176,8 @@ public class PaintUI : MonoBehaviour
         resetButton.interactable = painted;
 
         weatherRow.SetActive(target == Target.Background);
+        skyButton.SetActive(target == Target.Background);
+        skyButton.GetComponent<Image>().color = paint.backgroundColor.Length == 0 ? SelectedColor : TabColor;
         weatherLabel.text = $"Weather: {GameSettings.Weather}";
         bool surface = target == Target.Walls || target == Target.Floor;
         materialsLabel.SetActive(surface && Materials(target).Length > 0);
@@ -183,8 +185,14 @@ public class PaintUI : MonoBehaviour
         for (int i = materialGrid.childCount - 1; i >= 0; i--) Destroy(materialGrid.GetChild(i).gameObject);
         if (surface)
         {
+            // The pack has many plain (untextured) materials that look alike once tinted; show only the whitest, plus the
+            // one in use. Indices stay those of the full list so saves keep pointing at the same material.
             Material[] materials = Materials(target);
-            for (int i = 0; i < materials.Length; i++) AddMaterialTile(materials[i], i);
+            int chosen = target == Target.Walls ? paint.wallMaterial : paint.floorMaterial, white = -1;
+            for (int i = 0; i < materials.Length; i++)
+                if (materials[i].mainTexture == null && (white < 0 || Shade(materials[i]).grayscale > Shade(materials[white]).grayscale)) white = i;
+            for (int i = 0; i < materials.Length; i++)
+                if (materials[i].mainTexture != null || i == white || i == chosen) AddMaterialTile(materials[i], i);
         }
     }
 
@@ -294,6 +302,11 @@ public class PaintUI : MonoBehaviour
             weatherLabel.text = $"Weather: {GameSettings.Weather}";
         });
         weatherRow = weather.gameObject;
+        // The sky is a background choice like the colours: picking it drops the plain colour.
+        Button sky = TextButton("Sky", panel.transform, "Time-of-day sky", TabColor, BodySize);
+        sky.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
+        sky.onClick.AddListener(ResetTarget);
+        skyButton = sky.gameObject;
 
         // Materials come first and get two thirds of the free height; colours scroll in the last third.
         materialsLabel = Label("Materials");
@@ -337,6 +350,8 @@ public class PaintUI : MonoBehaviour
         return grid;
     }
 
+    private static Color Shade(Material m) => m.HasProperty("_BaseColor") ? m.GetColor("_BaseColor") : m.color;
+
     // A tile showing the material's colour (and texture, if it has one).
     private void AddMaterialTile(Material material, int index)
     {
@@ -348,7 +363,7 @@ public class PaintUI : MonoBehaviour
         Anchor(swatch, Vector2.zero, Vector2.one);
         var raw = swatch.GetComponent<RawImage>();
         raw.texture = material.mainTexture;
-        raw.color = material.HasProperty("_BaseColor") ? material.GetColor("_BaseColor") : material.color;
+        raw.color = Shade(material);
         raw.raycastTarget = false;
         int chosen = target == Target.Walls ? paint.wallMaterial : paint.floorMaterial;
         if (chosen == index) tile.GetComponent<Image>().color = AccentColor; // ring on the chosen one

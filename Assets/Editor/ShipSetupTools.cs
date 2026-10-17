@@ -61,6 +61,23 @@ public static class ShipSetupTools
         FailCI(report);
     }
 
+    // Mac laptops: one universal app that runs natively on Apple silicon and Intel (Metal on both). Needs Unity's
+    // "Mac Build Support (Mono)" module. Built off a Mac it is unsigned; CI ad-hoc signs it so Apple silicon will launch it.
+    [MenuItem("Study Sim/Build for macOS")]
+    public static void BuildMac()
+    {
+        // The string form compiles without the Mac module installed (UserBuildSettings.architecture would not).
+        EditorUserBuildSettings.SetPlatformSettings("Standalone", "OSXUniversal", "Architecture", "x64ARM64");
+        var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+        {
+            scenes = System.Array.ConvertAll(System.Array.FindAll(EditorBuildSettings.scenes, s => s.enabled), s => s.path),
+            locationPathName = "Builds/macOS/lofilife.app",
+            target = BuildTarget.StandaloneOSX,
+        });
+        Debug.Log($"Study Sim macOS build: {report.summary.result} in Builds/macOS.");
+        FailCI(report);
+    }
+
     // The CI workflow runs these with -batchmode; a non-zero exit code is how it learns the build failed.
     static void FailCI(UnityEditor.Build.Reporting.BuildReport report)
     {

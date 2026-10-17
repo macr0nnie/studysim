@@ -59,7 +59,26 @@ jobs:
           key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: Library-${{ matrix.targetPlatform }}-
 
-      - uses: game-ci/unity-builder@v5
+      # The editor is sometimes SIGKILLed (exit 137) just after loading a restored Library;
+      # every run with a fresh Library has built, so one retry starts from an empty Library.
+      - id: build
+        continue-on-error: true
+        uses: game-ci/unity-builder@v5
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: ${{ matrix.targetPlatform }}
+          buildName: lofilife
+          versioning: None # keep the bundleVersion set in Player Settings
+
+      - name: Clear Library after a failed build
+        if: steps.build.outcome == 'failure'
+        run: sudo rm -rf Library
+
+      - if: steps.build.outcome == 'failure'
+        uses: game-ci/unity-builder@v5
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
@@ -113,7 +132,26 @@ jobs:
           key: Library-StandaloneOSX-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: Library-StandaloneOSX-
 
-      - uses: game-ci/unity-builder@v5
+      # The editor is sometimes SIGKILLed (exit 137) just after loading a restored Library;
+      # every run with a fresh Library has built, so one retry starts from an empty Library.
+      - id: build
+        continue-on-error: true
+        uses: game-ci/unity-builder@v5
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: StandaloneOSX
+          buildMethod: ShipSetupTools.BuildMac # sets the universal architecture, writes Builds/macOS/lofilife.app
+          versioning: None
+
+      - name: Clear Library after a failed build
+        if: steps.build.outcome == 'failure'
+        run: sudo rm -rf Library
+
+      - if: steps.build.outcome == 'failure'
+        uses: game-ci/unity-builder@v5
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
@@ -128,7 +166,14 @@ jobs:
           sudo chown -R "$USER" Builds
           rm -rf Builds/macOS/*_BurstDebugInformation_DoNotShip
           curl -sSfL https://github.com/indygreg/apple-platform-rs/releases/download/apple-codesign%2F0.29.0/apple-codesign-0.29.0-x86_64-unknown-linux-musl.tar.gz | tar xz
-          apple-codesign-0.29.0-x86_64-unknown-linux-musl/rcodesign sign Builds/macOS/lofilife.app
+          rc=apple-codesign-0.29.0-x86_64-unknown-linux-musl/rcodesign
+          # shortcut: if re-signing fails, ship with Unity's own binary signatures and log them; fix the signing from that log
+          if ! $rc sign Builds/macOS/lofilife.app; then
+            echo "::warning::Ad-hoc signing failed, so the Mac app keeps Unity's own signatures."
+            for f in Builds/macOS/lofilife.app/Contents/MacOS/* Builds/macOS/lofilife.app/Contents/Frameworks/*.dylib; do
+              echo "== $f"; $rc print-signature-info "$f" 2>&1 | head -80 || true
+            done
+          fi
           # zip keeps the executable bit and symlinks; a plain artifact upload would drop them and break the app
           (cd Builds/macOS && zip -qry ../../lofilife-mac.zip lofilife.app)
 

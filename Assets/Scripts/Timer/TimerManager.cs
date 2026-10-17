@@ -74,6 +74,16 @@ public class TimerManager : MonoBehaviour
         if (isTimerRunning) return;
         endsAt = Now + currentTime;
         isTimerRunning = true;
+        LocalNotify.Ask(); // iOS asks once; later calls do nothing
+    }
+
+    // iPhone/iPad: a notification when the session or break ends while the app is in the background.
+    private void OnApplicationPause(bool paused)
+    {
+        LocalNotify.Cancel();
+        if (paused && isTimerRunning && GameSettings.SessionToasts)
+            LocalNotify.Schedule(isStudySession ? "Session done" : "Break's over",
+                isStudySession ? "Nice focus. Your coins are waiting." : "Ready for the next session?", currentTime);
     }
     public void PauseTimer()
     {

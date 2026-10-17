@@ -437,6 +437,7 @@ public class SettingsUI : MonoBehaviour
     private void BuildControls(Transform page)
     {
         Heading(page, "Controls");
+        if (!Controls.ShowKeys) Note(page, "These keys work when a keyboard is connected. On touch, use the buttons on screen.");
         Transform list = page;
         var labels = Controls.Labels;
         keyLabels = new TMP_Text[labels.Length];

@@ -126,7 +126,7 @@ public static class UIKit
         void Refresh()
         {
             if (text == null) { Controls.Rebound -= Refresh; return; } // button destroyed
-            text.text = show ? $"{label}  <size={CaptionSize}><alpha=#99>{Controls.KeyName(key)}</size>" : label;
+            text.text = show && Controls.ShowKeys ? $"{label}  <size={CaptionSize}><alpha=#99>{Controls.KeyName(key)}</size>" : label;
         }
         if (onHover)
         {

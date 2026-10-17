@@ -1,5 +1,4 @@
 using UnityEditor;
-using UnityEditor.Build;
 using UnityEditor.PackageManager;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -70,16 +69,10 @@ public static class ShipSetupTools
 
     // iPhone/iPad: writes an Xcode project to Builds/iOS. Needs Unity's iOS Build Support module (works on Windows);
     // the project is then opened in Xcode on a Mac to sign, run on a phone and upload to TestFlight.
+    // Bundle id com.macronnie.studysim and landscape-only are in Player Settings, so CI builds get them too.
     [MenuItem("Study Sim/Build for iOS (Xcode project)")]
     public static void BuildIOS()
     {
-        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.macronnie.studysim");
-        // Landscape only: the UI is laid out for 1920x1080.
-        PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
-        PlayerSettings.allowedAutorotateToPortrait = false;
-        PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
-        PlayerSettings.allowedAutorotateToLandscapeLeft = true;
-        PlayerSettings.allowedAutorotateToLandscapeRight = true;
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
         {
             scenes = System.Array.ConvertAll(System.Array.FindAll(EditorBuildSettings.scenes, s => s.enabled), s => s.path),

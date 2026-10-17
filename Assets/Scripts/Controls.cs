@@ -55,6 +55,10 @@ public static class Controls
 
     // The key shown on buttons and in Settings, e.g. "B" or "F10".
     public static string KeyName(Act act) => actions[(int)act].GetBindingDisplayString(0);
+    // Key hints in the UI; off on iPhone/iPad, where most players have no keyboard.
+    public static bool ShowKeys => !Application.isMobilePlatform;
+    // " (R)" after a label, or nothing on touch screens.
+    public static string Hint(Act act) => ShowKeys ? $" ({KeyName(act)})" : "";
 
     // Pointer: the mouse, or a touch on touch screens.
     public static Vector2 PointerPosition => Pointer.current != null ? Pointer.current.position.ReadValue() : Vector2.zero;

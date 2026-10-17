@@ -60,7 +60,9 @@ public class GameHUD : MonoBehaviour
         if (PlayerPrefs.GetInt("SeenWelcome", 0) == 0)
         {
             PlayerPrefs.SetInt("SeenWelcome", 1);
-            ShowToast($"Welcome! {Controls.KeyName(Controls.Act.Store)} opens the shop, {Controls.KeyName(Controls.Act.Edit)} lets you move furniture, {Controls.KeyName(Controls.Act.Planner)} is your planner.");
+            ShowToast(Controls.ShowKeys
+                ? $"Welcome! {Controls.KeyName(Controls.Act.Store)} opens the shop, {Controls.KeyName(Controls.Act.Edit)} lets you move furniture, {Controls.KeyName(Controls.Act.Planner)} is your planner."
+                : "Welcome! Shop has furniture, Edit lets you move it, Planner holds your tasks.");
         }
         chime = MakeChime();
     }
@@ -151,7 +153,7 @@ public class GameHUD : MonoBehaviour
                 lightsButton.gameObject.SetActive(room.SelectedHasLights);
                 fitInfo.text = room.SelectedFits
                     ? $"Height +{room.SelectedLift:0.00}   Size {room.SelectedSize:0.00}x"
-                    : $"<color=#{ColorUtility.ToHtmlStringRGB(DangerColor)}>Overlaps something. Let go somewhere free, or {Controls.KeyName(Controls.Act.Undo)} to undo</color>";
+                    : $"<color=#{ColorUtility.ToHtmlStringRGB(DangerColor)}>Overlaps something. Let go somewhere free, or {(Controls.ShowKeys ? Controls.KeyName(Controls.Act.Undo) : "Undo")} to undo</color>";
             }
         }
         if (debugText == null) return;
@@ -257,7 +259,7 @@ public class GameHUD : MonoBehaviour
     private void FitRow(string label, Controls.Act up, Controls.Act down, UnityEngine.Events.UnityAction more, UnityEngine.Events.UnityAction less, UnityEngine.Events.UnityAction reset)
     {
         GameObject row = Row(label, fitPanel.transform, 34, 8, false);
-        TMP_Text name = MakeText("Name", row.transform, $"{label}  ({Controls.KeyName(down)} / {Controls.KeyName(up)})", LabelSize, TextColor, TextAlignmentOptions.Left);
+        TMP_Text name = MakeText("Name", row.transform, Controls.ShowKeys ? $"{label}  ({Controls.KeyName(down)} / {Controls.KeyName(up)})" : label, LabelSize, TextColor, TextAlignmentOptions.Left);
         name.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
         SmallButton(row.transform, "−", TabColor, 44).onClick.AddListener(less);
         SmallButton(row.transform, "+", TabColor, 44).onClick.AddListener(more);

@@ -90,6 +90,42 @@ jobs:
           butler/butler push "${{ matrix.output }}" "$ITCH_TARGET:${{ matrix.channel }}" \
             --userversion "0.1.${{ github.run_number }}-${GITHUB_SHA::7}"
 
+  # iPhone/iPad: exports the Xcode project only (signing and TestFlight need a Mac or a macOS runner with
+  # Apple certificates). Run by hand or on release, so every main push doesn't pay for a third build.
+  ios:
+    name: Build iOS (Xcode project)
+    needs: licence
+    if: needs.licence.outputs.ready == 'true' && (github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/release')
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Free disk space
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/cache@v4
+        with:
+          path: Library
+          key: Library-iOS-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
+          restore-keys: Library-iOS-
+
+      - uses: game-ci/unity-builder@v5
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          targetPlatform: iOS
+          buildName: lofilife
+          versioning: None
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lofilife-iOS-xcode-${{ github.run_number }}
+          path: build/iOS
+          retention-days: 14
+
   github-release:
     needs: build
     runs-on: ubuntu-latest

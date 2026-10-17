@@ -341,16 +341,29 @@ public class RoomManager : MonoBehaviour
             case Furniture.FurnitureType.Ceiling:
                 position = t.position + new Vector3(target.x - b.center.x, ceilingY - b.max.y, target.z - b.center.z);
                 if (useGridPlacement) position = SnapToGrid(position);
+                position += InsideFloor(b, position - t.position);
                 break;
             default:
                 position = t.position + new Vector3(target.x - b.center.x, hit.point.y - b.min.y, target.z - b.center.z);
                 if (useGridPlacement) position = SnapToGrid(position);
+                position += InsideFloor(b, position - t.position);
                 break;
         }
         if (lifts.TryGetValue(obj, out float lift)) position.y += lift;
         t.position = position;
         Physics.SyncTransforms();
         return true;
+    }
+
+    // The grid snaps the piece's pivot, not its edges, so near a wall a snapped piece pokes past the floor and turns red,
+    // or stops short with a gap. Nudge it back so its edge lines up with the floor's edge instead.
+    private Vector3 InsideFloor(Bounds b, Vector3 move)
+    {
+        if (!hasRoomFloor) return Vector3.zero;
+        b.center += move;
+        float Push(float min, float max, float lo, float hi) =>
+            max - min > hi - lo ? 0f : min < lo ? lo - min : max > hi ? hi - max : 0f; // a piece wider than the room is left alone
+        return new Vector3(Push(b.min.x, b.max.x, roomFloor.min.x, roomFloor.max.x), 0f, Push(b.min.z, b.max.z, roomFloor.min.z, roomFloor.max.z));
     }
 
     // How far a box reaches from its centre along a direction (half its thickness against a wall with that normal).

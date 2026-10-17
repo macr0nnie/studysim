@@ -37,7 +37,7 @@ public class RoomManager : MonoBehaviour
     // Outline colours (see PieceOutline): green can go here, red can't.
     static readonly Color ValidTint = new Color(0.3f, 0.9f, 0.45f, 1f);
     static readonly Color InvalidTint = new Color(0.95f, 0.25f, 0.25f, 1f);
-    const float PreviewRim = 0.08f; // thicker than the edit-mode outline, so can/can't place reads at a glance
+    const float PreviewRim = 0.12f; // thicker than the edit-mode outline, so can/can't place reads at a glance
     private GameObject selectedObject;
     private bool isPlacementValid;
     private Camera mainCamera;
@@ -494,18 +494,30 @@ public class RoomManager : MonoBehaviour
                 || bounds.min.z < roomFloor.min.z - 0.05f || bounds.max.z > roomFloor.max.z + 0.05f))
             return false;
         bounds.Expand(-0.04f);
-        int count = Physics.OverlapBoxNonAlloc(bounds.center, bounds.extents, overlapBuffer, Quaternion.identity, furnitureLayer);
+        int count = Physics.OverlapBoxNonAlloc(bounds.center, bounds.extents, overlapBuffer, Quaternion.identity, furnitureLayer, QueryTriggerInteraction.Ignore);
         for (int i = 0; i < count; i++)
             if (!overlapBuffer[i].transform.IsChildOf(piece.transform)
                 && (support == null || !overlapBuffer[i].transform.IsChildOf(support.transform))
                 && !IsRider(FurnitureRoot(overlapBuffer[i].gameObject))) return false;
         foreach (GameObject placedObj in placedObjects)
         {
-            if (placedObj != piece && placedObj != support && placedObj.activeInHierarchy && !IsRider(placedObj) && Overlaps(placedObj, bounds))
+            if (placedObj != piece && placedObj != support && placedObj.activeInHierarchy && !IsRider(placedObj)
+                && Blocks(piece, placedObj) && Overlaps(placedObj, bounds))
                 return false;
         }
         return true;
     }
+    // Only pieces in the same space block each other: floor and shelf pieces, wall decor, and hanging pieces each
+    // have their own. A box around a window or a ceiling lamp reaches into the room without anything being there,
+    // and a rug lies flat, so neither stops furniture going over or under it.
+    private static bool Blocks(GameObject piece, GameObject other)
+    {
+        int Zone(Furniture.FurnitureType t) => t == Furniture.FurnitureType.Wall ? 1 : t == Furniture.FurnitureType.Ceiling ? 2 : 0;
+        if (Zone(TypeOf(piece)) != Zone(TypeOf(other))) return false;
+        Bounds b = GetBounds(other);
+        return b.size.y > 0.1f * Mathf.Max(b.size.x, b.size.z); // flat as a rug: walk-over
+    }
+
     // Each collider's own box, so an L-shaped or open desk only blocks where it actually is; the whole
     // piece's box when it has no colliders.
     private static readonly List<Collider> overlapColliders = new List<Collider>();

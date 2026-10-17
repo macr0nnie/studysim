@@ -6,7 +6,7 @@ using UnityEngine.Rendering;
 public class PieceOutline : MonoBehaviour
 {
     public const string HullName = "Outline";
-    private const float Grow = 0.04f;
+    private const float Grow = 0.07f;
     private static Shader shader;
     private Material material;
     private float built; // rim size the hulls were made with, 0 = none. Not serialized: an Instantiate copy rebuilds its own
@@ -30,8 +30,9 @@ public class PieceOutline : MonoBehaviour
             if (shader == null) return;
             material = new Material(shader) { name = HullName };
             material.SetFloat("_Cull", (float)CullMode.Front); // draw the inside, so only the rim past the piece shows
+            material.SetFloat("_ZWrite", 0); // the rim never hides the piece or its neighbours' edges
         }
-        material.SetColor("_BaseColor", color);
+        material.SetColor("_BaseColor", color * 1.8f); // past the bloom threshold: the rim glows a little and stays readable through tone mapping
         if (built == grow) return;
         RemoveHulls();
         built = grow;

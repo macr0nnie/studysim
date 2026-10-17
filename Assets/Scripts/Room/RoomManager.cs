@@ -1414,22 +1414,52 @@ public class RoomManager : MonoBehaviour
         Physics.SyncTransforms();
         Bounds b = GetBounds(piece);
         if (b.size.y <= 0f) return;
-        float factor;
-        if (IsKind(piece, "desk"))
-        {
-            // Desk height (about 0.3 of the wall), but never wider than half the room: a long low desk scaled by
-            // height alone came out giant.
-            float target = wall * 0.3f, across = Mathf.Max(b.size.x, b.size.z), room = Mathf.Min(roomFloor.size.x, roomFloor.size.z) * 0.5f;
-            factor = Mathf.Min(target / b.size.y, across > 0f ? room / across : 1f);
-            if (factor > 0.9f && factor < 1.1f) return; // already about right
-        }
-        else
-        {
-            float across = Mathf.Max(b.size.x, b.size.z), room = Mathf.Min(roomFloor.size.x, roomFloor.size.z) * 0.5f;
-            factor = Mathf.Min(1f, wall * 0.85f / b.size.y, across > 0f ? room / across : 1f);
-            if (factor > 0.99f) return;
-        }
+        float across = Mathf.Max(b.size.x, b.size.z), room = Mathf.Min(roomFloor.size.x, roomFloor.size.z);
+        float longest = Mathf.Max(across, b.size.y);
+        // Packs are modelled at different scales, so a known kind is sized to its real-world length against a 2.6 m wall,
+        // which keeps every piece in step with the room and with each other. Never taller than the wall or wider than
+        // most of the room. Unknown kinds only shrink when too big.
+        float factor = RealSize(piece) is float metres
+            ? Mathf.Min(metres * wall / 2.6f / longest, wall * 0.9f / b.size.y, room * 0.7f / across)
+            : Mathf.Min(1f, wall * 0.85f / b.size.y, across > 0f ? room * 0.5f / across : 1f);
+        if (factor > 0.92f && factor < 1.08f) return; // already about right
         SetSize(piece, (sizes.TryGetValue(piece, out float z) ? z : 1f) * factor);
+    }
+
+    // Longest side in metres for each kind, matched on the store name (or the object's name). Multi-word kinds come
+    // first so a desk lamp isn't sized as a desk.
+    private static readonly (string kind, float metres)[] RealSizes =
+    {
+        ("alarm clock", 0.15f), ("desk lamp", 0.45f), ("table lamp", 0.45f), ("floor lamp", 1.6f), ("string lights", 1.5f),
+        ("coffee table", 1f), ("side table", 0.55f), ("dining table", 1.6f), ("washing machine", 0.85f), ("candle holder", 0.25f),
+        ("record player", 0.45f), ("vinyl player", 0.45f), ("book shelf", 1.9f), ("office chair", 1.05f),
+        ("bookshelf", 1.9f), ("bookcase", 1.9f), ("nightstand", 0.55f), ("armchair", 1f), ("wardrobe", 2f), ("closet", 2f),
+        ("refrigerator", 1.8f), ("fridge", 1.8f), ("sofa", 2f), ("couch", 2f), ("bed", 2f), ("desk", 1.4f), ("table", 1.2f),
+        ("chair", 1f), ("stool", 0.5f), ("cabinet", 1f), ("drawer", 0.9f), ("counter", 1.5f), ("stove", 0.9f), ("sink", 0.8f),
+        ("toilet", 0.75f), ("vanity", 1.2f), ("rack", 1.2f), ("shelf", 1f), ("shelving", 1.6f), ("storage", 1f),
+        ("rug", 2f), ("carpet", 2f), ("blanket", 1.4f), ("pillow", 0.5f), ("window", 1.2f), ("mirror", 0.8f),
+        ("picture", 0.6f), ("painting", 0.6f), ("frame", 0.5f), ("poster", 0.7f), ("clock", 0.35f), ("tv", 1.1f),
+        ("monitor", 0.55f), ("pc", 0.5f), ("laptop", 0.35f), ("keyboard", 0.45f), ("mouse", 0.12f), ("lamp", 0.5f),
+        ("lantern", 0.4f), ("candle", 0.15f), ("tree", 1.6f), ("plant", 0.6f), ("flower", 0.35f), ("pot", 0.3f),
+        ("notebook", 0.25f), ("books", 0.3f), ("book", 0.25f), ("pen", 0.15f), ("paper", 0.3f), ("cup", 0.12f), ("mug", 0.12f),
+        ("vase", 0.3f), ("jar", 0.2f), ("bottle", 0.3f), ("potion", 0.2f), ("box", 0.4f), ("pumpkin", 0.35f),
+        ("mushroom", 0.3f), ("gravestone", 0.9f), ("coffin", 1.9f), ("cauldron", 0.6f), ("skull", 0.2f), ("candy", 0.15f),
+        ("lollipop", 0.2f), ("hat", 0.4f), ("scarecrow", 1.7f), ("spiderweb", 0.8f), ("cross", 0.8f),
+    };
+
+    private float? RealSize(GameObject piece)
+    {
+        FurnitureItem item = ItemOf(piece);
+        string name = item != null && !string.IsNullOrEmpty(item.displayName) ? item.displayName : piece.name;
+        var words = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+        foreach (string w in System.Text.RegularExpressions.Regex.Split(name, @"[^A-Za-z]+|(?<=[a-z])(?=[A-Z])")) if (w.Length > 0) words.Add(w);
+        foreach ((string kind, float metres) in RealSizes)
+        {
+            bool all = true;
+            foreach (string w in kind.Split(' ')) if (!words.Contains(w)) { all = false; break; }
+            if (all) return metres;
+        }
+        return null;
     }
 
     // A chair in front of the desk (the side facing the camera), clear of the desk, walls and other pieces, facing the desk.

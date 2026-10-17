@@ -89,7 +89,7 @@ public class RoomManager : MonoBehaviour
     private readonly Dictionary<GameObject, float> lifts = new Dictionary<GameObject, float>();
     private readonly Dictionary<GameObject, float> sizes = new Dictionary<GameObject, float>();
     private readonly Dictionary<GameObject, Vector3> baseScales = new Dictionary<GameObject, Vector3>();
-    private const float MaxLift = 3f, MinSize = 0.2f, MaxSize = 2f; // low enough for Fit to bring an oversized pack model down
+    private const float MaxLift = 3f, MinSize = 0.01f, MaxSize = 2f; // low enough for Fit to bring a pack model imported ~50x too big down to size
     private readonly HashSet<GameObject> starterPieces = new HashSet<GameObject>();
     private readonly Dictionary<GameObject, Color> pieceColors = new Dictionary<GameObject, Color>();
     private readonly Dictionary<Renderer, Material[]> originalMaterials = new Dictionary<Renderer, Material[]>();
@@ -1417,9 +1417,11 @@ public class RoomManager : MonoBehaviour
         float factor;
         if (IsKind(piece, "desk"))
         {
-            float target = wall * 0.3f;
-            if (b.size.y < target * 1.35f && b.size.y > target * 0.65f) return;
-            factor = target / b.size.y;
+            // Desk height (about 0.3 of the wall), but never wider than half the room: a long low desk scaled by
+            // height alone came out giant.
+            float target = wall * 0.3f, across = Mathf.Max(b.size.x, b.size.z), room = Mathf.Min(roomFloor.size.x, roomFloor.size.z) * 0.5f;
+            factor = Mathf.Min(target / b.size.y, across > 0f ? room / across : 1f);
+            if (factor > 0.9f && factor < 1.1f) return; // already about right
         }
         else
         {

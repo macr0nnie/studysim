@@ -4,8 +4,6 @@ using System;
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
-    public event Action<GameState> OnGameStateChanged;
-    private GameState currentGameState;
     
     // A cozy room doesn't need hundreds of fps: cap it, and idle further while the game sits behind the study browser.
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -42,19 +40,5 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
         }
     }
-    //message to the other scripts that the game state has changed
-    public void ChangeGameState(GameState newState)
-    {
-        if (currentGameState == newState) return;
-        currentGameState = newState;
-        OnGameStateChanged?.Invoke(newState);
-    }
-}
-public enum GameState
-{
-    Study,
-    Building,
-    Shopping,
-    Paused
 }
 

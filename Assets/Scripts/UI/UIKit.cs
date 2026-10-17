@@ -15,8 +15,6 @@ public static class UIKit
     public static Color PanelColor, CardColor, SelectedColor, TabColor, MutedText, AccentButtonColor;
     public static Color TextColor, AccentColor, XpColor, DangerColor;
 
-    // Shown on the Paint > Menus swatch while no colour is picked.
-    public static readonly Color DefaultMenuColor = new Color(0.98f, 0.95f, 0.90f, 1f);
     private const string MenuColorKey = "MenuColor";
     public static bool MenuColorChanged => PlayerPrefs.HasKey(MenuColorKey);
     private const float DarkBase = 0.43f; // saturation of the original purple the dark shades are scaled from

@@ -22,14 +22,6 @@ public class Experience : MonoBehaviour
     // Coins paid on reaching a level, so levelling up buys something for the room.
     public static int LevelBonus(int level) => 25 * level;
 
-    public void LevelUP(){
-        current_player_level++;
-        experiencePoints = 0;
-        SavePlayerLevel();
-        PayLevelBonus();
-        PlayerLevelUp?.Invoke(current_player_level);
-        OnExperienceChanged?.Invoke();
-    }
     public void GainExperience(int new_experience){
         if (new_experience <= 0) return;
         experiencePoints += new_experience;
@@ -62,12 +54,6 @@ public class Experience : MonoBehaviour
         PlayerPrefs.SetInt("PlayerLevel", current_player_level);
         PlayerPrefs.SetInt("PlayerExperience", experiencePoints);
         PlayerPrefs.Save();
-    }
-    //debugging method to manually set the player experience level.
-    public void SetPlayerExperiencel(int new_experience){
-        experiencePoints = new_experience;
-        SavePlayerLevel();
-        OnExperienceChanged?.Invoke();
     }
 
 }

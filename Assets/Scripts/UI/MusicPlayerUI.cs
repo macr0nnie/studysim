@@ -45,12 +45,6 @@ public class MusicPlayerUI : MonoBehaviour
         music = FindAnyObjectByType<MusicPlayer>();
         currency = FindAnyObjectByType<PlayerCurrency>();
         BuildUI();
-        // The old iPod screens stay in the scene (iPodUIController still references them) but out of sight.
-        foreach (string old in new[] { "IPOD", "MusicStore", "HomeButton" })
-        {
-            GameObject go = GameObject.Find(old);
-            if (go != null) go.SetActive(false);
-        }
     }
 
     private void OnEnable() => music.OnSongChanged.AddListener(ShowSong);

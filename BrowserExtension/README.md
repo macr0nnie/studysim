@@ -2,14 +2,16 @@
 
 A Chrome extension that connects your browser to the lofilife desktop game while it runs. It works in Chrome, Edge, Brave and other Chromium browsers (version 120 or newer). The web and iOS versions of the game don't talk to it.
 
-- **Popup:** shows the game's timer. You can start, pause and reset it, and set the study length (5 to 120 minutes, while the timer is stopped).
-- **Focus stats:** level and XP, minutes focused, sessions and distractions today, your day streak, a bar chart of the last 7 days and your most studied subject this week.
-- **Graphs and tags:** "See all stats" opens a page with focus time by day, week, month and year, stacked by tag, plus totals, averages and a per-tag breakdown (click a tag to show only it). The tag is the game's study subject: set it in the popup (or pick a recent one) and each finished session is logged under it.
-- **Colours:** a dark plum night look taken from the game's backdrop. If you pick a menu colour in Paint > Menus, the popup follows it.
-- **Badge:** the toolbar icon shows the minutes left: red while studying, green on a break, grey when paused, blank when the game isn't running.
-- **Distracting sites** (YouTube, TikTok, Reddit and so on, editable in the popup): during a study session, being on one makes the room in the game fall apart and drains coins until you leave.
-- **Blocking:** the extension can also block distracting sites. It does this during strict focus sessions by default, during every study session if you choose, or never. When the session ends, the blocked page offers a link back to the site.
-- **Study sites** (Google Docs, Notion, Wikipedia and so on): these earn focus XP, at most 1 XP a minute.
+- **Popup:** Focus, Stats and Blocking tabs along the bottom. Focus shows the game's timer, what you're studying (click it to change the tag), one play/pause button, Reset, and the session length (pick 15 to 90 minutes while the timer is stopped).
+- **Stats:** your week as a night skyline: one building a day, as tall as the time you studied, with a lit window for every finished session. Plus your streak, today's time, most studied tag, and level and XP.
+- **Graphs and tags:** "Open full stats" opens a page with focus time by day, week, month and year, stacked by tag, plus totals, averages and a per-tag breakdown (click a tag to show only it). The tag is the game's study subject: set it in the popup (or pick a recent one) and each finished session is logged under it.
+- **Look:** clean and light with lofi colours (lavender, dusty pink, sage) and a night sky for stats.
+- **Badge:** the toolbar icon shows the minutes left: lavender while studying, green on a break, grey when paused, blank when the game isn't running.
+- **Block lists:** ready-made lists you switch on (social media, video and streaming, news, shopping, games) plus your own list. During a study session, being on a listed site makes the room in the game fall apart and drains coins until you leave.
+- **Blocking:** listed sites are blocked during strict focus sessions by default, during every study session if you choose, or never. Pick how strict: *Remind me* (a page you can click through for 5 minutes), *Block it*, or *Lock it* (the settings can't be changed until the session ends). When blocking ends, the blocked page offers a link back.
+- **Allow only:** block every site except your allowed ones while blocking is on.
+- **Focus hours:** a schedule (days and times) that blocks listed sites even when the game is closed.
+- **Study sites** (Google Docs, Notion, Wikipedia and so on, the same list as Allow only): these earn focus XP, at most 1 XP a minute.
 
 ## Install for development
 1. Open `chrome://extensions` (or `edge://extensions`).

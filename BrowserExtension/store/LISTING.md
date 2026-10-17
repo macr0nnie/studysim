@@ -15,13 +15,14 @@ Focus companion for the lofilife desktop game: control your study timer, earn XP
 >
 > • See your study timer in the toolbar. The icon shows the minutes left.
 > • Start, pause, reset or change the length of a session from any tab.
-> • See your focus stats: time focused, sessions and distractions today, your streak, and a chart of your week.
+> • Watch your week light up: each day is a building in a night skyline, and every finished session lights a window.
 > • Graphs of your focus by day, week, month and year, split by tags you give each session (Maths, Biology, ...).
-> • The popup matches the menu colours you pick in the game.
 > • Open a distracting site during a study session and your room in the game starts falling apart until you leave.
 > • Study sites like Google Docs, Notion and Wikipedia earn focus XP.
-> • Block distracting sites during strict focus sessions, during every study session, or never.
-> • You choose which sites count as distracting and which count as study.
+> • Switch on ready-made block lists (social media, video, news, shopping, games) or make your own.
+> • Choose how strict: a gentle reminder, a block, or a lock you can't undo until the session ends.
+> • Allow-only mode: block everything except the sites you need.
+> • Focus hours: block distracting sites on a schedule, even when the game is closed.
 >
 > You need the lofilife desktop game running on the same computer (Windows). The extension talks only to the game on your own computer, at localhost. It has no accounts, no ads and no tracking, and it sends nothing to any server.
 
@@ -36,12 +37,12 @@ Focus companion for the lofilife desktop game: control your study timer, earn XP
 ## Privacy practices tab
 
 **Single purpose:**
-A focus companion for the lofilife desktop game: it shows and controls the game's study timer and tells the game when the active tab is a study site or a distracting site, optionally blocking distracting sites during study sessions.
+A focus companion for the lofilife desktop game: it shows and controls the game's study timer and tells the game when the active tab is a study site or a distracting site, optionally blocking distracting sites during study sessions or scheduled focus hours.
 
 **Permission justifications:**
 - `tabs`: reads the host name of the active tab (for example youtube.com) to check it against the user's lists of distracting and study sites. Nothing else from the tab is read.
-- `storage`: saves the user's site lists and blocking choice, and remembers the last report between background checks.
-- `alarms`: re-checks the active tab every 30 seconds so the game knows the user is still on a distracting site.
+- `storage`: saves the user's block lists, allowed sites, blocking choices and schedule, and remembers the last report between background checks.
+- `alarms`: re-checks the active tab every 30 seconds so the game knows the user is still on a distracting site, and so focus hours start and stop on time.
 - Host permission `http://localhost:8080/*`: the lofilife game runs a small server on the user's own computer at this address. The extension reads the timer from it and sends timer commands and site reports to it. No other host is contacted.
 
 **Remote code:** No, I am not using remote code. [Everything is in the package.]

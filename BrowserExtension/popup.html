@@ -5,74 +5,114 @@
   <title>lofilife</title>
   <link rel="stylesheet" href="popup.css">
 </head>
-<body>
+<body class="popup">
   <header class="top">
-    <img src="icons/icon48.png" alt="" class="logo" width="28" height="28">
-    <h1>lofilife</h1>
+    <img src="icons/icon48.png" alt="" class="logo" width="22" height="22">
+    <h1 id="heading">lofilife</h1>
     <span id="pill" class="pill" role="status">Connecting</span>
   </header>
 
-  <section id="timer" class="card" hidden>
-    <div id="phase" class="phase">Study</div>
-    <div id="clock" class="clock" aria-live="off">--:--</div>
-    <div class="bar" aria-hidden="true"><div id="phaseBar"></div></div>
-    <div id="mode" class="muted center"></div>
-    <div id="distracted" class="alert" hidden>You're on a distracting site. Your room is falling apart!</div>
-    <form id="tagForm" class="row tagrow">
-      <label class="inline grow">Tag <input id="tag" list="tagOptions" maxlength="24" placeholder="e.g. Maths" aria-label="Tag for this session"></label>
-      <datalist id="tagOptions"></datalist>
-      <button type="submit">Set</button>
-    </form>
-    <div id="chips" class="chips"></div>
-    <div class="row">
-      <button id="toggle" class="primary">Start</button>
-      <button id="reset">Reset</button>
-    </div>
-    <form id="setForm" class="row set">
-      <label class="inline"><input id="minutes" type="number" min="5" max="120" value="25" aria-label="Study length in minutes"> min</label>
-      <button type="submit">Set length</button>
-    </form>
-  </section>
+  <main>
+    <section id="offline" class="offline" hidden>
+      <img src="icons/icon128.png" alt="" width="56" height="56">
+      <p class="big">Open lofilife to connect</p>
+      <p class="muted small">This extension works with the lofilife desktop game on this computer. Start the game and open your room, and it connects by itself. Blocking still works on its schedule.</p>
+    </section>
 
-  <section id="stats" class="card" hidden>
-    <div class="level">
-      <strong id="level">Level 1</strong>
-      <span id="xpText" class="muted small">0 / 100 XP</span>
-    </div>
-    <div class="bar xp" aria-hidden="true"><div id="xpBar"></div></div>
-    <div class="tiles">
-      <div><b id="today">0m</b><span>focused today</span></div>
-      <div><b id="sessions">0</b><span>sessions today</span></div>
-      <div><b id="distractions">0</b><span>distractions today</span></div>
-      <div><b id="streak">0</b><span>day streak</span></div>
-    </div>
-    <div class="week-head"><span>This week</span><span id="weekTotal" class="muted"></span></div>
-    <div id="week" class="week" role="img"></div>
-    <div id="subject" class="muted small center subject"></div>
-    <button id="allStats" class="wide">See all stats</button>
-  </section>
+    <section id="view-focus" class="focus" hidden>
+      <button id="tagBtn" class="kicker" title="Change what this session is logged under">Study</button>
+      <form id="tagForm" class="tagform" hidden>
+        <input id="tag" list="tagOptions" maxlength="24" placeholder="What are you studying?" aria-label="Tag for this session">
+        <datalist id="tagOptions"></datalist>
+        <button type="submit" class="btn primary">Set</button>
+      </form>
+      <div id="clock" class="time" aria-live="off">--:--</div>
+      <div class="bar" aria-hidden="true"><div id="phaseBar"></div></div>
+      <div id="mode" class="muted small"></div>
+      <div id="distracted" class="alert" hidden>You're on a distracting site. Your room is falling apart!</div>
+      <div class="controls">
+        <button id="reset" class="link">Reset</button>
+        <button id="toggle" class="play" aria-label="Start"></button>
+        <button id="lenBtn" class="link" title="Session length (while stopped)">25 min</button>
+      </div>
+      <div id="lengths" class="presets" hidden></div>
+      <div class="chips"><span id="strictChip" class="chip ok" hidden>Strict focus</span><span id="blockChip" class="chip"></span></div>
+    </section>
 
-  <section id="offline" class="card offline" hidden>
-    <p class="big">Open lofilife to connect</p>
-    <p class="muted small">This extension works with the lofilife desktop game on this computer. Start the game and open your room, and it connects by itself.</p>
-  </section>
+    <section id="view-stats" hidden>
+      <div class="sky">
+        <div class="moon"></div>
+        <strong>Your week</strong>
+        <div id="skyNote" class="sky-note">Each lit window is a finished session</div>
+        <div id="skyline" class="skyline" role="img"></div>
+      </div>
+      <div class="trio">
+        <div><b id="streak">0</b><span>day streak</span></div>
+        <div><b id="today">0m</b><span>today</span></div>
+        <div><b id="top">–</b><span>most studied</span></div>
+      </div>
+      <div class="level card">
+        <div class="row-between"><strong id="level">Level 1</strong><span id="xpText" class="muted small">0 / 100 XP</span></div>
+        <div class="bar xp" aria-hidden="true"><div id="xpBar"></div></div>
+      </div>
+      <button id="allStats" class="link wide">Open full stats →</button>
+    </section>
 
-  <details class="card">
-    <summary>Sites and blocking</summary>
-    <label for="block">Block distracting sites</label>
-    <select id="block">
-      <option value="off">Never</option>
-      <option value="strict">During strict focus sessions</option>
-      <option value="always">During every study session</option>
-    </select>
-    <label for="distracting">Distracting sites, one per line</label>
-    <textarea id="distracting" rows="5" spellcheck="false"></textarea>
-    <label for="study">Study sites, one per line (they earn focus XP)</label>
-    <textarea id="study" rows="4" spellcheck="false"></textarea>
-    <button id="save" class="primary wide">Save</button>
-    <div id="saved" class="muted small center" role="status"></div>
-  </details>
+    <section id="view-block" hidden>
+      <div id="lockNote" class="note" hidden>Locked until this study session ends.</div>
+      <fieldset id="blockForm">
+        <div class="seg" role="tablist" aria-label="Blocking">
+          <button type="button" role="tab" data-pane="lists" aria-selected="true">Block lists</button>
+          <button type="button" role="tab" data-pane="allow" aria-selected="false">Allow only</button>
+          <button type="button" role="tab" data-pane="schedule" aria-selected="false">Schedule</button>
+        </div>
+
+        <div id="pane-lists">
+          <div id="lists" class="card rows"></div>
+          <p class="label">Block during</p>
+          <div class="seg small-seg" data-setting="block">
+            <button type="button" data-value="strict">Strict sessions</button>
+            <button type="button" data-value="always">Every session</button>
+            <button type="button" data-value="off">Never</button>
+          </div>
+          <p class="label">When I open a blocked site</p>
+          <div class="seg small-seg" data-setting="strictness">
+            <button type="button" data-value="remind">Remind me</button>
+            <button type="button" data-value="block">Block it</button>
+            <button type="button" data-value="lock">Lock it</button>
+          </div>
+          <p id="strictHelp" class="muted small help"></p>
+        </div>
+
+        <div id="pane-allow" hidden>
+          <div class="card">
+            <label class="row-between switch-row"><span><b>Allow only these sites</b><span class="muted small block">Every other site is blocked while blocking is on</span></span>
+              <input type="checkbox" id="allowOnly" class="switch"></label>
+            <div id="studySites" class="sites"></div>
+            <form class="add" data-list="study"><input placeholder="Add a site you need, e.g. canvas.com" aria-label="Add an allowed site"><button class="btn">Add</button></form>
+            <p class="muted small help">These are also your study sites: time on them earns focus XP.</p>
+          </div>
+        </div>
+
+        <div id="pane-schedule" hidden>
+          <div class="card">
+            <label class="row-between switch-row"><span><b>Focus hours</b><span class="muted small block">Block distracting sites at these times, even with the game closed</span></span>
+              <input type="checkbox" id="schedOn" class="switch"></label>
+            <div id="days" class="days"></div>
+            <div class="times"><input type="time" id="from" aria-label="From"><span class="muted">to</span><input type="time" id="to" aria-label="To"></div>
+          </div>
+        </div>
+      </fieldset>
+    </section>
+  </main>
+
+  <nav class="tabbar" role="tablist" aria-label="Sections">
+    <button role="tab" data-view="focus" aria-selected="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2M9 2h6"/></svg>Focus</button>
+    <button role="tab" data-view="stats" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M3 21h18M6 21V11l3-2v12M11 21V6l4-2v17M17 21v-8l3-1v9"/></svg>Stats</button>
+    <button role="tab" data-view="block" aria-selected="false"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>Blocking</button>
+  </nav>
   <script src="shared.js"></script>
+  <script src="stats-data.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

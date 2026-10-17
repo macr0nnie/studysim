@@ -5,23 +5,18 @@
   <title>Back to studying · lofilife</title>
   <link rel="icon" href="icons/icon32.png">
   <link rel="stylesheet" href="popup.css">
-  <style>
-    body { width: auto; min-height: 100vh; display: grid; place-items: center; padding: 24px; }
-    main { max-width: 440px; text-align: center; padding: 32px 28px; }
-    main img { border-radius: 18px; }
-    h1 { font-size: 44px; margin: 14px 0 6px; flex: none; }
-    .clock { font-size: 56px; }
-    a.button { display: inline-block; margin: 6px 0 4px; padding: 9px 16px; border-radius: 10px; font-weight: 600; text-decoration: none; background: var(--primary); color: var(--on-primary); }
-  </style>
 </head>
-<body>
+<body class="page blocked">
   <main class="card">
-    <img src="icons/icon128.png" alt="" width="72" height="72">
-    <h1>Back to studying</h1>
-    <p><strong id="site">This site</strong> is blocked until your study session ends.</p>
-    <div id="clock" class="clock" hidden></div>
-    <a id="back" class="button" hidden></a>
-    <p class="muted small">You can change blocking in the lofilife extension's popup, under Sites and blocking.</p>
+    <img src="icons/icon128.png" alt="" width="64" height="64">
+    <h2 id="title">Back to studying</h2>
+    <p id="why"><strong id="site">This site</strong> is blocked until your study session ends.</p>
+    <div id="clock" class="big-time" hidden></div>
+    <div class="actions">
+      <a id="back" class="btn primary" hidden></a>
+      <button id="pass" class="btn" hidden>Open it anyway for 5 minutes</button>
+    </div>
+    <p id="hint" class="muted small">You can change blocking in the lofilife extension, on the Blocking tab.</p>
   </main>
   <script src="shared.js"></script>
   <script src="blocked.js"></script>

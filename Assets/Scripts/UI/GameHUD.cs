@@ -6,8 +6,7 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static UIKit;
 
-// Top-left player card (level badge, XP bar, coins), a level-up toast, and a theme pass over the
-// scene-built UI (iPod, timer buttons, room buttons) so everything shares the store's look.
+// Top-left player card (level badge, XP bar, coins), a level-up toast, the timer bar and the edit-mode hints.
 public class GameHUD : MonoBehaviour
 {
     private PlayerCurrency currency;
@@ -17,9 +16,6 @@ public class GameHUD : MonoBehaviour
     private CanvasGroup toast, summary;
     private TMP_Text summaryText;
     private Coroutine summaryRoutine;
-    private TMP_Text debugText;
-    private string lastDebug;
-    private float debugShownAt;
     private Image editPill;
     private RoomManager room;
     private TimerManager timer;
@@ -33,9 +29,6 @@ public class GameHUD : MonoBehaviour
     private float lastInput;
     private readonly System.Collections.Generic.List<CanvasGroup> fadeGroups = new System.Collections.Generic.List<CanvasGroup>();
     static readonly Color BreakColor = new Color(0.55f, 0.85f, 0.65f, 1f);
-
-    // The old texts this card replaces.
-    static readonly string[] ReplacedObjects = { "money_text", "player_experience", "coinsText" };
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void AddToRoomScenes()
@@ -67,23 +60,11 @@ public class GameHUD : MonoBehaviour
 
     private IEnumerator Start()
     {
-        // Each part guarded, so a problem in one can't stop the rest of the HUD from coming up.
-        try
-        {
-            foreach (string name in ReplacedObjects)
-            {
-                GameObject old = GameObject.Find(name);
-                if (old != null) old.SetActive(false);
-            }
-            GameObject oldClock = GameObject.Find("TimerText"); // the scene's own clock, replaced by the one in the timer bar
-            if (oldClock != null) oldClock.SetActive(false);
-            GameObject debug = GameObject.Find("Debugging_Text");
-            if (debug != null) debugText = debug.GetComponent<TMP_Text>();
-        }
-        catch (System.Exception e) { Debug.LogException(e); }
         try { Refresh(); } catch (System.Exception e) { Debug.LogException(e); }
-        yield return null; // the iPod fills its playlist in Start; theme it after that
-        try { ThemeSceneUI(); } catch (System.Exception e) { Debug.LogException(e); }
+        yield return null; // let the other runtime-built canvases come up first
+        // Scene canvases scale the same way as the built ones, so nothing slides off on other aspect ratios.
+        foreach (CanvasScaler scaler in FindObjectsByType<CanvasScaler>(FindObjectsInactive.Include))
+            if (scaler.uiScaleMode == CanvasScaler.ScaleMode.ScaleWithScreenSize) scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
         foreach (string name in new[] { "HUDCanvas", "MusicCanvas" })
         {
             GameObject canvas = GameObject.Find(name);
@@ -127,7 +108,6 @@ public class GameHUD : MonoBehaviour
         if (timer != null) { timer.OnTimerComplete -= OnTimerComplete; timer.OnTimerTick -= ShowClock; }
     }
 
-    // The Chrome extension status line only matters for a moment; fade it once it stops changing.
     private void Update()
     {
         FadeWhenIdle();
@@ -154,14 +134,6 @@ public class GameHUD : MonoBehaviour
                     : $"<color=#{ColorUtility.ToHtmlStringRGB(DangerColor)}>Overlaps something. Let go somewhere free, or {Controls.KeyName(Controls.Act.Undo)} to undo</color>";
             }
         }
-        if (debugText == null) return;
-        if (debugText.text != lastDebug)
-        {
-            lastDebug = debugText.text;
-            debugShownAt = Time.unscaledTime;
-        }
-        float age = Time.unscaledTime - debugShownAt;
-        debugText.alpha = age < 4 ? 1 : Mathf.Clamp01(1 - (age - 4));
     }
 
     private void FadeWhenIdle()
@@ -566,78 +538,4 @@ public class GameHUD : MonoBehaviour
         timerMinus.interactable = timerPlus.interactable = !running;
         timerPhase.text = timer.IsStudySession ? "Focus" : "Break";
     }
-
-    // ---------- theme pass over the scene's own UI ----------
-
-    // Only plain shapes get recoloured; album covers and other artwork keep their colours.
-    static readonly string[] ShapeSprites = { "UISprite", "Background", "Knob", "InputFieldBackground", "Rectangle", "Ipod", "Group" };
-
-    private void ThemeSceneUI()
-    {
-        // Scene canvases scale the same way as the built ones, so nothing slides off on other aspect ratios.
-        foreach (CanvasScaler scaler in FindObjectsByType<CanvasScaler>(FindObjectsInactive.Include))
-            if (scaler.uiScaleMode == CanvasScaler.ScaleMode.ScaleWithScreenSize) scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
-        var ipod = FindAnyObjectByType<iPodUIController>();
-        if (ipod != null) ThemeTree(ipod.transform.root);
-
-        // The scene's timer buttons are replaced by the control bar built in BuildTimerBar.
-        GameObject timerButtons = GameObject.Find("Button_Panel");
-        if (timerButtons != null) timerButtons.SetActive(false);
-
-        // The old room buttons lost their icons (the sheet was re-sliced) and none of them is wired up;
-        // the Edit pill built in BuildUI replaces them.
-        foreach (string name in new[] { "Wall_ColorChanger", "Camera_ColorChanger", "EditMode", "Icon (3)" })
-        {
-            GameObject go = GameObject.Find(name);
-            if (go != null) go.SetActive(false);
-        }
-
-    }
-
-    public static void Theme(Transform root) => ThemeTree(root);
-
-    private static void ThemeTree(Transform root)
-    {
-        foreach (Image image in root.GetComponentsInChildren<Image>(true))
-        {
-            if (image.GetComponent<Mask>() != null) continue; // masks need their sprite's alpha
-            if (image.name.Contains("Cover")) continue; // album art keeps its colours
-            // Song-list rows: keep the cover art as is, theme only the row background and its buttons.
-            if (image.GetComponentInParent<PlaylistItemUI>(true) is PlaylistItemUI row && row.gameObject != image.gameObject
-                && image.name != "Play" && image.name != "BuyButton") continue;
-            Sprite white = UIIcons.Light(image.sprite);
-            if (white != null) { image.sprite = white; image.color = TextColor; continue; } // dark line icons can't be tinted light
-            if (!IsShape(image.sprite)) continue;
-            float depth = Depth(image.transform, root);
-            bool interactive = image.GetComponent<Selectable>() != null || image.name == "Handle" || image.name == "Fill";
-            image.color = image.name == "Fill" ? AccentColor
-                : interactive ? TabColor
-                : depth <= 2 ? PanelColor
-                : CardColor;
-            if (image.type == Image.Type.Simple && image.sprite != null && image.sprite.name != "Ipod")
-            {
-                image.sprite = Rounded;
-                image.type = Image.Type.Sliced;
-            }
-        }
-        foreach (TMP_Text text in root.GetComponentsInChildren<TMP_Text>(true))
-            text.color = TextColor;
-    }
-
-    private static bool IsShape(Sprite sprite) => sprite == null || StartsWithAny(sprite.name, ShapeSprites);
-
-    private static bool StartsWithAny(string value, string[] prefixes)
-    {
-        foreach (string p in prefixes)
-            if (value.StartsWith(p)) return true;
-        return false;
-    }
-
-    private static int Depth(Transform t, Transform root)
-    {
-        int d = 0;
-        for (; t != null && t != root; t = t.parent) d++;
-        return d;
-    }
-
 }

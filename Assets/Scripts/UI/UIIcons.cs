@@ -20,17 +20,6 @@ public class UIIcons : ScriptableObject
         return byName;
     }
 
-    // The white version of an icon sprite, or null if it has none.
-    public static Sprite Light(Sprite sprite)
-    {
-        if (sprite == null) return null;
-        string name = sprite.name;
-        if (All().TryGetValue(name, out Sprite white)) return white;
-        // single-image icons: "Pause circle" (or "Pause circle_0" once Unity re-slices it) -> "Pause circle Light"
-        if (name.EndsWith("_0") && !name.StartsWith("Icons_")) name = name.Substring(0, name.Length - 2);
-        return All().TryGetValue(name + " Light", out white) ? white : null;
-    }
-
     // The money icon, used everywhere coins are drawn. Drop a sprite at Assets/Resources/Coin.png (Sprite type)
     // to replace it; until then it's the coin from the icon sheet.
     public static Sprite Coin => Resources.Load<Sprite>("Coin") ?? Named("Icons_21");

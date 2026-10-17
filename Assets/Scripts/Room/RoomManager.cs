@@ -15,9 +15,6 @@ public class RoomManager : MonoBehaviour
     [SerializeField] private float gridSize = 1.0f;
     [SerializeField] private bool useGridPlacement = true;
 
-    [SerializeField] private Material validPlacementMaterial;
-    [SerializeField] private Material invalidPlacementMaterial;
-
     [SerializeField] private GameObject placementParticlePrefab;
 
     [Tooltip("Visible wall meshes. Each gets a wall-layer collider so decor can hang on every wall. Found by name (Room_Walls) when empty.")]

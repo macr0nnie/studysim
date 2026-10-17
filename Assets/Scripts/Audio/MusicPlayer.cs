@@ -9,8 +9,6 @@ public class MusicPlayer : MonoBehaviour
     [SerializeField] private PlaylistLibrary playlistLibrary;
     
     public UnityEvent<Song> OnSongChanged; 
-    public UnityEvent<Playlist> OnPlaylistChanged;
-    public UnityEvent<float> OnPlaybackProgressChanged;
     
     private Playlist currentPlaylist;
     private int currentSongIndex;
@@ -53,19 +51,10 @@ public class MusicPlayer : MonoBehaviour
         if (changed) SavePlayerData();
     }
     
-    private float nextProgressUpdate;
-
     private void Update()
     {
         if (isPlaying && audioSource.clip != null)
         {
-            // Progress bar only needs a few updates a second; every frame rebuilds the UI canvas for nothing.
-            if (Time.unscaledTime >= nextProgressUpdate)
-            {
-                nextProgressUpdate = Time.unscaledTime + 0.25f;
-                OnPlaybackProgressChanged.Invoke(audioSource.time / audioSource.clip.length);
-            }
-            
             // Auto-advance when the song ends. A finished AudioSource rewinds time to 0, so check that it
             // stopped on its own (we weren't paused) instead of comparing time to the clip length.
             if (!audioSource.isPlaying)
@@ -99,8 +88,6 @@ public class MusicPlayer : MonoBehaviour
         currentPlaylist = playlist;
         currentSongIndex = 0;
         PlayCurrentSong();
-        
-        OnPlaylistChanged.Invoke(currentPlaylist);
     }
     
     public void PlayCurrentSong()

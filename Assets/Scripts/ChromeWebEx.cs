@@ -4,7 +4,6 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using UnityEngine;
-using TMPro;
 
 // Local bridge for the study Chrome extension. The extension POSTs to http://localhost:8080/ with either a
 // plain word or JSON {"action": "...", "minutes": 25}:
@@ -77,10 +76,6 @@ public class ChromeWebEx : MonoBehaviour
     private volatile bool _extensionPolled; // set by the listener thread, read on the main thread
     public string LastResult { get; private set; } = "";
 
-    // Debugging
-    [SerializeField] private TMP_Text debugText;
-
-
     void Start() { if (GameSettings.Desktop) StartListening(); } // a web page or phone app can't take the extension's messages
 
     // Settings > Browser extension "Reconnect": e.g. after closing whatever held the port.
@@ -106,10 +101,8 @@ public class ChromeWebEx : MonoBehaviour
             Debug.LogWarning($"Chrome extension listener disabled: {ex.Message}");
             ListenError = ex.Message;
             _httpListener = null;
-            if (debugText) debugText.text = "";
             return;
         }
-        if (debugText) debugText.text = "Connected to Chrome Extension!";
         Debug.Log("HTTP Server started on http://localhost:8080/");
         // Start the listener thread
         HttpListener listener = _httpListener; // the field can be swapped by Restart while this thread runs
@@ -175,7 +168,6 @@ public class ChromeWebEx : MonoBehaviour
         {
             string result = Handle(body);
             LastResult = result;
-            if (debugText) debugText.text = result;
         }
         if (_extensionPolled) { _extensionPolled = false; LastExtensionMessageAt = Time.unscaledTime; }
         if (Time.unscaledTime >= _nextStatus)

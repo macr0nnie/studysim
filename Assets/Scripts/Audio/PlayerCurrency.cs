@@ -39,7 +39,6 @@ public class PlayerCurrency : MonoBehaviour
     private void LoadCoins()
     {
         coins = PlayerPrefs.GetInt("PlayerCoins", startingCoins);
-        //Debug.Log($"Player has {coins} coins.");
     }
     
     private void SaveCoins()

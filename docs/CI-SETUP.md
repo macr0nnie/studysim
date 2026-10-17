@@ -2,9 +2,10 @@
 
 Two GitHub Actions workflows live in `.github/workflows/`:
 
-- **Playtest build** (`playtest-build.yml`) runs on every push to `main` or `release` (or by hand from the Actions tab). It builds lofilife for WebGL and Windows on GitHub's own machines (with game-ci and the Unity version in `ProjectSettings/ProjectVersion.txt`), so no computer of yours needs to be on. It keeps each build as a download on the run page for 14 days. Until the Unity licence secret is added, it skips the build instead of failing.
+- **Playtest build** (`playtest-build.yml`) runs on every push to `main` or `release` (or by hand from the Actions tab). It builds lofilife for WebGL, Windows and macOS on GitHub's own machines (with game-ci and the Unity version in `ProjectSettings/ProjectVersion.txt`), so no computer of yours needs to be on. It keeps each build as a download on the run page for 14 days. Until the Unity licence secret is added, it skips the build instead of failing.
   - Push to `main`: the **Early Access** pre-release on the repo's Releases page is replaced with the new build (web and Windows zips), and the playtest itch page is updated.
   - Push to `release`: a new GitHub release is published, named after the version in Player Settings plus the build number (e.g. `lofilife 0.1.0 (build 12)`), with a change list made from the merged PRs. It becomes the "Latest" release. Bump the version in Player Settings when you want the number to change.
+  - The Mac app is a separate job with its own releases: **Mac Early Access** (from `main`) and `lofilife <version> for Mac` (from `release`), plus the `playtest-mac` itch channel. It's one universal app for Apple silicon and Intel Macs, ad-hoc signed but not notarized, so the first launch needs System Settings > Privacy & Security > Open Anyway. Removing that step needs an Apple Developer account ($99/year) and notarization.
 - **Browser extension** (`extension.yml`) runs when anything in `BrowserExtension/` changes on `main`. It zips the extension (without `store/` and the README) and keeps the zip on the run page. If the `version` in `manifest.json` went up, it uploads the zip to the Chrome Web Store and submits it for review.
 
 Nothing here pushes to the `release` branch or touches the public lofilife itch page; it only reacts when you push to `release`.

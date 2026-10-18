@@ -3,21 +3,23 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 // Every key and mouse control in the game, on the Input System. Keys can be rebound in Settings > Controls;
-// the overrides are saved in PlayerPrefs.
+// the overrides are saved in PlayerPrefs. The defaults all sit on a 60% keyboard (no numpad, F-row, Page Up/Down
+// or Delete needed); the full-size keys still work as second bindings.
 public static class Controls
 {
     public enum Act { Edit, Store, Planner, Saves, Settings, Undo, Redo, Rotate, Delete, Grid, Raise, Lower, Grow, Shrink, MiniMode }
 
     public static readonly string[] Labels =
     {
-        "Edit mode", "Shop", "Planner", "Save now", "Settings", "Undo", "Redo", "Rotate / flip (hold to spin, mouse wheel 15°)", "Delete piece", "Grid snap", "Raise piece", "Lower piece", "Enlarge piece", "Shrink piece", "Mini mode",
+        "Edit mode", "Shop", "Planner", "Save now (also Ctrl+S)", "Settings", "Undo", "Redo", "Rotate / flip (hold to spin, mouse wheel 15°)", "Remove piece (also Delete)",
+        "Grid snap", "Raise piece (also Page Up)", "Lower piece (also Page Down)", "Enlarge piece (also Shift + wheel)", "Shrink piece (also Shift + wheel)", "Mini mode (also M)",
     };
 
     private static readonly string[] Defaults =
     {
         "<Keyboard>/tab", "<Keyboard>/b", "<Keyboard>/p", "<Keyboard>/f5", "<Keyboard>/escape", "<Keyboard>/z", "<Keyboard>/y",
-        "<Keyboard>/r", "<Keyboard>/delete", "<Keyboard>/g",
-        "<Keyboard>/pageUp", "<Keyboard>/pageDown", "<Keyboard>/equals", "<Keyboard>/minus", "<Keyboard>/f9",
+        "<Keyboard>/r", "<Keyboard>/backspace", "<Keyboard>/g",
+        "<Keyboard>/rightBracket", "<Keyboard>/leftBracket", "<Keyboard>/equals", "<Keyboard>/minus", "<Keyboard>/f9",
     };
 
     private const string SaveKey = "ControlBindings";
@@ -30,7 +32,11 @@ public static class Controls
     {
         for (int i = 0; i < Defaults.Length; i++)
             actions[i] = map.AddAction(((Act)i).ToString(), InputActionType.Button, Defaults[i]);
-        actions[(int)Act.Delete].AddBinding("<Keyboard>/backspace");
+        actions[(int)Act.Delete].AddBinding("<Keyboard>/delete");
+        actions[(int)Act.Raise].AddBinding("<Keyboard>/pageUp");
+        actions[(int)Act.Lower].AddBinding("<Keyboard>/pageDown");
+        actions[(int)Act.MiniMode].AddBinding("<Keyboard>/m");
+        actions[(int)Act.Saves].AddCompositeBinding("OneModifier").With("Modifier", "<Keyboard>/ctrl").With("Binding", "<Keyboard>/s");
         actions[(int)Act.Grow].AddBinding("<Keyboard>/numpadPlus");
         actions[(int)Act.Shrink].AddBinding("<Keyboard>/numpadMinus");
         string saved = PlayerPrefs.GetString(SaveKey, "");
@@ -63,6 +69,7 @@ public static class Controls
     public static bool ClickHeld => Pointer.current != null && Pointer.current.press.isPressed;
     public static bool RightClickDown => Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame;
     public static bool Alt => Keyboard.current != null && Keyboard.current.altKey.isPressed;
+    public static bool Shift => Keyboard.current != null && Keyboard.current.shiftKey.isPressed;
 
     // Waits for the next key press and binds it to act. Esc cancels; mouse buttons are ignored.
     public static void Rebind(Act act, Action done)

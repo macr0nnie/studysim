@@ -3,13 +3,15 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static UIKit;
 
 // The furniture store. Builds its own screen-space UI from a FurnitureCatalog at startup, so it only needs
 // a catalog assigned: a "Shop" button opens a left-docked panel with category tabs, a grid of icon cards,
-// and a details area (description, tags, price) with a Buy button. Press B to toggle it.
+// and a details area (description, tags, price) with a Buy button. Press B to toggle it. Dragging a card
+// out into the room buys it and puts it down where the mouse is let go.
 public class FurnitureStoreUI : MonoBehaviour
 {
     [SerializeField] private FurnitureCatalog catalog;
@@ -140,15 +142,47 @@ public class FurnitureStoreUI : MonoBehaviour
             : $"Need {selected.item.price}";
     }
 
-    private void Buy()
-    {
-        if (selected == null || roomManager == null || playerCurrency == null) return;
-        FurnitureItem item = selected.item;
-        if (playerCurrency.GetCoins() < item.price) return;
+    private void Buy() => Buy(false);
 
-        // Pay when the item is actually placed; right-click cancel is free, removing it later refunds it.
-        roomManager.StartPlacingFurniture(item);
+    // Pay when the item is actually placed; right-click cancel is free, removing it later refunds it.
+    // drag: the card is being dragged into the room, so it lands where the mouse is let go.
+    private bool Buy(bool drag)
+    {
+        if (selected == null || roomManager == null || playerCurrency == null) return false;
+        FurnitureItem item = selected.item;
+        if (playerCurrency.GetCoins() < item.price)
+        {
+            UISound.Play(UISound.Cue.Denied);
+            return false;
+        }
+        roomManager.StartPlacingFurniture(item, drag);
         panel.SetActive(false);
+        return true;
+    }
+
+    // A card dragged sideways toward the room is a purchase; up or down still scrolls the list.
+    private class CardDrag : MonoBehaviour, IInitializePotentialDragHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+    {
+        public FurnitureStoreUI store;
+        public Card card;
+        private ScrollRect scroll;
+        private bool scrolling;
+
+        private void Awake() => scroll = GetComponentInParent<ScrollRect>();
+
+        public void OnInitializePotentialDrag(PointerEventData e) => scroll?.OnInitializePotentialDrag(e);
+
+        public void OnBeginDrag(PointerEventData e)
+        {
+            Vector2 moved = e.position - e.pressPosition;
+            scrolling = Mathf.Abs(moved.y) > Mathf.Abs(moved.x);
+            if (scrolling) { scroll?.OnBeginDrag(e); return; }
+            store.Select(card);
+            if (!store.Buy(true)) e.pointerDrag = null; // can't afford it: drop the drag
+        }
+
+        public void OnDrag(PointerEventData e) { if (scrolling) scroll?.OnDrag(e); }
+        public void OnEndDrag(PointerEventData e) { if (scrolling) scroll?.OnEndDrag(e); }
     }
 
     // ---------- UI construction ----------
@@ -213,7 +247,7 @@ public class FurnitureStoreUI : MonoBehaviour
         detailsLayout.childForceExpandHeight = false;
         detailName = MakeText("Name", details.transform, "", HeadingSize, TextColor, TextAlignmentOptions.Left);
         detailName.fontStyle = FontStyles.Bold;
-        detailDescription = MakeText("Description", details.transform, "Select something to see what it is.", LabelSize, MutedText, TextAlignmentOptions.TopLeft);
+        detailDescription = MakeText("Description", details.transform, "Drag an item into your room to buy it, or pick one and press Buy.", LabelSize, MutedText, TextAlignmentOptions.TopLeft);
         detailDescription.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
         detailTags = MakeText("Tags", details.transform, "", CaptionSize, AccentColor, TextAlignmentOptions.Left);
         buyButton = TextButton("Buy", details.transform, "", AccentButtonColor, BodySize);
@@ -238,6 +272,9 @@ public class FurnitureStoreUI : MonoBehaviour
         var card = new Card { item = item, root = root, background = root.GetComponent<Image>() };
         Style(card.background, CardColor);
         root.GetComponent<Button>().onClick.AddListener(() => Select(card));
+        var drag = root.AddComponent<CardDrag>();
+        drag.store = this;
+        drag.card = card;
 
         var icon = Make("Icon", root.transform, typeof(Image)).GetComponent<Image>();
         icon.sprite = item.icon;

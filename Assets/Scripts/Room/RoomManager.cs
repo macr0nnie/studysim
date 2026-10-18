@@ -62,6 +62,7 @@ public class RoomManager : MonoBehaviour
     private readonly Dictionary<GameObject, FurnitureItem> boughtItems = new Dictionary<GameObject, FurnitureItem>();
     private readonly Dictionary<string, GameObject> sceneFurniture = new Dictionary<string, GameObject>();
     private FurnitureItem previewItem;
+    private bool placeOnRelease; // dragged out of the store: letting go of the mouse puts it down
     private PlayerCurrency currency;
     private const string SaveKey = "RoomLayout";
     private bool dragging, grabbed;
@@ -138,7 +139,13 @@ public class RoomManager : MonoBehaviour
         {
             UpdatePreviewPosition();
             HandlePlacement();
-            if (!typing) HandleRotationAndFlipping();
+            if (!typing && currentPreview != null)
+            {
+                HandleRotationAndFlipping();
+                if (Controls.Held(Controls.Act.Grow)) Resize(Mathf.Pow(1.8f, Time.deltaTime));
+                if (Controls.Held(Controls.Act.Shrink)) Resize(Mathf.Pow(1.8f, -Time.deltaTime));
+                if (Controls.Pressed(Controls.Act.Delete)) CancelPlacement();
+            }
         }
         else if (isEditMode)
         {
@@ -188,12 +195,17 @@ public class RoomManager : MonoBehaviour
     }
 
     // Store purchases: charged when placed, refunded when removed, and remembered between sessions.
-    public void StartPlacingFurniture(FurnitureItem item)
+    // dropOnRelease: the card is being dragged out of the store, so the piece goes down where the mouse is let go.
+    public void StartPlacingFurniture(FurnitureItem item, bool dropOnRelease = false)
     {
         if (item == null) return;
         StartPlacingFurniture(item.prefab, null);
         previewItem = item;
+        placeOnRelease = dropOnRelease;
     }
+
+    public bool IsPlacing => currentPreview != null;
+    public void CancelPlacing() => CancelPlacement();
 
     // Kept for the existing store buttons wired in the inspector.
     public void StartPlacingFurniture(GameObject furniturePrefab)
@@ -210,6 +222,7 @@ public class RoomManager : MonoBehaviour
             return;
         }
         CancelPlacement();
+        Select(null); // the piece in hand is what the keys act on now
         currentPreview = Instantiate(furniturePrefab);
         currentPreview.name = furniturePrefab.name;
         onPreviewPlaced = onPlaced;
@@ -606,6 +619,22 @@ public class RoomManager : MonoBehaviour
     // Handles placement input.
     private void HandlePlacement()
     {
+        if (Controls.RightClickDown)
+        {
+            CancelPlacement();
+            return;
+        }
+        if (placeOnRelease)
+        {
+            // Dragged from the store: put it down where the mouse is let go. Let go over the HUD or somewhere it
+            // can't go, it stays in hand (red) to be clicked down or cancelled.
+            if (!Controls.ClickUp) return;
+            placeOnRelease = false;
+            if (IsPointerOverUI()) return;
+            if (isPlacementValid) PlaceObject();
+            else UISound.Play(UISound.Cue.Denied);
+            return;
+        }
         if (IsPointerOverUI()) return;
         if (Controls.ClickDown && isPlacementValid)
         {
@@ -614,10 +643,6 @@ public class RoomManager : MonoBehaviour
         else if (Controls.ClickDown)
         {
             UISound.Play(UISound.Cue.Denied); // red preview: nowhere to put it here
-        }
-        else if (Controls.RightClickDown)
-        {
-            CancelPlacement();
         }
     }
     // Handles rotation for the preview or selected object. Tapping R turns a floor piece a quarter (flips a
@@ -640,17 +665,15 @@ public class RoomManager : MonoBehaviour
         }
         if (Controls.Released(Controls.Act.Rotate) && !alt && (wall || rotateHeld <= TapTime))
         {
-            // Wall pieces flip to face the other way; a quarter turn would stick them out of the wall.
-            if (currentPreview != null)
-            {
-                if (wall) previewSpin += 180f;
-                else currentPreview.transform.Rotate(Vector3.up, -90f, Space.World);
-            }
-            else RotateSelected();
+            RotateSelected();
         }
 
-        float wheel = Mouse.current != null && !wall && !IsPointerOverUI() ? Mouse.current.scroll.ReadValue().y : 0f;
-        if (wheel != 0f)
+        // Mouse wheel turns the piece 15° a notch; with Shift held it makes it bigger or smaller instead.
+        // (macOS turns Shift + wheel into sideways scrolling, so x counts then too.)
+        Vector2 scroll = Mouse.current != null && !IsPointerOverUI() ? Mouse.current.scroll.ReadValue() : Vector2.zero;
+        float wheel = scroll.y != 0f || !Controls.Shift ? scroll.y : scroll.x;
+        if (wheel != 0f && Controls.Shift) Resize(wheel > 0f ? 1.1f : 1f / 1.1f);
+        else if (wheel != 0f && !wall)
         {
             if (currentPreview == null) BeginEdit();
             Spin(Mathf.Sign(wheel) * 15f);
@@ -670,8 +693,15 @@ public class RoomManager : MonoBehaviour
     }
 
     // Floor pieces turn a quarter; wall pieces flip to face the other way (a quarter turn would stick them out of the wall).
+    // While placing, this turns the piece in hand.
     public void RotateSelected()
     {
+        if (currentPreview != null)
+        {
+            if (TypeOf(currentPreview) == Furniture.FurnitureType.Wall) previewSpin += 180f;
+            else currentPreview.transform.Rotate(Vector3.up, -90f, Space.World);
+            return;
+        }
         if (selectedObject == null) return;
         Turn(Quaternion.AngleAxis(TypeOf(selectedObject) == Furniture.FurnitureType.Wall ? 180f : -90f, Vector3.up));
     }
@@ -699,7 +729,8 @@ public class RoomManager : MonoBehaviour
 
     public void DeleteSelected()
     {
-        if (selectedObject != null) DeleteObject(selectedObject);
+        if (currentPreview != null) CancelPlacement();
+        else if (selectedObject != null) DeleteObject(selectedObject);
     }
 
     public string SelectedName => selectedObject == null ? ""
@@ -740,8 +771,14 @@ public class RoomManager : MonoBehaviour
     public void ResetHeight() => NudgeHeight(-SelectedLift);
 
     // Uniform scale about the piece's footing: floor and shelf pieces keep resting where they were, the rest keep their centre.
+    // While placing, this sizes the piece in hand (it's posed again every frame, so no footing to keep).
     public void Resize(float factor, bool save = true)
     {
+        if (currentPreview != null)
+        {
+            SetSize(currentPreview, (sizes.TryGetValue(currentPreview, out float held) ? held : 1f) * factor, false);
+            return;
+        }
         if (selectedObject == null) return;
         if (save) BeginEdit();
         SetSize(selectedObject, SelectedSize * factor);
@@ -784,9 +821,12 @@ public class RoomManager : MonoBehaviour
         GameObject placedObject = Instantiate(currentPreview, position, currentPreview.transform.rotation);
         placedObject.name = currentPreview.name;
         placedObjects.Add(placedObject);
+        bool fromStore = previewItem != null;
         if (previewItem != null) boughtItems[placedObject] = previewItem;
         previewItem = null;
+        placeOnRelease = false;
         if (sizes.TryGetValue(currentPreview, out float fitted)) { sizes[placedObject] = fitted; baseScales[placedObject] = baseScales[currentPreview]; }
+        else baseScales[placedObject] = placedObject.transform.localScale; // before PopIn squashes it, so a resize mid-pop starts from the real scale
         RecordAction(placedObject);
         ResetPreviewMaterial(placedObject);
         PieceOutline.Show(placedObject, ValidTint); // brief green flash, cleared when the pop settles
@@ -798,11 +838,18 @@ public class RoomManager : MonoBehaviour
         Action placed = onPreviewPlaced;
         onPreviewPlaced = null;
         placed?.Invoke();
+        // Fresh from the store: stay on it in edit mode, so it can be sized, turned or nudged straight away.
+        if (fromStore && placed == null)
+        {
+            if (!isEditMode) EnterEditMode();
+            Select(placedObject);
+        }
         SaveRoom();
     }
     
     private void CancelPlacement()
     {
+        placeOnRelease = false;
         onPreviewPlaced = null;
         previewItem = null;
         if (currentPreview != null) DestroyPreview();
@@ -827,20 +874,24 @@ public class RoomManager : MonoBehaviour
     // Clears the preview outline from a placed object (Instantiate copied it from the preview).
     private void ResetPreviewMaterial(GameObject obj) => PieceOutline.Show(obj, null);
 
-    // Small squash-and-settle so a placed piece feels like it lands.
-    private static IEnumerator PopIn(Transform target)
+    // Small squash-and-settle so a placed piece feels like it lands. The resting scale is read every frame,
+    // since a piece fresh from the store can be resized while it's still settling.
+    private IEnumerator PopIn(Transform target)
     {
-        Vector3 scale = target.localScale;
+        GameObject go = target.gameObject;
         for (float t = 0; t < 1 && target != null; t += Time.deltaTime / 0.22f)
         {
+            Vector3 scale = RestScale(go);
             float s = 1 + Mathf.Sin(t * Mathf.PI) * 0.12f * (1 - t); // up to ~6% overshoot, back to 1
             target.localScale = new Vector3(scale.x * (2 - s), scale.y * s, scale.z * (2 - s));
             yield return null;
         }
         if (target == null) yield break;
-        target.localScale = scale;
-        PieceOutline.Show(target.gameObject, null);
+        target.localScale = RestScale(go);
+        PieceOutline.Show(go, go == selectedObject ? shownTint : (Color?)null); // keep the selection glow
     }
+
+    private Vector3 RestScale(GameObject go) => baseScales[go] * (sizes.TryGetValue(go, out float z) ? z : 1f);
 
     // Edit mode: click a piece to select it (it glows), drag it to move it along its surface,
     // R rotates, Delete removes, Tab leaves. Clicking empty space deselects.

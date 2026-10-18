@@ -59,7 +59,12 @@ public class SettingsUI : MonoBehaviour
 
     private void Update()
     {
-        if (Controls.Pressed(Controls.Act.Settings) && !Typing()) Toggle();
+        if (Controls.Pressed(Controls.Act.Settings) && !Typing())
+        {
+            RoomManager room = FindAnyObjectByType<RoomManager>();
+            if (room != null && room.IsPlacing) room.CancelPlacing(); // Esc puts down a piece in hand before it opens Settings
+            else Toggle();
+        }
         if (window.activeSelf && pages[ExtensionPage].activeSelf && GameSettings.Desktop) RefreshExtension();
     }
 

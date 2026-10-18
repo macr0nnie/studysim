@@ -10,7 +10,7 @@ using static UIKit;
 
 // Mini mode: shrinks the game to a small game-overlay window: borderless, always on top, see-through, no taskbar
 // entry, never takes focus, and click-through so it doesn't get in the way of what's underneath. It only displays
-// the room (no HUD, no room interaction). Ctrl + drag moves it any time; F10 unlocks it (a frame shows) and locks it again; the
+// the room and one small card: the countdown with a word for what's going on (no HUD, no room interaction). Ctrl + drag moves it any time; F10 unlocks it (a frame shows) and locks it again; the
 // position is remembered. F9 leaves mini mode. In a Windows build both keys are read globally (even while another
 // app has focus), so they're fixed to F9 and F10 there. While unlocked, a double-click or right-click also leaves.
 // The timer, character and browser extension keep running underneath.
@@ -32,12 +32,13 @@ public class MiniMode : MonoBehaviour
     private readonly List<Canvas> hidden = new List<Canvas>();
     private RoomManager room;
     private TimerManager timer;
-    private TMP_Text timerText; // the only UI kept while mini: the countdown
+    private TMP_Text timerText, stateText; // the only UI kept while mini: one card with the countdown and its state
+    private GameObject hint; // the keys, shown for the first few seconds of each mini session
+    private float hintUntil, nextSweep;
+    private string shownState;
     private bool wasDistracted;
     private float shakeUntil;
     private float lastClick = -1, blockUntil;
-    private UnityEngine.UI.CanvasScaler bubbleScaler;
-    private UnityEngine.UI.CanvasScaler.ScaleMode bubbleMode;
     private int shownTimer = -1;
     // Full-mode settings, restored on the way back.
     private int frameRate, vSync;
@@ -63,6 +64,7 @@ public class MiniMode : MonoBehaviour
         Canvas canvas = MakeCanvas("MiniButtonCanvas", transform, 10);
         Button button = TextButton("MiniButton", canvas.transform, "Mini", TabColor, CaptionSize);
         button.gameObject.AddComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.25f);
+        KeyHint(button.GetComponentInChildren<TMP_Text>(), "Mini", Controls.Act.MiniMode, onHover: true); // the key shows on hover, like the dock
         var rect = (RectTransform)button.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
         rect.sizeDelta = new Vector2(NavHeight, NavHeight);
@@ -83,6 +85,16 @@ public class MiniMode : MonoBehaviour
         if (Active) Progress();
         if (timerText != null && timer != null)
         {
+            if (hint != null && Time.unscaledTime > hintUntil) Destroy(hint);
+            // Toasts and pop-ups made while mini would otherwise show up over the room.
+            if (Time.unscaledTime > nextSweep) { nextSweep = Time.unscaledTime + 1f; HideOthers(); }
+            string state = wasDistracted ? "distracted" : !timer.IsTimerRunning ? "paused" : timer.IsStudySession ? "focus" : "break";
+            if (state != shownState)
+            {
+                shownState = state;
+                stateText.text = state;
+                stateText.color = wasDistracted ? DangerColor : timer.IsTimerRunning ? AccentColor : MutedText;
+            }
             int s = Mathf.Max(0, Mathf.CeilToInt(timer.CurrentTime));
             if (s == shownTimer) return; // the string only changes once a second
             shownTimer = s;
@@ -131,28 +143,15 @@ public class MiniMode : MonoBehaviour
         if (Active)
         {
             hidden.Clear();
-            foreach (Canvas c in FindObjectsByType<Canvas>())
-            {
-                if (!c.isRootCanvas || !c.enabled) continue;
-                // The character's mood icon and speech bubble stay (the worried face on a distraction), at a size that fits.
-                if (c.name == "CharacterBubble" && c.TryGetComponent(out bubbleScaler))
-                {
-                    bubbleMode = bubbleScaler.uiScaleMode;
-                    bubbleScaler.uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ConstantPixelSize;
-                    bubbleScaler.scaleFactor = 0.6f;
-                    continue;
-                }
-                Show(c, false); hidden.Add(c);
-            }
+            HideOthers(); // the HUD and the character's bubble too: the card already says focus / break / distracted
             ShowTimer();
         }
         else
         {
             if (timerText != null) Destroy(timerText.canvas.gameObject);
+            timerText = null;
             foreach (Canvas c in hidden) if (c != null) Show(c, true);
             hidden.Clear();
-            if (bubbleScaler != null) bubbleScaler.uiScaleMode = bubbleMode;
-            bubbleScaler = null;
         }
         Economy(Active);
         blockUntil = Time.unscaledTime + 0.5f;
@@ -162,21 +161,62 @@ public class MiniMode : MonoBehaviour
 #endif
     }
 
+    private void HideOthers()
+    {
+        foreach (Canvas c in FindObjectsByType<Canvas>())
+        {
+            if (!c.isRootCanvas || !c.enabled || c.name == "MiniCardCanvas") continue;
+            Show(c, false); hidden.Add(c);
+        }
+    }
+
+    // One cosy card at the top: the countdown, and under it a quiet word for the state. The keys show below it for a
+    // few seconds so a new player knows how to move it and get back.
     private void ShowTimer()
     {
         if (timer == null) timer = FindAnyObjectByType<TimerManager>();
         if (timer == null) return;
-        Canvas canvas = MakeCanvas("MiniTimerCanvas", transform, 50);
+        Canvas canvas = MakeCanvas("MiniCardCanvas", transform, 50);
         // The mini window is only 360x300, so the 1920x1080 scaling would shrink the text to a few pixels.
         canvas.GetComponent<UnityEngine.UI.CanvasScaler>().uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ConstantPixelSize;
-        shownTimer = -1; // a fresh label starts empty
-        timerText = MakeText("MiniTimer", canvas.transform, "", 40, Color.white, TextAlignmentOptions.Top, true);
-        Anchor(timerText.gameObject, new Vector2(0, 0.8f), new Vector2(1, 1));
-        timerText.outlineWidth = 0.25f; // readable over any background behind the see-through window
-        timerText.outlineColor = Color.black;
-        timerText.raycastTarget = false;
+        Destroy(canvas.GetComponent<GraphicRaycaster>());
+
+        RectTransform card = Card("Card", canvas.transform, new Vector2(150, 74), -12);
+        shownTimer = -1; shownState = null; // fresh labels start empty
+        timerText = MakeText("MiniTimer", card, "", 36, TextColor, TextAlignmentOptions.Center, true);
+        Anchor(timerText.gameObject, new Vector2(0, 0.32f), new Vector2(1, 1));
+        stateText = MakeText("MiniState", card, "", CaptionSize, MutedText, TextAlignmentOptions.Top);
+        Anchor(stateText.gameObject, new Vector2(0, 0.06f), new Vector2(1, 0.36f));
+
+        // shortcut: the Windows keys are fixed (read globally); elsewhere it's the rebindable Mini mode key.
+#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        string keys = "<b>F9</b> back to the room   <b>Ctrl</b> + drag to move\n<b>F10</b> unlock   <b>Ctrl+F9</b> reset spot";
+#else
+        string keys = $"<b>{Controls.KeyName(Controls.Act.MiniMode)}</b> or double-click to go back";
+#endif
+        RectTransform tip = Card("Keys", canvas.transform, new Vector2(300, 52), -94);
+        TMP_Text tipText = MakeText("Text", tip, keys, 12, TextColor, TextAlignmentOptions.Center);
+        Anchor(tipText.gameObject, Vector2.zero, Vector2.one);
+        tipText.margin = new Vector4(8, 4, 8, 4);
+        hint = tip.gameObject;
+        hintUntil = Time.unscaledTime + 8f;
 
         wasDistracted = false;
+    }
+
+    // A rounded panel in the HUD's colours, centred at the top of the mini window.
+    private static RectTransform Card(string name, Transform parent, Vector2 size, float y)
+    {
+        GameObject go = Make(name, parent, typeof(Image), typeof(Shadow));
+        Image image = go.GetComponent<Image>();
+        Style(image, PanelColor);
+        image.raycastTarget = false;
+        go.GetComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.25f);
+        var rect = (RectTransform)go.transform;
+        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1);
+        rect.sizeDelta = size;
+        rect.anchoredPosition = new Vector2(0, y);
+        return rect;
     }
 
     private static void Show(Canvas c, bool on)

@@ -360,8 +360,8 @@ public class SettingsUI : MonoBehaviour
             () => GameSettings.LowGraphics, v => GameSettings.LowGraphics = v);
         if (!GameSettings.Windows) return; // mini mode needs the Windows version
         Heading(page, "Mini mode");
-        Note(page, "Your character and the countdown, like a game overlay: top right, on top of other windows and click-through. "
-            + "Ctrl + drag moves it, Ctrl+F9 resets its position, F9 comes back.");
+        Note(page, "A small window with your room and the countdown that stays on top of other apps. Clicks go through it to whatever is underneath.");
+        Note(page, "<b>F9</b>  go mini and come back\n<b>Ctrl</b> + drag  move it\n<b>F10</b>  unlock it to drag freely (F10 again locks)\n<b>Ctrl+F9</b>  put it back in the top right corner");
         GameObject mini = Row("Mini mode", page, 40, 10, false);
         SmallButton(mini.transform, "Go mini", AccentButtonColor, 140).onClick.AddListener(() => { Toggle(); MiniMode.Set(true); });
         Button key = SmallButton(mini.transform, "", CardColor, 190);

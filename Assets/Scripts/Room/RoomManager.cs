@@ -1751,14 +1751,14 @@ public class RoomManager : MonoBehaviour
         return new Bounds(obj.transform.position, Vector3.zero);
     }
 
-    [SerializeField] private Texture2D puffHeart; // Assets/ART/UI/Heart.png
+    [SerializeField] private Sprite[] puffHearts; // the pink and mint hearts from Assets/ART/UI/Icons.png
     private ParticleSystem puff;
 
     // A little pop of hearts that float up off a freshly placed piece.
     private void PlayPlacementEffect(GameObject piece)
     {
         Renderer[] renderers = piece.GetComponentsInChildren<Renderer>();
-        if (renderers.Length == 0 || puffHeart == null) return;
+        if (renderers.Length == 0 || puffHearts == null || puffHearts.Length == 0) return;
         Bounds b = renderers[0].bounds;
         foreach (Renderer r in renderers) b.Encapsulate(r.bounds);
         if (puff == null) puff = BuildPuff();
@@ -1800,6 +1800,12 @@ public class RoomManager : MonoBehaviour
         gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0), new GradientColorKey(Color.white, 1) },
             new[] { new GradientAlphaKey(1, 0), new GradientAlphaKey(1, 0.7f), new GradientAlphaKey(0, 1) });
         fade.color = gradient;
+        var sheet = ps.textureSheetAnimation;
+        sheet.enabled = true;
+        sheet.mode = ParticleSystemAnimationMode.Sprites;
+        foreach (Sprite heart in puffHearts) sheet.AddSprite(heart); // all from one sheet, so one material
+        sheet.frameOverTime = new ParticleSystem.MinMaxCurve(0f);
+        sheet.startFrame = new ParticleSystem.MinMaxCurve(0f, puffHearts.Length - 0.01f); // a random heart each
         var material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")); // in Always Included Shaders
         material.SetFloat("_Surface", 1);
         material.SetFloat("_Blend", 0);
@@ -1809,7 +1815,7 @@ public class RoomManager : MonoBehaviour
         material.SetOverrideTag("RenderType", "Transparent");
         material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
         material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-        material.mainTexture = puffHeart;
+        material.mainTexture = puffHearts[0].texture;
         ps.GetComponent<ParticleSystemRenderer>().sharedMaterial = material;
         ps.Play();
         return ps;

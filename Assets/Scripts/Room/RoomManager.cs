@@ -540,7 +540,7 @@ public class RoomManager : MonoBehaviour
         {
             Renderer[] parts = roomModel.GetComponentsInChildren<Renderer>();
             if (wallMeshes.Length == 0) wallMeshes = System.Array.FindAll(parts, r => r.name.StartsWith("Wall_"));
-            if (floorMeshes.Length == 0) floorMeshes = System.Array.FindAll(parts, r => r.name == "Floor");
+            if (floorMeshes.Length == 0) floorMeshes = System.Array.FindAll(parts, r => r.name == "Floor" || r.name == "Base");
         }
         if (wallMeshes.Length == 0)
         {

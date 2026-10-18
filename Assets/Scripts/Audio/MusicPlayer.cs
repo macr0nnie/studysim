@@ -76,8 +76,7 @@ public class MusicPlayer : MonoBehaviour
     // A music note drifts up off the record player (or anything that plays music), else off the character.
     private void FloatNote()
     {
-        if (notes == null) notes = IconPop.Make("MusicNotes", 2.4f, UIIcons.Named("Icons_5"));
-        if (notes == null) return;
+        if (notes == null) notes = IconPop.Make("MusicNotes", 2.4f, IconPop.Note);
         if (room == null) room = FindAnyObjectByType<RoomManager>();
         GameObject source = null;
         if (room != null)

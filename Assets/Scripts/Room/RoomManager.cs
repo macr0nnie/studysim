@@ -1884,14 +1884,13 @@ public class RoomManager : MonoBehaviour
         return new Bounds(obj.transform.position, Vector3.zero);
     }
 
-    [SerializeField] private Sprite[] puffHearts; // the pink and mint hearts from Assets/ART/UI/Icons.png
     private ParticleSystem puff;
 
     // A little pop of hearts that float up off a freshly placed piece.
     private void PlayPlacementEffect(GameObject piece)
     {
-        if (puff == null) puff = IconPop.Make("PlacePuff", 1.2f, puffHearts);
-        if (IconPop.BoundsOf(piece) is Bounds b) IconPop.Burst(puff, b, 14, 1f, Color.white);
+        if (puff == null) puff = IconPop.Make("PlacePuff", 1.2f, IconPop.Heart, IconPop.Sparkle);
+        if (IconPop.BoundsOf(piece) is Bounds b) IconPop.Burst(puff, b, 14, 1f, IconPop.Sweets);
     }
 
     // Snaps the given position to the defined grid.

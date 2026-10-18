@@ -9,6 +9,7 @@ public static class RoomSurfacesTools
     const string AssetPath = "Assets/Resources/RoomSurfaces.asset";
     const string Pack = "Assets/Fries and Seagull/Ultimate Interior Pack/Prefabs";
     static readonly string[] FloorSources = { Pack + "/Door, Floor, Carpet/Floor", "Assets/ART/Mats/Wood.mat", "Assets/ART/Mats/Floor.mat" };
+    const string FloorShapes = "Assets/ART/Models/Floors"; // one FBX per 3D floor, modelled in the Floor's own space
     static readonly string[] WallSources = { Pack + "/Wall", "Assets/ART/Mats/Wall.mat" };
 
     public static void BuildIfMissing()
@@ -27,9 +28,12 @@ public static class RoomSurfacesTools
         }
         surfaces.floors = Collect(FloorSources);
         surfaces.walls = Collect(WallSources);
+        surfaces.floorShapes = !AssetDatabase.IsValidFolder(FloorShapes) ? new Mesh[0]
+            : AssetDatabase.FindAssets("t:Model", new[] { FloorShapes }).Select(AssetDatabase.GUIDToAssetPath).OrderBy(p => p)
+                .Select(p => AssetDatabase.LoadAllAssetsAtPath(p).OfType<Mesh>().FirstOrDefault()).Where(m => m != null).ToArray();
         EditorUtility.SetDirty(surfaces);
         AssetDatabase.SaveAssets();
-        Debug.Log($"Room surfaces: {surfaces.floors.Length} floor and {surfaces.walls.Length} wall materials.");
+        Debug.Log($"Room surfaces: {surfaces.floors.Length} floor and {surfaces.walls.Length} wall materials, {surfaces.floorShapes.Length} 3D floors.");
     }
 
     // Materials from .mat files and from every prefab in the given folders, URP shaders only

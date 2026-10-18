@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -18,6 +19,7 @@ public class PaintUI : MonoBehaviour
     {
         public string wallColor = "", floorColor = "";
         public int wallMaterial = -1, floorMaterial = -1;
+        public int floorShape = -1; // index into RoomSurfaces.floorShapes; -1 is the room's own floor
         public string backgroundColor = "";
     }
 
@@ -40,6 +42,9 @@ public class PaintUI : MonoBehaviour
     private Button resetButton;
     private GameObject weatherRow, skyButton; // Background tab only
     private TMP_Text weatherLabel;
+    private GameObject floorShapeRow; // Floor tab only
+    private TMP_Text floorShapeLabel;
+    private readonly Dictionary<MeshFilter, Mesh> originalFloors = new Dictionary<MeshFilter, Mesh>();
     private Image[] tabs;
     private Target target = Target.Walls;
     private GameObject shownPiece;
@@ -78,6 +83,7 @@ public class PaintUI : MonoBehaviour
         }
         ApplySurface(Target.Walls);
         ApplySurface(Target.Floor);
+        ApplyFloorShape();
         backgroundCamera = Camera.main;
         if (backgroundCamera != null)
         {
@@ -179,6 +185,8 @@ public class PaintUI : MonoBehaviour
         skyButton.SetActive(target == Target.Background);
         skyButton.GetComponent<Image>().color = paint.backgroundColor.Length == 0 ? SelectedColor : TabColor;
         weatherLabel.text = $"Weather: {GameSettings.Weather}";
+        floorShapeRow.SetActive(target == Target.Floor && FloorShapes.Length > 0);
+        floorShapeLabel.text = $"Floor: {(paint.floorShape >= 0 && paint.floorShape < FloorShapes.Length ? FloorShapes[paint.floorShape].name : "Flat")}";
         bool surface = target == Target.Walls || target == Target.Floor;
         materialsLabel.SetActive(surface && Materials(target).Length > 0);
         materialScroll.SetActive(surface && Materials(target).Length > 0);
@@ -260,6 +268,21 @@ public class PaintUI : MonoBehaviour
         if (hex.Length > 0 && ColorUtility.TryParseHtmlString("#" + hex, out Color c)) room.Tint(renderers, c);
     }
 
+    private Mesh[] FloorShapes => surfaces == null || surfaces.floorShapes == null ? new Mesh[0] : surfaces.floorShapes;
+
+    // Swaps the Floor's mesh (and collider) for the chosen 3D floor; the renderer stays, so paint and materials carry over.
+    private void ApplyFloorShape()
+    {
+        foreach (Renderer r in Renderers(Target.Floor))
+        {
+            if (r == null || !r.TryGetComponent(out MeshFilter filter)) continue;
+            if (!originalFloors.ContainsKey(filter)) originalFloors[filter] = filter.sharedMesh;
+            Mesh mesh = paint.floorShape >= 0 && paint.floorShape < FloorShapes.Length ? FloorShapes[paint.floorShape] : originalFloors[filter];
+            filter.sharedMesh = mesh;
+            if (r.TryGetComponent(out MeshCollider collider)) collider.sharedMesh = mesh;
+        }
+    }
+
     private void Save()
     {
         PlayerPrefs.SetString(SaveKey, JsonUtility.ToJson(paint));
@@ -307,6 +330,19 @@ public class PaintUI : MonoBehaviour
         sky.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
         sky.onClick.AddListener(ResetTarget);
         skyButton = sky.gameObject;
+
+        // Floor tab: cycles the 3D floors (planks, tiles), then back to the room's own flat floor.
+        Button shape = TextButton("FloorShape", panel.transform, "", TabColor, BodySize);
+        shape.gameObject.AddComponent<LayoutElement>().preferredHeight = 40;
+        floorShapeLabel = shape.GetComponentInChildren<TMP_Text>();
+        shape.onClick.AddListener(() =>
+        {
+            paint.floorShape = paint.floorShape + 1 >= FloorShapes.Length ? -1 : paint.floorShape + 1;
+            ApplyFloorShape();
+            Save();
+            Refresh();
+        });
+        floorShapeRow = shape.gameObject;
 
         // Materials come first and get two thirds of the free height; colours scroll in the last third.
         materialsLabel = Label("Materials");

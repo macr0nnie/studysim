@@ -299,9 +299,26 @@ public class RoomAmbience : MonoBehaviour
             light.enabled = on;
             light.shadows = MiniMode.Active ? LightShadows.None : LightShadows.Soft;
             Beam(light, b, floor, on && !MiniMode.Active);
+            Glow(renderers, on ? windowColor * windowIntensity * 2f : Color.black);
         }
         foreach (Light gone in new List<Light>(beams.Keys))
             if (gone == null) { foreach (Renderer r in beams[gone]) if (r != null) Destroy(r.gameObject); beams.Remove(gone); }
+    }
+
+    // Glass whose material is named WindowGlow (the cozy windows) shines in the window light's colour, so the pane glows
+    // softly by day and dims at night. Instanced materials, so the asset itself is never changed.
+    private static void Glow(Renderer[] renderers, Color color)
+    {
+        foreach (Renderer r in renderers)
+        {
+            if (!System.Array.Exists(r.sharedMaterials, m => m != null && m.name.StartsWith("WindowGlow"))) continue;
+            foreach (Material m in r.materials)
+            {
+                if (!m.name.StartsWith("WindowGlow")) continue;
+                m.EnableKeyword("_EMISSION");
+                m.SetColor("_EmissionColor", color);
+            }
+        }
     }
 
     // A visible shaft of light from a window to the floor: two crossed soft quads, brightest at the glass, fading out

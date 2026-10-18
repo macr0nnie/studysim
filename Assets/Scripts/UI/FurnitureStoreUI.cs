@@ -28,7 +28,8 @@ public class FurnitureStoreUI : MonoBehaviour
 
     private readonly List<Card> cards = new List<Card>();
     private GameObject panel;
-    private TMP_Text coinsText, detailName, detailDescription, detailTags, buyLabel;
+    private TMP_Text coinsText, detailName, detailDescription, detailTags, detailSize, buyLabel;
+    private readonly Dictionary<FurnitureItem, string> sizeTexts = new Dictionary<FurnitureItem, string>();
     private Button buyButton;
     private Card selected;
     private readonly Queue<(Image image, FurnitureItem item)> pendingIcons = new Queue<(Image, FurnitureItem)>();
@@ -129,17 +130,31 @@ public class FurnitureStoreUI : MonoBehaviour
         detailName.text = card.item.displayName;
         detailDescription.text = card.item.description;
         detailTags.text = card.item.tags.Length > 0 ? "#" + string.Join("  #", card.item.tags) : "";
+        ShowSize(card.item);
         Refresh(Coins);
+    }
+
+    // "About 1.4 x 0.6 m, 0.8 m tall": how big it will be in the room. Measured once per item (it spawns a copy to fit it).
+    private void ShowSize(FurnitureItem item)
+    {
+        if (item == null || roomManager == null) { detailSize.text = ""; return; }
+        if (!sizeTexts.TryGetValue(item, out string text))
+        {
+            Vector3 m = roomManager.FittedSize(item);
+            text = m == Vector3.zero ? "" : $"About {Mathf.Max(m.x, m.z):0.0} x {Mathf.Min(m.x, m.z):0.0} m, {m.y:0.0} m tall";
+            sizeTexts[item] = text;
+        }
+        detailSize.text = text;
     }
 
     private void Refresh(int coins)
     {
         coinsText.text = coins.ToString();
         bool canBuy = selected != null && coins >= selected.item.price;
-        buyButton.interactable = canBuy;
+        buyButton.interactable = selected != null; // clickable when short too, so it can say so with a shake
         buyLabel.text = selected == null ? "Pick an item"
             : canBuy ? $"Buy for {selected.item.price}"
-            : $"Need {selected.item.price}";
+            : $"{selected.item.price - coins} more coins needed";
     }
 
     private void Buy() => Buy(false);
@@ -153,6 +168,7 @@ public class FurnitureStoreUI : MonoBehaviour
         if (playerCurrency.GetCoins() < item.price)
         {
             UISound.Play(UISound.Cue.Denied);
+            StartCoroutine(Shake(selected.root.transform));
             return false;
         }
         roomManager.StartPlacingFurniture(item, drag);
@@ -160,8 +176,20 @@ public class FurnitureStoreUI : MonoBehaviour
         return true;
     }
 
+    // Short side-to-side wobble: can't afford it. Rotation, since the grid layout owns the card's position.
+    private static IEnumerator Shake(Transform card)
+    {
+        for (float t = 0; t < 1 && card != null; t += Time.unscaledDeltaTime / 0.35f)
+        {
+            card.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * Mathf.PI * 6) * 6f * (1 - t));
+            yield return null;
+        }
+        if (card != null) card.localRotation = Quaternion.identity;
+    }
+
     // A card dragged sideways toward the room is a purchase; up or down still scrolls the list.
-    private class CardDrag : MonoBehaviour, IInitializePotentialDragHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
+    private class CardDrag : MonoBehaviour, IInitializePotentialDragHandler, IBeginDragHandler, IDragHandler, IEndDragHandler,
+        IPointerEnterHandler, IPointerExitHandler
     {
         public FurnitureStoreUI store;
         public Card card;
@@ -183,6 +211,10 @@ public class FurnitureStoreUI : MonoBehaviour
 
         public void OnDrag(PointerEventData e) { if (scrolling) scroll?.OnDrag(e); }
         public void OnEndDrag(PointerEventData e) { if (scrolling) scroll?.OnEndDrag(e); }
+
+        // Hovering a card shows how big it is; leaving goes back to the selected item's size.
+        public void OnPointerEnter(PointerEventData e) => store.ShowSize(card.item);
+        public void OnPointerExit(PointerEventData e) => store.ShowSize(store.selected?.item);
     }
 
     // ---------- UI construction ----------
@@ -237,7 +269,7 @@ public class FurnitureStoreUI : MonoBehaviour
         // Details of the selected item and the Buy button.
         GameObject details = Make("Details", panel.transform, typeof(Image), typeof(VerticalLayoutGroup), typeof(LayoutElement));
         Style(details.GetComponent<Image>(), CardColor);
-        details.GetComponent<LayoutElement>().preferredHeight = 170;
+        details.GetComponent<LayoutElement>().preferredHeight = 190;
         details.GetComponent<LayoutElement>().flexibleHeight = 0; // the description's flexible height would otherwise grow this box
         var detailsLayout = details.GetComponent<VerticalLayoutGroup>();
         detailsLayout.padding = new RectOffset(14, 14, 10, 10);
@@ -250,6 +282,7 @@ public class FurnitureStoreUI : MonoBehaviour
         detailDescription = MakeText("Description", details.transform, "Drag an item into your room to buy it, or pick one and press Buy.", LabelSize, MutedText, TextAlignmentOptions.TopLeft);
         detailDescription.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1;
         detailTags = MakeText("Tags", details.transform, "", CaptionSize, AccentColor, TextAlignmentOptions.Left);
+        detailSize = MakeText("Size", details.transform, "", CaptionSize, MutedText, TextAlignmentOptions.Left);
         buyButton = TextButton("Buy", details.transform, "", AccentButtonColor, BodySize);
         buyButton.gameObject.AddComponent<LayoutElement>().preferredHeight = 42;
         buyLabel = buyButton.GetComponentInChildren<TMP_Text>();

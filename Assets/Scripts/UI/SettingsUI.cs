@@ -304,7 +304,7 @@ public class SettingsUI : MonoBehaviour
             Style(card.GetComponent<Image>(), CardColor);
             card.GetComponent<Button>().onClick.AddListener(() => PickMode(mode));
             TMP_Text label = MakeText("Label", card.transform,
-                $"<b>{preset.name}</b>\n<size={CaptionSize}><alpha=#B0>{preset.detail}</size>", // alpha, not MutedText: stays readable on the selected card
+                $"<b>{preset.name}</b>\n<size={CaptionSize}><alpha=#B0>{preset.detail}</size>", 
                 BodySize, TextColor, TextAlignmentOptions.Left);
             Stretch((RectTransform)label.transform);
             ((RectTransform)label.transform).offsetMin = new Vector2(14, 0);
@@ -341,7 +341,7 @@ public class SettingsUI : MonoBehaviour
         nameField.onEndEdit.AddListener(v => CharacterDialogue.PlayerName = v);
     }
 
-    // Look of the room and the window: lighting and mini mode.
+  
     private void BuildDisplay(Transform page)
     {
         Heading(page, "Room");

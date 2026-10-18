@@ -8,6 +8,8 @@ Two GitHub Actions workflows live in `.github/workflows/`:
   - The Mac app is a separate job with its own releases: **Mac Early Access** (from `main`) and `lofilife <version> for Mac` (from `release`), plus the `playtest-mac` itch channel. It's one universal app for Apple silicon and Intel Macs, ad-hoc signed but not notarized, so the first launch needs System Settings > Privacy & Security > Open Anyway. Removing that step needs an Apple Developer account ($99/year) and notarization.
 - **Browser extension** (`extension.yml`) runs when anything in `BrowserExtension/` changes on `main`. It zips the extension (without `store/` and the README) and keeps the zip on the run page. If the `version` in `manifest.json` went up, it uploads the zip to the Chrome Web Store and submits it for review.
 
+**Every platform gets every change.** One push builds web, Windows and Mac from the same commit, and each build is stamped with the same label, e.g. `v0.1.0 build 32 (4630e53)`, shown under the buttons on the main menu. If two platforms show different build numbers, one of them is older. The browser extension only changes when `BrowserExtension/` changes, so it has its own version; a zip of it from the same commit is also attached to each Windows/web release.
+
 Nothing here pushes to the `release` branch or touches the public lofilife itch page; it only reacts when you push to `release`.
 
 ## What you do once, by hand
@@ -36,7 +38,9 @@ If your Unity account uses a login code (two-step), the build may fail at activa
 3. Only if your playtest project's URL isn't `macronnie.itch.io/lofilife-playtest`: add variable `ITCH_TARGET` = `macronnie/<project-name>`.
 4. After the first successful run, in the itch project's Edit page, tick **"This file will be played in the browser"** on the `playtest-web` upload. itch remembers it for later pushes.
 
-Channels: `playtest-web` (browser build) and `playtest-windows` (zip download).
+Channels: `playtest-web` (browser build), `playtest-windows` and `playtest-mac` (zip downloads).
+
+**Public page on release (optional, off until you turn it on):** add variable `ITCH_RELEASE_TARGET` = `macronnie/lofilife`. From then on, each push to `release` also uploads to the public page on channels `web`, `windows` and `mac`, with the same version as the GitHub release. Main never touches it.
 
 ### 3. Chrome Web Store (optional)
 

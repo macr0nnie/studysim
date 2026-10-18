@@ -63,7 +63,15 @@ public class MenuUI : MonoBehaviour
         play.onClick.AddListener(() => Go(SaveSystem.SelectScene));
         if (GameSettings.Desktop) Big("Quit", "Quit", TabColor, 52).onClick.AddListener(Quit); // a browser tab can't quit itself
         Gap(8);
-        Text("Version", "v" + Application.version, CaptionSize, MutedText, 22, false);
+        Text("Version", VersionLabel(), CaptionSize, MutedText, 22, false);
+    }
+
+    // CI writes Resources/BuildInfo.txt ("build 32 (4630e53)") into every platform's build from the same run,
+    // so Windows, web and Mac show the same label. Editor and hand-made builds just show the version.
+    public static string VersionLabel()
+    {
+        var info = Resources.Load<TextAsset>("BuildInfo");
+        return "v" + Application.version + (info != null ? " " + info.text.Trim() : "");
     }
 
     private void BuildSelect()

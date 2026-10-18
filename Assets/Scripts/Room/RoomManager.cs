@@ -15,7 +15,6 @@ public class RoomManager : MonoBehaviour
     [SerializeField] private float gridSize = 1.0f;
     [SerializeField] private bool useGridPlacement = true;
 
-    [SerializeField] private GameObject placementParticlePrefab;
 
     [Tooltip("Visible wall meshes. Each gets a wall-layer collider so decor can hang on every wall. Found by name (Room_Walls) when empty.")]
     [SerializeField] private Renderer[] wallMeshes = new Renderer[0];
@@ -106,7 +105,6 @@ public class RoomManager : MonoBehaviour
 
         // The preview is tinted with a property block now and the particle effect is optional,
         // so neither missing asset should switch off building and edit mode.
-        if (placementParticlePrefab == null) Debug.LogWarning("RoomManager: no placement particle effect assigned.");
 
         currency = FindAnyObjectByType<PlayerCurrency>();
         SetUpSurfaces();
@@ -795,7 +793,7 @@ public class RoomManager : MonoBehaviour
         if (HasLights(placedObject)) SetLights(placedObject, true, false); // the pack's lamps start switched off
         UISound.Play(boughtItems.TryGetValue(placedObject, out FurnitureItem paid) && paid.price > 0 ? UISound.Cue.Coin : UISound.Cue.Place);
         StartCoroutine(PopIn(placedObject.transform));
-        PlayPlacementEffect(position);
+        PlayPlacementEffect(placedObject);
         DestroyPreview();
         Action placed = onPreviewPlaced;
         onPreviewPlaced = null;
@@ -1754,18 +1752,88 @@ public class RoomManager : MonoBehaviour
     }
 
     // Plays a particle effect at the specified position.
-    private void PlayPlacementEffect(Vector3 position)
+    private ParticleSystem puff;
+    private static readonly Color[] PuffColors = { new Color(1f, 0.62f, 0.78f), new Color(1f, 0.9f, 0.7f), new Color(0.82f, 0.74f, 1f), Color.white };
+
+    // A little pop of pixel hearts and sparkles that float up off a freshly placed piece.
+    private void PlayPlacementEffect(GameObject piece)
     {
-        if (placementParticlePrefab != null)
+        Renderer[] renderers = piece.GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0) return;
+        Bounds b = renderers[0].bounds;
+        foreach (Renderer r in renderers) b.Encapsulate(r.bounds);
+        if (puff == null) puff = BuildPuff();
+        float s = Mathf.Max(b.size.x, b.size.z, 0.2f);
+        var p = new ParticleSystem.EmitParams();
+        for (int i = 0; i < 14; i++)
         {
-            GameObject particleEffect = Instantiate(placementParticlePrefab, position, Quaternion.identity);
-            ParticleSystem particleSystem = particleEffect.GetComponent<ParticleSystem>();
-            if (particleSystem != null)
-            {
-                particleSystem.Play();
-            }
-            Destroy(particleEffect, 2f);
+            p.position = new Vector3(b.center.x + UnityEngine.Random.Range(-0.4f, 0.4f) * b.size.x, b.min.y + UnityEngine.Random.Range(0.3f, 1f) * b.size.y, b.center.z + UnityEngine.Random.Range(-0.4f, 0.4f) * b.size.z);
+            p.velocity = new Vector3(UnityEngine.Random.Range(-0.4f, 0.4f), UnityEngine.Random.Range(0.6f, 1.2f), UnityEngine.Random.Range(-0.4f, 0.4f)) * s;
+            p.startSize = s * UnityEngine.Random.Range(0.07f, 0.12f);
+            p.startColor = PuffColors[UnityEngine.Random.Range(0, PuffColors.Length)];
+            puff.Emit(p, 1);
         }
+    }
+
+    private ParticleSystem BuildPuff()
+    {
+        var go = new GameObject("PlacePuff");
+        go.transform.SetParent(transform, false);
+        var ps = go.AddComponent<ParticleSystem>();
+        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+        var main = ps.main;
+        main.startLifetime = 1.2f;
+        main.simulationSpace = ParticleSystemSimulationSpace.World;
+        main.useUnscaledTime = true;
+        main.maxParticles = 200;
+        var emission = ps.emission;
+        emission.enabled = false; // only Emit() from placing
+        ps.GetComponent<ParticleSystemRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        var drag = ps.limitVelocityOverLifetime;
+        drag.enabled = true;
+        drag.limit = 0f;
+        drag.dampen = 0.06f; // shoot up, then hang and drift
+        var grow = ps.sizeOverLifetime;
+        grow.enabled = true;
+        grow.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0, 0.2f), new Keyframe(0.15f, 1.15f), new Keyframe(0.3f, 1f), new Keyframe(0.75f, 1f), new Keyframe(1, 0)));
+        var fade = ps.colorOverLifetime;
+        fade.enabled = true;
+        var gradient = new Gradient();
+        gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0), new GradientColorKey(Color.white, 1) },
+            new[] { new GradientAlphaKey(1, 0), new GradientAlphaKey(1, 0.7f), new GradientAlphaKey(0, 1) });
+        fade.color = gradient;
+        // Two tiles side by side: a heart and a four-point sparkle, picked at random per particle.
+        var sheet = ps.textureSheetAnimation;
+        sheet.enabled = true;
+        sheet.numTilesX = 2;
+        sheet.numTilesY = 1;
+        sheet.frameOverTime = new ParticleSystem.MinMaxCurve(0f);
+        sheet.startFrame = new ParticleSystem.MinMaxCurve(0f, 1.99f);
+
+        string[] heart = { ".XX.XX.", "XXXXXXX", "XXXXXXX", ".XXXXX.", "..XXX..", "...X...", "......." };
+        string[] spark = { "...X...", "...X...", "..XXX..", "XXXXXXX", "..XXX..", "...X...", "...X..." };
+        var tex = new Texture2D(18, 9, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
+        tex.SetPixels(new Color[18 * 9]); // clear
+        for (int y = 0; y < 7; y++)
+            for (int x = 0; x < 7; x++)
+            {
+                if (heart[y][x] == 'X') tex.SetPixel(1 + x, 7 - y, Color.white); // rows read top-down, texture rows go bottom-up
+                if (spark[y][x] == 'X') tex.SetPixel(10 + x, 7 - y, Color.white);
+            }
+        tex.Apply();
+        var material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")); // in Always Included Shaders
+        material.SetFloat("_Surface", 1);
+        material.SetFloat("_Blend", 0);
+        material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
+        material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+        material.SetFloat("_ZWrite", 0);
+        material.SetOverrideTag("RenderType", "Transparent");
+        material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+        material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+        material.mainTexture = tex;
+        ps.GetComponent<ParticleSystemRenderer>().sharedMaterial = material;
+        ps.Play();
+        return ps;
     }
 
     // Snaps the given position to the defined grid.

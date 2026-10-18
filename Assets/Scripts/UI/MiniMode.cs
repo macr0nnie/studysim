@@ -10,7 +10,7 @@ using static UIKit;
 
 // Mini mode: shrinks the game to a small game-overlay window: borderless, always on top, see-through, no taskbar
 // entry, never takes focus, and click-through so it doesn't get in the way of what's underneath. It only displays
-// the room and one small card: the countdown with a word for what's going on (no HUD, no room interaction). Ctrl + drag moves it any time; F10 unlocks it (a frame shows) and locks it again; the
+// the room and a small sticky note with the countdown and a word for what's going on (no HUD, no room interaction). Ctrl + drag moves it any time; F10 unlocks it (a frame shows) and locks it again; the
 // position is remembered. F9 leaves mini mode. In a Windows build both keys are read globally (even while another
 // app has focus), so they're fixed to F9 and F10 there. While unlocked, a double-click or right-click also leaves.
 // The timer, character and browser extension keep running underneath.
@@ -94,7 +94,8 @@ public class MiniMode : MonoBehaviour
             {
                 shownState = state;
                 stateText.text = state;
-                stateText.color = wasDistracted ? DangerColor : timer.IsTimerRunning ? AccentColor : MutedText;
+                stateText.color = wasDistracted ? new Color(0.78f, 0.25f, 0.22f) : Ink;
+                timerText.alpha = timer.IsTimerRunning ? 1f : 0.55f; // paused reads as faded ink
             }
             int s = Mathf.Max(0, Mathf.CeilToInt(timer.CurrentTime));
             if (s == shownTimer) return; // the string only changes once a second
@@ -182,20 +183,27 @@ public class MiniMode : MonoBehaviour
         canvas.GetComponent<UnityEngine.UI.CanvasScaler>().uiScaleMode = UnityEngine.UI.CanvasScaler.ScaleMode.ConstantPixelSize;
         Destroy(canvas.GetComponent<GraphicRaycaster>());
 
-        RectTransform card = Card("Card", canvas.transform, new Vector2(150, 74), -12);
+        // A small sticky note taped in the top right corner, slightly crooked. Paper colours stay the same in both themes.
+        RectTransform note = Card("Note", canvas.transform, new Vector2(96, 84), new Vector2(1, 1), new Vector2(-14, -16), new Color(1f, 0.92f, 0.62f));
+        note.localRotation = Quaternion.Euler(0, 0, -4);
+        note.GetComponent<Image>().pixelsPerUnitMultiplier = 4; // paper corners, not the HUD's round ones
+        RectTransform tape = Card("Tape", note, new Vector2(38, 14), new Vector2(0.5f, 1), new Vector2(0, 7), new Color(1f, 1f, 1f, 0.55f));
+        tape.localRotation = Quaternion.Euler(0, 0, 6);
+        tape.GetComponent<Image>().pixelsPerUnitMultiplier = 4;
+        Destroy(tape.GetComponent<Shadow>());
         shownTimer = -1; shownState = null; // fresh labels start empty
-        timerText = MakeText("MiniTimer", card, "", 36, TextColor, TextAlignmentOptions.Center, true);
-        Anchor(timerText.gameObject, new Vector2(0, 0.32f), new Vector2(1, 1));
-        stateText = MakeText("MiniState", card, "", CaptionSize, MutedText, TextAlignmentOptions.Top);
-        Anchor(stateText.gameObject, new Vector2(0, 0.06f), new Vector2(1, 0.36f));
+        timerText = MakeText("MiniTimer", note, "", 30, Ink, TextAlignmentOptions.Center, true);
+        Anchor(timerText.gameObject, new Vector2(0, 0.36f), new Vector2(1, 0.92f));
+        stateText = MakeText("MiniState", note, "", LabelSize, Ink, TextAlignmentOptions.Top);
+        Anchor(stateText.gameObject, new Vector2(0, 0.08f), new Vector2(1, 0.4f));
 
-        // shortcut: the Windows keys are fixed (read globally); elsewhere it's the rebindable Mini mode key.
-#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+        // shortcut: the Windows and Mac keys are fixed (read globally); elsewhere it's the rebindable Mini mode key.
+#if (UNITY_STANDALONE_WIN || UNITY_STANDALONE_OSX) && !UNITY_EDITOR
         string keys = "<b>F9</b> back to the room   <b>Ctrl</b> + drag to move\n<b>F10</b> unlock   <b>Ctrl+F9</b> reset spot";
 #else
         string keys = $"<b>{Controls.KeyName(Controls.Act.MiniMode)}</b> or double-click to go back";
 #endif
-        RectTransform tip = Card("Keys", canvas.transform, new Vector2(300, 52), -94);
+        RectTransform tip = Card("Keys", canvas.transform, new Vector2(300, 52), new Vector2(0.5f, 0), new Vector2(0, 12), PanelColor);
         TMP_Text tipText = MakeText("Text", tip, keys, 12, TextColor, TextAlignmentOptions.Center);
         Anchor(tipText.gameObject, Vector2.zero, Vector2.one);
         tipText.margin = new Vector4(8, 4, 8, 4);
@@ -205,18 +213,20 @@ public class MiniMode : MonoBehaviour
         wasDistracted = false;
     }
 
-    // A rounded panel in the HUD's colours, centred at the top of the mini window.
-    private static RectTransform Card(string name, Transform parent, Vector2 size, float y)
+    private static readonly Color Ink = new Color(0.30f, 0.22f, 0.16f); // brown pen on the note
+
+    // A rounded panel pinned to one spot (anchor = pivot) of its parent.
+    private static RectTransform Card(string name, Transform parent, Vector2 size, Vector2 anchor, Vector2 position, Color color)
     {
         GameObject go = Make(name, parent, typeof(Image), typeof(Shadow));
         Image image = go.GetComponent<Image>();
-        Style(image, PanelColor);
+        Style(image, color);
         image.raycastTarget = false;
         go.GetComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.25f);
         var rect = (RectTransform)go.transform;
-        rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 1);
+        rect.anchorMin = rect.anchorMax = rect.pivot = anchor;
         rect.sizeDelta = size;
-        rect.anchoredPosition = new Vector2(0, y);
+        rect.anchoredPosition = position;
         return rect;
     }
 

@@ -60,13 +60,13 @@ public static class CharacterDialogue
         /* Content  */ new[] { "Keep going, you've got this.", "Focus mode: on.", "Another page down.", "Hmm, what was that formula again?",
             "Small steps still count.", "Let's finish this bit, then stretch.", "I'm right here with you.", "Deep breath. Next question.",
             "Water check! Have you had some?", "Slow and steady.", "Future you is going to be so grateful.", "One thing at a time." },
-        /* Happy    */ new[] { "This room feels great!", "I love what you've done with the place.", "Best study session ever.",
+      new[] { "This room feels great!", "I love what you've done with the place.", "Best study session ever.",
             "Everything feels easier in here.", "We make a good team.", "I could study here all day.", "This is my favourite spot.",
             "You're on a roll!", "Cozy room, clear head." },
         /* Sad      */ new[] { "It's a bit empty in here...", "Could we get something nice for the room?", "I'm tired.",
             "Maybe a plant would cheer us up?", "The walls feel so bare.", "A comfy chair would help..." },
         /* Stressed */ new[] { "Is the room shaking?!", "Please close that tab...", "I can't concentrate!",
-            "The furniture is falling over!", "Come back, we were doing so well!", "Our coins are slipping away..." },
+            "The furniture is falling over!", "Come back, we were doing so well!", "nooo the money is gone..." },
     };
 
     // shortcut: stage 0 only; later stages add rows here, and the username-reading line goes in a stage above 0 (Environment.UserName)

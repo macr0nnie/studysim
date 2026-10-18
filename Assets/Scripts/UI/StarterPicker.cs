@@ -4,8 +4,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using static UIKit;
 
-// New-game drawer: pick the starter desk, then the starter chair, from the store's desks and seating. Free, and
-// the room already has a study desk and desk chair in it, so closing early keeps those.
+
 public class StarterPicker : MonoBehaviour
 {
     private RoomManager room;
@@ -29,7 +28,7 @@ public class StarterPicker : MonoBehaviour
         Transform canvas = MakeCanvas("StarterPickerCanvas", transform, 12).transform;
         panel = MakeDrawer("StarterPanel", canvas);
         title = Header(panel.transform, "", () => Destroy(gameObject));
-        MakeText("Hint", panel.transform, "Free to start with. You can swap them later in the shop and Edit mode.", LabelSize, MutedText, TextAlignmentOptions.Left)
+        MakeText("Hint", panel.transform, "Choose a table then a chair", LabelSize, MutedText, TextAlignmentOptions.Left)
             .gameObject.AddComponent<LayoutElement>().preferredHeight = 22;
         grid = ScrollList(panel.transform, out _);
         var layout = grid.gameObject.AddComponent<GridLayoutGroup>();
@@ -44,7 +43,6 @@ public class StarterPicker : MonoBehaviour
         Fill();
     }
 
-    // Another drawer (shop, paint...) opening over the picker: step aside, keeping what was picked.
     private void Update()
     {
         if (DrawerOpen) Destroy(gameObject);

@@ -28,9 +28,16 @@ public static class RoomSurfacesTools
         }
         surfaces.floors = Collect(FloorSources);
         surfaces.walls = Collect(WallSources);
-        surfaces.floorShapes = !AssetDatabase.IsValidFolder(FloorShapes) ? new Mesh[0]
-            : AssetDatabase.FindAssets("t:Model", new[] { FloorShapes }).Select(AssetDatabase.GUIDToAssetPath).OrderBy(p => p)
-                .Select(p => AssetDatabase.LoadAllAssetsAtPath(p).OfType<Mesh>().FirstOrDefault()).Where(m => m != null).ToArray();
+        string[] shapes = !AssetDatabase.IsValidFolder(FloorShapes) ? new string[0]
+            : AssetDatabase.FindAssets("t:Model", new[] { FloorShapes }).Select(AssetDatabase.GUIDToAssetPath).OrderBy(p => p).ToArray();
+        foreach (string path in shapes) // the floor's collider and texture projection need the mesh readable in builds
+            if (AssetImporter.GetAtPath(path) is ModelImporter importer && !importer.isReadable)
+            {
+                importer.isReadable = true;
+                importer.SaveAndReimport();
+            }
+        surfaces.floorShapes = shapes.Select(AssetDatabase.LoadAssetAtPath<GameObject>)
+            .Where(m => m != null && m.GetComponentInChildren<MeshFilter>() != null).ToArray();
         EditorUtility.SetDirty(surfaces);
         AssetDatabase.SaveAssets();
         Debug.Log($"Room surfaces: {surfaces.floors.Length} floor and {surfaces.walls.Length} wall materials, {surfaces.floorShapes.Length} 3D floors.");

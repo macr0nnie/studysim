@@ -44,7 +44,7 @@ public class PaintUI : MonoBehaviour
     private TMP_Text weatherLabel;
     private GameObject floorShapeRow; // Floor tab only
     private TMP_Text floorShapeLabel;
-    private readonly Dictionary<MeshFilter, Mesh> originalFloors = new Dictionary<MeshFilter, Mesh>();
+    private readonly Dictionary<Renderer, (Mesh mesh, Material[] materials)> originalFloors = new Dictionary<Renderer, (Mesh, Material[])>();
     private Image[] tabs;
     private Target target = Target.Walls;
     private GameObject shownPiece;
@@ -82,8 +82,8 @@ public class PaintUI : MonoBehaviour
             catch (ArgumentException) { paint = new PaintSave(); } // corrupted: start unpainted
         }
         ApplySurface(Target.Walls);
+        ApplyFloorShape(); // before the floor's paint, which goes on top of the chosen floor's own materials
         ApplySurface(Target.Floor);
-        ApplyFloorShape();
         backgroundCamera = Camera.main;
         if (backgroundCamera != null)
         {
@@ -186,7 +186,7 @@ public class PaintUI : MonoBehaviour
         skyButton.GetComponent<Image>().color = paint.backgroundColor.Length == 0 ? SelectedColor : TabColor;
         weatherLabel.text = $"Weather: {GameSettings.Weather}";
         floorShapeRow.SetActive(target == Target.Floor && FloorShapes.Length > 0);
-        floorShapeLabel.text = $"Floor: {(paint.floorShape >= 0 && paint.floorShape < FloorShapes.Length ? FloorShapes[paint.floorShape].name : "Flat")}";
+        floorShapeLabel.text = $"Floor: {(paint.floorShape >= 0 && paint.floorShape < FloorShapes.Length ? ShapeName(FloorShapes[paint.floorShape]) : "Flat")}";
         bool surface = target == Target.Walls || target == Target.Floor;
         materialsLabel.SetActive(surface && Materials(target).Length > 0);
         materialScroll.SetActive(surface && Materials(target).Length > 0);
@@ -268,18 +268,25 @@ public class PaintUI : MonoBehaviour
         if (hex.Length > 0 && ColorUtility.TryParseHtmlString("#" + hex, out Color c)) room.Tint(renderers, c);
     }
 
-    private Mesh[] FloorShapes => surfaces == null || surfaces.floorShapes == null ? new Mesh[0] : surfaces.floorShapes;
+    private GameObject[] FloorShapes => surfaces == null || surfaces.floorShapes == null ? new GameObject[0] : surfaces.floorShapes;
+    private static string ShapeName(GameObject shape)
+    {
+        string name = shape.name.Replace("floor_", "").Replace('_', ' ');
+        return name.Length == 0 ? shape.name : char.ToUpper(name[0]) + name.Substring(1);
+    }
 
-    // Swaps the Floor's mesh (and collider) for the chosen 3D floor; the renderer stays, so paint and materials carry over.
+    // Puts the chosen 3D floor's mesh and materials on the room's Floor (or its own back); the renderer stays,
+    // so the floor's colour and material choices still apply on top.
     private void ApplyFloorShape()
     {
+        GameObject shape = paint.floorShape >= 0 && paint.floorShape < FloorShapes.Length ? FloorShapes[paint.floorShape] : null;
+        MeshFilter shapeFilter = shape == null ? null : shape.GetComponentInChildren<MeshFilter>();
         foreach (Renderer r in Renderers(Target.Floor))
         {
             if (r == null || !r.TryGetComponent(out MeshFilter filter)) continue;
-            if (!originalFloors.ContainsKey(filter)) originalFloors[filter] = filter.sharedMesh;
-            Mesh mesh = paint.floorShape >= 0 && paint.floorShape < FloorShapes.Length ? FloorShapes[paint.floorShape] : originalFloors[filter];
-            filter.sharedMesh = mesh;
-            if (r.TryGetComponent(out MeshCollider collider)) collider.sharedMesh = mesh;
+            if (!originalFloors.ContainsKey(r)) originalFloors[r] = (filter.sharedMesh, r.sharedMaterials);
+            if (shapeFilter == null) room.SetSurfaceShape(r, originalFloors[r].mesh, originalFloors[r].materials);
+            else room.SetSurfaceShape(r, shapeFilter.sharedMesh, shapeFilter.GetComponent<Renderer>().sharedMaterials);
         }
     }
 
@@ -339,6 +346,7 @@ public class PaintUI : MonoBehaviour
         {
             paint.floorShape = paint.floorShape + 1 >= FloorShapes.Length ? -1 : paint.floorShape + 1;
             ApplyFloorShape();
+            ApplySurface(Target.Floor);
             Save();
             Refresh();
         });

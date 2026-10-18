@@ -1304,10 +1304,22 @@ public class RoomManager : MonoBehaviour
             }
             foreach (Material m in r.materials)
             {
+                if (m.name.StartsWith("Grout") || m.name.StartsWith("Subfloor")) continue; // 3D floors keep their gaps dark
                 if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", color.Value);
                 if (m.HasProperty("_Color")) m.SetColor("_Color", color.Value);
             }
         }
+    }
+
+    // Gives a floor or wall a new mesh and its own materials (Paint's 3D floors); Tint(null) then goes back to these.
+    public void SetSurfaceShape(Renderer r, Mesh mesh, Material[] materials)
+    {
+        if (r == null || !r.TryGetComponent(out MeshFilter filter)) return;
+        filter.sharedMesh = mesh;
+        if (r.TryGetComponent(out MeshCollider collider)) collider.sharedMesh = mesh;
+        projected.Remove(filter);
+        originalMaterials[r] = materials;
+        r.sharedMaterials = materials;
     }
 
     // Swaps every material slot for one surface material (floors and walls); Tint(null) undoes it.

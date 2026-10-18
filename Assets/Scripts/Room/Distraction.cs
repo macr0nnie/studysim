@@ -4,7 +4,7 @@ using UnityEngine.SceneManagement;
 
 // The room falls apart while the player is on a distracting site during a study session. The browser
 // extension reports it ({"action":"distracted","site":"youtube.com"}, re-sent while the site stays open);
-// furniture tilts, wobbles and sags, the lights flicker, and coins drain. Back on task ("focus" or "back", or no
+// furniture tilts, wobbles and sags, small flames catch on a few pieces (DistractionFire), the lights flicker, and coins drain. Back on task ("focus" or "back", or no
 // report for Timeout seconds) the room puts itself back together. Settings > Focus can turn it off.
 public class Distraction : MonoBehaviour
 {
@@ -32,6 +32,7 @@ public class Distraction : MonoBehaviour
 
     private readonly Dictionary<Transform, Rest> rest = new Dictionary<Transform, Rest>();
     private readonly Dictionary<Light, float> lights = new Dictionary<Light, float>();
+    private readonly DistractionFire fire = new DistractionFire();
     private RoomManager room;
     private TimerManager timer;
     private PlayerCurrency currency;
@@ -124,6 +125,9 @@ public class Distraction : MonoBehaviour
                 }
             foreach (Light light in FindObjectsByType<Light>())
                 if (light.type != LightType.Directional) lights[light] = light.intensity;
+            var burnable = new List<Transform>();
+            foreach (var pair in rest) if (!pair.Value.wall) burnable.Add(pair.Key);
+            fire.Ignite(burnable);
         }
         UISound.Play(UISound.Cue.Warning);
         Toast($"{Site} is pulling you away. Your room is falling apart, and it's costing you coins!");
@@ -159,6 +163,7 @@ public class Distraction : MonoBehaviour
             float flicker = Mathf.PerlinNoise(time * 12f, pair.Value) > 0.35f ? 1f : 0.15f;
             pair.Key.intensity = pair.Value * Mathf.Lerp(1f, flicker * 0.6f, level);
         }
+        fire.Update(level);
     }
 
     private void Restore()
@@ -169,6 +174,7 @@ public class Distraction : MonoBehaviour
             if (pair.Key != null) pair.Key.intensity = pair.Value;
         rest.Clear();
         lights.Clear();
+        fire.Clear();
     }
 
     private void OnDestroy()

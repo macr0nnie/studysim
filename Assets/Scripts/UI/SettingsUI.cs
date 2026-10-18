@@ -358,17 +358,20 @@ public class SettingsUI : MonoBehaviour
         });
         Switch(page, "Low graphics", "Simpler shadows and 30 fps. For laptops without a graphics card.",
             () => GameSettings.LowGraphics, v => GameSettings.LowGraphics = v);
-        if (!GameSettings.Windows) return; // mini mode needs the Windows version
+        if (!GameSettings.Windows && !GameSettings.Mac) return; // mini mode needs the Windows or Mac app
         Heading(page, "Mini mode");
         Note(page, "Your character and the countdown, like a game overlay: top right, on top of other windows and click-through. "
             + "Ctrl + drag moves it, Ctrl+F9 resets its position, F9 comes back.");
         GameObject mini = Row("Mini mode", page, 40, 10, false);
         SmallButton(mini.transform, "Go mini", AccentButtonColor, 140).onClick.AddListener(() => { Toggle(); MiniMode.Set(true); });
-        Button key = SmallButton(mini.transform, "", CardColor, 190);
-        TMP_Text keyLabel = key.GetComponentInChildren<TMP_Text>();
-        void ShowKey() => keyLabel.text = MiniMode.ColorKey ? "Transparency: color key" : "Transparency: alpha";
-        key.onClick.AddListener(() => { MiniMode.ColorKey = !MiniMode.ColorKey; ShowKey(); });
-        ShowKey();
+        if (GameSettings.Windows) // the colour-key fallback is a Windows feature
+        {
+            Button key = SmallButton(mini.transform, "", CardColor, 190);
+            TMP_Text keyLabel = key.GetComponentInChildren<TMP_Text>();
+            void ShowKey() => keyLabel.text = MiniMode.ColorKey ? "Transparency: color key" : "Transparency: alpha";
+            key.onClick.AddListener(() => { MiniMode.ColorKey = !MiniMode.ColorKey; ShowKey(); });
+            ShowKey();
+        }
         AddSlider(page, "Mini mode opacity", 20, 100, MiniMode.Opacity * 100, v => $"{v:0}%", v => MiniMode.Opacity = v / 100f, out _);
     }
 

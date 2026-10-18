@@ -14,7 +14,8 @@ using static UIKit;
 // position is remembered. F9 leaves mini mode. In a Windows build both keys are read globally (even while another
 // app has focus), so they're fixed to F9 and F10 there. While unlocked, a double-click or right-click also leaves.
 // The timer, character and browser extension keep running underneath.
-// The window calls only run in a Windows build; in the Editor only the UI and input swap happens.
+// The window calls run in Windows and Mac builds (Mac: Cocoa through the Objective-C runtime, below); in the Editor
+// only the UI and input swap happens.
 public class MiniMode : MonoBehaviour
 {
     const int Width = 360, Height = 300;
@@ -53,7 +54,7 @@ public class MiniMode : MonoBehaviour
 
     private static void EnsureMiniMode()
     {
-        if (GameSettings.Windows && FindAnyObjectByType<RoomManager>() != null && instance == null) // needs a Windows window
+        if ((GameSettings.Windows || GameSettings.Mac) && FindAnyObjectByType<RoomManager>() != null && instance == null) // needs a desktop window it can reshape
             instance = new GameObject("MiniMode").AddComponent<MiniMode>();
     }
 
@@ -157,7 +158,7 @@ public class MiniMode : MonoBehaviour
         Economy(Active);
         blockUntil = Time.unscaledTime + 0.5f;
 
-#if UNITY_STANDALONE_WIN && !UNITY_EDITOR
+#if (UNITY_STANDALONE_WIN || UNITY_STANDALONE_OSX) && !UNITY_EDITOR
         if (Active) StartCoroutine(EnterWindow()); else ExitWindow();
 #endif
     }
@@ -406,6 +407,235 @@ public class MiniMode : MonoBehaviour
     [DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
     [DllImport("user32.dll")] static extern bool GetCursorPos(out POINT point);
     [DllImport("dwmapi.dll")] static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS margins);
+#elif UNITY_STANDALONE_OSX && !UNITY_EDITOR
+    // Mac: the same overlay through Cocoa's NSWindow, called with objc_msgSend (no native plugin, so it builds off a Mac).
+    // Coordinates are Cocoa's: points, origin at the bottom left of the main screen.
+    private IntPtr window;
+    private ulong fullStyle, fullBehavior;
+    private long fullLevel;
+    private int fullWidth, fullHeight;
+    private FullScreenMode fullMode;
+    private CameraClearFlags clearFlags;
+    private Color background;
+    private bool hdr, post;
+    private bool placed, dragging, grabbing, unlocked, f9, f10, left, right, shaking;
+    private NSPoint shakeBase, grabOffset;
+    private float lastTop;
+
+    // F9/F10 read globally so they work while another app is in front. macOS may only allow that with
+    // Input Monitoring permission, so the game's own F9 binding also works whenever lofilife is in front.
+    private static bool Key(ushort mac) => CGEventSourceKeyState(0, mac);
+    private static ulong Buttons => (ulong)MsgLong(Class("NSEvent"), Sel("pressedMouseButtons"));
+    private static bool Ctrl => ((ulong)MsgLong(Class("NSEvent"), Sel("modifierFlags")) & (1UL << 18)) != 0;
+    private static NSPoint Mouse => MsgPoint(Class("NSEvent"), Sel("mouseLocation"));
+
+    private void Overlay()
+    {
+        bool nowF9 = Key(MacF9) || Controls.Pressed(Controls.Act.MiniMode), nowF10 = Key(MacF10);
+        ulong buttons = Buttons;
+        bool nowLeft = (buttons & 1) != 0, nowRight = (buttons & 2) != 0;
+        bool pressF9 = nowF9 && !f9, pressF10 = nowF10 && !f10, pressLeft = nowLeft && !left, pressRight = nowRight && !right;
+        f9 = nowF9; f10 = nowF10; left = nowLeft; right = nowRight;
+        if (!placed) return;
+
+        if (pressF9 && Ctrl) { ResetPosition(); return; }
+        if (pressF9) { Toggle(); return; }
+        if (pressF10) SetUnlocked(!unlocked);
+        if (Time.unscaledTime - lastTop > 2f) { lastTop = Time.unscaledTime; MsgVoid(window, Sel("orderFrontRegardless")); }
+        // The distraction nudge: a short wiggle, then back where it was.
+        if (Time.unscaledTime < shakeUntil && !dragging)
+        {
+            if (!shaking) { shakeBase = Frame(window).origin; shaking = true; }
+            Move(new NSPoint { x = shakeBase.x + Mathf.Sin(Time.unscaledTime * 30f) * 8f, y = shakeBase.y });
+        }
+        else if (shaking) { shaking = false; Move(shakeBase); }
+        if (!unlocked)
+        {
+            bool grab = dragging || (Ctrl && Inside());
+            if (grab != grabbing) { grabbing = grab; MsgBool(window, Sel("setIgnoresMouseEvents:"), !grab); }
+            if (grabbing) Drag(pressLeft, nowLeft);
+            return;
+        }
+        if (LeaveClick(pressLeft && Inside(), pressRight && Inside())) { Toggle(); return; }
+        Drag(pressLeft, nowLeft);
+    }
+
+    private void Move(NSPoint origin) => MsgSetPoint(window, Sel("setFrameOrigin:"), origin);
+
+    private bool Inside()
+    {
+        NSPoint p = Mouse; NSRect r = Frame(window);
+        return p.x >= r.origin.x && p.x < r.origin.x + r.size.x && p.y >= r.origin.y && p.y < r.origin.y + r.size.y;
+    }
+
+    private void SetUnlocked(bool on)
+    {
+        unlocked = on;
+        MsgBool(window, Sel("setIgnoresMouseEvents:"), !on);
+        dragging = grabbing = false;
+    }
+
+    // Top right of the main screen, below the menu bar.
+    private NSPoint DefaultOrigin()
+    {
+        NSRect screen = Frame(MsgPtr(Class("NSScreen"), Sel("mainScreen")), "visibleFrame"), r = Frame(window);
+        return new NSPoint { x = screen.origin.x + screen.size.x - r.size.x - 24, y = screen.origin.y + screen.size.y - r.size.y - 24 };
+    }
+
+    private void ResetPosition()
+    {
+        PlayerPrefs.DeleteKey(PosX); PlayerPrefs.DeleteKey(PosY);
+        Move(DefaultOrigin());
+    }
+
+    private void OnGUI()
+    {
+        if (!Active || !unlocked) return;
+        int w = Screen.width, h = Screen.height;
+        GUI.color = Color.white;
+        GUI.DrawTexture(new Rect(0, 0, w, 2), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(0, h - 2, w, 2), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(0, 0, 2, h), Texture2D.whiteTexture);
+        GUI.DrawTexture(new Rect(w - 2, 0, 2, h), Texture2D.whiteTexture);
+    }
+
+    private System.Collections.IEnumerator EnterWindow()
+    {
+        IntPtr app = MsgPtr(Class("NSApplication"), Sel("sharedApplication"));
+        window = MsgPtr(app, Sel("mainWindow"));
+        if (window == IntPtr.Zero) window = MsgIndex(MsgPtr(app, Sel("windows")), Sel("objectAtIndex:"), 0);
+        if (window == IntPtr.Zero) yield break;
+        fullWidth = Screen.width; fullHeight = Screen.height; fullMode = Screen.fullScreenMode;
+        fullStyle = (ulong)MsgLong(window, Sel("styleMask"));
+        fullLevel = MsgLong(window, Sel("level"));
+        fullBehavior = (ulong)MsgLong(window, Sel("collectionBehavior"));
+
+        Camera cam = Camera.main;
+        if (cam != null)
+        {
+            clearFlags = cam.clearFlags; background = cam.backgroundColor; hdr = cam.allowHDR;
+            cam.clearFlags = CameraClearFlags.SolidColor;
+            cam.backgroundColor = new Color(0, 0, 0, 0);
+            cam.allowHDR = false;
+            var data = cam.GetUniversalAdditionalCameraData();
+            post = data.renderPostProcessing;
+            data.renderPostProcessing = false;
+        }
+
+        Screen.SetResolution(Width, Height, FullScreenMode.Windowed);
+        yield return null; // Unity applies the resolution at the end of the frame
+        if (!Active) yield break;
+        MsgULong(window, Sel("setStyleMask:"), 0); // borderless
+        MsgULong(window, Sel("setLevel:"), 3); // floating: above normal windows
+        MsgULong(window, Sel("setCollectionBehavior:"), 1 | 16 | 256); // every Space, stays put, over full-screen apps
+        See(false);
+        MsgDouble(window, Sel("setAlphaValue:"), Mathf.Clamp(Opacity, 0.2f, 1f));
+        MsgBool(window, Sel("setIgnoresMouseEvents:"), true);
+
+        NSPoint origin = PlayerPrefs.HasKey(PosX) ? new NSPoint { x = PlayerPrefs.GetInt(PosX), y = PlayerPrefs.GetInt(PosY) } : DefaultOrigin();
+        Move(OnSomeScreen(origin));
+        MsgVoid(window, Sel("orderFrontRegardless"));
+        unlocked = grabbing = false;
+        ulong buttons = Buttons;
+        f9 = true; f10 = Key(MacF10); left = (buttons & 1) != 0; right = (buttons & 2) != 0; // a key held from before isn't a new press
+        placed = true;
+    }
+
+    // A saved spot on a display that's gone would leave it unreachable: then it goes back to the default corner.
+    private NSPoint OnSomeScreen(NSPoint p)
+    {
+        IntPtr screens = MsgPtr(Class("NSScreen"), Sel("screens"));
+        long count = MsgLong(screens, Sel("count"));
+        for (long i = 0; i < count; i++)
+        {
+            NSRect s = Frame(MsgIndex(screens, Sel("objectAtIndex:"), (ulong)i));
+            if (p.x >= s.origin.x && p.x < s.origin.x + s.size.x - 40 && p.y >= s.origin.y && p.y < s.origin.y + s.size.y - 40) return p;
+        }
+        return DefaultOrigin();
+    }
+
+    // see = true restores the normal opaque window; false makes everything the camera leaves clear see-through.
+    private void See(bool see)
+    {
+        MsgBool(window, Sel("setOpaque:"), see);
+        MsgBool(window, Sel("setHasShadow:"), see);
+        MsgSetPtr(window, Sel("setBackgroundColor:"), MsgPtr(Class("NSColor"), Sel(see ? "windowBackgroundColor" : "clearColor")));
+        IntPtr layer = MsgPtr(MsgPtr(window, Sel("contentView")), Sel("layer"));
+        if (layer != IntPtr.Zero) MsgBool(layer, Sel("setOpaque:"), see);
+    }
+
+    private void ExitWindow()
+    {
+        if (window == IntPtr.Zero) return;
+        SavePosition();
+        placed = dragging = grabbing = unlocked = false;
+        MsgBool(window, Sel("setIgnoresMouseEvents:"), false);
+        MsgDouble(window, Sel("setAlphaValue:"), 1);
+        See(true);
+        Camera cam = Camera.main;
+        if (cam != null)
+        {
+            cam.clearFlags = clearFlags; cam.backgroundColor = background; cam.allowHDR = hdr;
+            cam.GetUniversalAdditionalCameraData().renderPostProcessing = post;
+        }
+        MsgULong(window, Sel("setCollectionBehavior:"), fullBehavior);
+        MsgULong(window, Sel("setLevel:"), (ulong)fullLevel);
+        MsgULong(window, Sel("setStyleMask:"), fullStyle);
+        Screen.SetResolution(fullWidth, fullHeight, fullMode);
+    }
+
+    private void SavePosition()
+    {
+        if (!placed) return;
+        NSPoint o = Frame(window).origin;
+        PlayerPrefs.SetInt(PosX, Mathf.RoundToInt((float)o.x));
+        PlayerPrefs.SetInt(PosY, Mathf.RoundToInt((float)o.y));
+        PlayerPrefs.Save();
+    }
+
+    private void Drag(bool pressed, bool held)
+    {
+        if (pressed)
+        {
+            NSPoint p = Mouse, o = Frame(window).origin;
+            dragging = true;
+            grabOffset = new NSPoint { x = p.x - o.x, y = p.y - o.y };
+        }
+        if (!held) dragging = false;
+        if (dragging) { NSPoint now = Mouse; Move(new NSPoint { x = now.x - grabOffset.x, y = now.y - grabOffset.y }); }
+    }
+
+    const ushort MacF9 = 101, MacF10 = 109; // kVK_F9, kVK_F10
+
+    struct NSPoint { public double x, y; }
+    struct NSRect { public NSPoint origin, size; }
+
+    // A 32-byte struct comes back through objc_msgSend_stret on Intel and through plain objc_msgSend on Apple silicon.
+    private static NSRect Frame(IntPtr obj, string selector = "frame")
+    {
+        if (RuntimeInformation.ProcessArchitecture == Architecture.X64) { MsgRectStret(out NSRect r, obj, Sel(selector)); return r; }
+        return MsgRect(obj, Sel(selector));
+    }
+
+    const string ObjC = "/usr/lib/libobjc.A.dylib";
+    private static IntPtr Class(string name) => objc_getClass(name);
+    private static IntPtr Sel(string name) => sel_registerName(name);
+    [DllImport(ObjC)] static extern IntPtr objc_getClass(string name);
+    [DllImport(ObjC)] static extern IntPtr sel_registerName(string name);
+    [DllImport(ObjC, EntryPoint = "objc_msgSend")] static extern IntPtr MsgPtr(IntPtr obj, IntPtr sel);
+    [DllImport(ObjC, EntryPoint = "objc_msgSend")] static extern void MsgVoid(IntPtr obj, IntPtr sel);
+    [DllImport(ObjC, EntryPoint = "objc_msgSend")] static extern long MsgLong(IntPtr obj, IntPtr sel);
+    [DllImport(ObjC, EntryPoint = "objc_msgSend")] static extern IntPtr MsgIndex(IntPtr obj, IntPtr sel, ulong index);
+    [DllImport(ObjC, EntryPoint = "objc_msgSend")] static extern void MsgULong(IntPtr obj, IntPtr sel, ulong value);
+    [DllImport(ObjC, EntryPoint = "objc_msgSend")] static extern void MsgBool(IntPtr obj, IntPtr sel, [MarshalAs(UnmanagedType.I1)] bool value);
+    [DllImport(ObjC, EntryPoint = "objc_msgSend")] static extern void MsgDouble(IntPtr obj, IntPtr sel, double value);
+    [DllImport(ObjC, EntryPoint = "objc_msgSend")] static extern void MsgSetPtr(IntPtr obj, IntPtr sel, IntPtr value);
+    [DllImport(ObjC, EntryPoint = "objc_msgSend")] static extern void MsgSetPoint(IntPtr obj, IntPtr sel, NSPoint value);
+    [DllImport(ObjC, EntryPoint = "objc_msgSend")] static extern NSPoint MsgPoint(IntPtr obj, IntPtr sel);
+    [DllImport(ObjC, EntryPoint = "objc_msgSend")] static extern NSRect MsgRect(IntPtr obj, IntPtr sel);
+    [DllImport(ObjC, EntryPoint = "objc_msgSend_stret")] static extern void MsgRectStret(out NSRect result, IntPtr obj, IntPtr sel);
+    [DllImport("/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics")]
+    [return: MarshalAs(UnmanagedType.I1)] static extern bool CGEventSourceKeyState(int state, ushort key);
 #else
     private void SavePosition() { }
 

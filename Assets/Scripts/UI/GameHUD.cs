@@ -23,7 +23,7 @@ public class GameHUD : MonoBehaviour
     private Transform hudCanvas;
     private AudioSource chime;
     private readonly System.Collections.Generic.Queue<string> toasts = new System.Collections.Generic.Queue<string>();
-    private bool toastPlaying, wasEditing;
+    private bool toastPlaying;
     // Idle: no mouse or key for a while fades the HUD and music card, so the room is what shows while studying.
     private const float IdleAfter = 8f, IdleAlpha = 0.35f;
     private float lastInput;
@@ -118,12 +118,13 @@ public class GameHUD : MonoBehaviour
         if (editPill != null && room != null)
         {
             editPill.color = room.IsEditMode ? AccentButtonColor : TabColor;
-            if (room.IsEditMode != wasEditing) hintBar.SetActive(room.IsEditMode);
-            wasEditing = room.IsEditMode;
+            bool editHints = room.IsEditMode && !room.IsPlacing; // one bar at a time: a piece in hand shows its own
+            if (hintBar.activeSelf != editHints) hintBar.SetActive(editHints);
+            if (placeBar.activeSelf != room.IsPlacing) placeBar.SetActive(room.IsPlacing);
         }
         if (fitPanel != null && room != null)
         {
-            bool show = room.IsEditMode && room.SelectedPiece != null;
+            bool show = room.IsEditMode && room.SelectedPiece != null && !room.IsPlacing;
             if (fitPanel.activeSelf != show) fitPanel.SetActive(show);
             if (show)
             {
@@ -150,7 +151,7 @@ public class GameHUD : MonoBehaviour
 
     // Edit mode, bottom centre (clear of the drawers on the left and the music card on the right): a key hint
     // bar, and above it the selected piece's panel to turn, remove, raise/lower and grow/shrink it.
-    private GameObject fitPanel, hintBar;
+    private GameObject fitPanel, hintBar, placeBar;
     private Button lightsButton;
     private TMP_Text fitInfo, fitName;
     const float HintHeight = 40;
@@ -158,32 +159,50 @@ public class GameHUD : MonoBehaviour
     // Each hint is also a button doing what its key does, so everything works with the mouse alone.
     private void BuildHintBar(Transform canvas)
     {
-        hintBar = Make("EditHints", canvas, typeof(Image), typeof(HorizontalLayoutGroup));
-        var rect = (RectTransform)hintBar.transform;
+        hintBar = HintBar("EditHints", canvas, 960);
+        HintButton(hintBar, "Rotate / spin", Controls.Act.Rotate, () => room.RotateSelected());
+        HintButton(hintBar, "Lower", Controls.Act.Lower, () => room.NudgeHeight(-0.1f));
+        HintButton(hintBar, "Raise", Controls.Act.Raise, () => room.NudgeHeight(0.1f));
+        HintButton(hintBar, "Shrink", Controls.Act.Shrink, () => room.Resize(1 / 1.1f));
+        HintButton(hintBar, "Grow", Controls.Act.Grow, () => room.Resize(1.1f));
+        HintButton(hintBar, "Remove", Controls.Act.Delete, () => room.DeleteSelected());
+        HintButton(hintBar, "Undo", Controls.Act.Undo, () => room.Undo());
+        HintButton(hintBar, "Done", Controls.Act.Edit, () => room.ToggleEditMode());
+        HintButton(hintBar, "Settings", Controls.Act.Settings, () => FindAnyObjectByType<SettingsUI>()?.Toggle());
+        hintBar.SetActive(false);
+
+        // While a piece is in hand (bought, not yet put down): what can be done to it before it lands.
+        placeBar = HintBar("PlaceHints", canvas, 760);
+        TMP_Text how = MakeText("How", placeBar.transform, "Click to place  ·  Shift + wheel sizes", CaptionSize, MutedText, TextAlignmentOptions.Center);
+        how.enableAutoSizing = true;
+        how.fontSizeMin = 10;
+        how.fontSizeMax = CaptionSize;
+        HintButton(placeBar, "Rotate", Controls.Act.Rotate, () => room.RotateSelected());
+        HintButton(placeBar, "Shrink", Controls.Act.Shrink, () => room.Resize(1 / 1.1f));
+        HintButton(placeBar, "Grow", Controls.Act.Grow, () => room.Resize(1.1f));
+        HintButton(placeBar, "Cancel", Controls.Act.Settings, () => room.CancelPlacing());
+        placeBar.SetActive(false);
+    }
+
+    private GameObject HintBar(string name, Transform canvas, float width)
+    {
+        GameObject bar = Make(name, canvas, typeof(Image), typeof(HorizontalLayoutGroup));
+        var rect = (RectTransform)bar.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
-        rect.sizeDelta = new Vector2(960, HintHeight);
+        rect.sizeDelta = new Vector2(width, HintHeight);
         rect.anchoredPosition = new Vector2(0, DockTop + 12); // above the dock
-        Style(hintBar.GetComponent<Image>(), PanelColor);
-        var h = hintBar.GetComponent<HorizontalLayoutGroup>();
+        Style(bar.GetComponent<Image>(), PanelColor);
+        var h = bar.GetComponent<HorizontalLayoutGroup>();
         h.padding = new RectOffset(6, 6, 5, 5);
         h.spacing = 4;
         h.childControlWidth = h.childControlHeight = true;
         h.childForceExpandWidth = h.childForceExpandHeight = true;
-        HintButton("Rotate / spin", Controls.Act.Rotate, () => room.RotateSelected());
-        HintButton("Lower", Controls.Act.Lower, () => room.NudgeHeight(-0.1f));
-        HintButton("Raise", Controls.Act.Raise, () => room.NudgeHeight(0.1f));
-        HintButton("Shrink", Controls.Act.Shrink, () => room.Resize(1 / 1.1f));
-        HintButton("Grow", Controls.Act.Grow, () => room.Resize(1.1f));
-        HintButton("Remove", Controls.Act.Delete, () => room.DeleteSelected());
-        HintButton("Undo", Controls.Act.Undo, () => room.Undo());
-        HintButton("Done", Controls.Act.Edit, () => room.ToggleEditMode());
-        HintButton("Settings", Controls.Act.Settings, () => FindAnyObjectByType<SettingsUI>()?.Toggle());
-        hintBar.SetActive(false);
+        return bar;
     }
 
-    private void HintButton(string label, Controls.Act key, UnityEngine.Events.UnityAction onClick)
+    private void HintButton(GameObject bar, string label, Controls.Act key, UnityEngine.Events.UnityAction onClick)
     {
-        Button b = TextButton(label, hintBar.transform, label, TabColor, CaptionSize);
+        Button b = TextButton(label, bar.transform, label, TabColor, CaptionSize);
         TMP_Text text = b.GetComponentInChildren<TMP_Text>();
         text.enableAutoSizing = true;
         text.fontSizeMin = 10;

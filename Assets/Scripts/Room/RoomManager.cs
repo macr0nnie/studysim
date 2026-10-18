@@ -1492,11 +1492,11 @@ public class RoomManager : MonoBehaviour
         if (b.size.y <= 0f) return;
         float across = Mathf.Max(b.size.x, b.size.z), room = Mathf.Min(roomFloor.size.x, roomFloor.size.z);
         float longest = Mathf.Max(across, b.size.y);
-        // Packs are modelled at different scales, so a known kind is sized to its real-world length against a 2.6 m wall,
-        // which keeps every piece in step with the room and with each other. Never taller than the wall or wider than
-        // most of the room. Unknown kinds only shrink when too big.
+        // Packs are modelled at different scales, so a known kind is sized to its real-world length against the 4 m floor
+        // (not the wall, which is taller in some rooms), keeping every piece in step with the room and with each other.
+        // Never taller than the wall or wider than most of the room. Unknown kinds only shrink when too big.
         float factor = RealSize(piece) is float metres
-            ? Mathf.Min(metres * wall / 2.6f / longest, wall * 0.9f / b.size.y, room * 0.7f / across)
+            ? Mathf.Min(metres * room / 4f / longest, wall * 0.9f / b.size.y, room * 0.7f / across)
             : Mathf.Min(1f, wall * 0.85f / b.size.y, across > 0f ? room * 0.5f / across : 1f);
         if (factor > 0.92f && factor < 1.08f) return; // already about right
         SetSize(piece, (sizes.TryGetValue(piece, out float z) ? z : 1f) * factor);

@@ -9,8 +9,9 @@ using UnityEngine.UI;
 // Cozy room lighting, built at runtime so the scene stays untouched: a warm key light, a cool ambient fill,
 // warm soft lamps, and a light URP Volume (bloom, vignette, grading). The room dims and warms while a study
 // session runs or every lamp is off, and brightens on a break. Settings > Sound > Lighting picks Off / Cozy / Bright.
-// Behind the room is a dark plum backdrop that follows the clock (a rose haze, stars at night, weather from Settings > Display; hidden
-// while Paint > Background has a colour), and a few dust motes drift in the room, with a soft shadow and pixel sparkles under it.
+// Behind the room is a deep blue night backdrop that follows the clock (a soft glow, crisp twinkling stars, weather from Settings > Display; hidden
+// while Paint > Background has a colour), and a few dust motes drift in the room, with low mist, a soft shadow and pixel sparkles under it.
+// Lamps each get a soft colour of their own, and a faint cool rim light from behind picks out the edges of the furniture.
 // Each window on a wall gets a soft spot light that shines into the room: daylight by day, moonlight at night, dimmer in bad weather.
 // Mini mode owns shadows and post-processing while it is active, so this only turns the Volume off there.
 public class RoomAmbience : MonoBehaviour
@@ -25,38 +26,43 @@ public class RoomAmbience : MonoBehaviour
     {
         // Soft and even: a warm fill on the walls and floor carries the room, the key light only adds a gentle direction.
         key = new Color(1f, 0.82f, 0.62f), sky = new Color(0.66f, 0.64f, 0.72f), equator = new Color(0.5f, 0.43f, 0.38f), ground = new Color(0.34f, 0.28f, 0.24f),
-        keyFocus = 0.55f, keyBreak = 0.75f, exposure = 0f, bloom = 0.3f, vignette = 0.32f, lampIntensity = 0.04f, lampRange = 0.5f,
+        keyFocus = 0.55f, keyBreak = 0.75f, exposure = 0f, bloom = 0.3f, vignette = 0.32f, lampIntensity = 0.04f, lampRange = 0.9f,
     };
     private static readonly Look Bright = new Look
     {
         key = new Color(1f, 0.94f, 0.84f), sky = new Color(0.82f, 0.84f, 0.9f), equator = new Color(0.62f, 0.58f, 0.54f), ground = new Color(0.45f, 0.4f, 0.36f),
-        keyFocus = 0.85f, keyBreak = 1.05f, exposure = 0.2f, bloom = 0.35f, vignette = 0.12f, lampIntensity = 0.1f, lampRange = 0.5f,
+        keyFocus = 0.85f, keyBreak = 1.05f, exposure = 0.2f, bloom = 0.35f, vignette = 0.12f, lampIntensity = 0.1f, lampRange = 0.9f,
     };
 
     private const float LampScan = 2f, Fade = 1.5f, LampsOffDim = 0.65f;
-    private static readonly Color LampColor = new Color(1f, 0.7f, 0.4f);
+    // Lamps take these in turn as they are placed: warm first, then pink, teal and lavender, so a room of lamps reads colourful.
+    private static readonly Color[] LampColors = { new Color(1f, 0.7f, 0.4f), new Color(1f, 0.55f, 0.8f), new Color(0.45f, 0.9f, 0.85f), new Color(0.72f, 0.62f, 1f) };
+    // Night fill: the room sits in cool blue light after dark (ronnie's reference, 2026-10-18), warm lamps against it.
+    private static readonly Color NightSky = new Color(0.36f, 0.45f, 0.72f), NightEquator = new Color(0.3f, 0.34f, 0.52f), NightGround = new Color(0.24f, 0.24f, 0.36f);
 
     // Sky by hour of the day: top and bottom of the gradient. Hours ascend from 0 to 24 so every hour has a pair.
-    // A dark plum backdrop at every hour (ronnie's reference, 2026-10-11): the room is the bright thing on screen, so
-    // the day only lifts it a little and dusk warms it.
+    // Deep blue at every hour (ronnie's reference, 2026-10-18): navy at night, a little lighter and bluer by day, so the
+    // lit room is the bright thing on screen.
     private static readonly (float hour, Color top, Color bottom)[] SkyKeys =
     {
-        (0f, new Color(0.10f, 0.07f, 0.12f), new Color(0.16f, 0.11f, 0.15f)),
-        (5f, new Color(0.10f, 0.07f, 0.12f), new Color(0.16f, 0.11f, 0.15f)),
-        (7f, new Color(0.22f, 0.13f, 0.20f), new Color(0.26f, 0.17f, 0.20f)),
-        (10f, new Color(0.24f, 0.15f, 0.23f), new Color(0.27f, 0.20f, 0.24f)),
-        (16.5f, new Color(0.24f, 0.15f, 0.23f), new Color(0.27f, 0.20f, 0.24f)),
-        (19f, new Color(0.22f, 0.12f, 0.19f), new Color(0.30f, 0.17f, 0.19f)),
-        (21.5f, new Color(0.10f, 0.07f, 0.12f), new Color(0.16f, 0.11f, 0.15f)),
-        (24f, new Color(0.10f, 0.07f, 0.12f), new Color(0.16f, 0.11f, 0.15f)),
+        (0f, new Color(0.03f, 0.07f, 0.16f), new Color(0.07f, 0.16f, 0.32f)),
+        (5f, new Color(0.03f, 0.07f, 0.16f), new Color(0.07f, 0.16f, 0.32f)),
+        (7f, new Color(0.08f, 0.13f, 0.27f), new Color(0.20f, 0.24f, 0.40f)),
+        (10f, new Color(0.10f, 0.19f, 0.35f), new Color(0.16f, 0.29f, 0.48f)),
+        (16.5f, new Color(0.10f, 0.19f, 0.35f), new Color(0.16f, 0.29f, 0.48f)),
+        (19f, new Color(0.08f, 0.12f, 0.27f), new Color(0.22f, 0.22f, 0.40f)),
+        (21.5f, new Color(0.03f, 0.07f, 0.16f), new Color(0.07f, 0.16f, 0.32f)),
+        (24f, new Color(0.03f, 0.07f, 0.16f), new Color(0.07f, 0.16f, 0.32f)),
     };
     private static readonly Color SunColor = new Color(1f, 0.86f, 0.72f);
     public static bool SkyHidden; // set by PaintUI while a background colour is picked
 
     private static RoomAmbience instance;
     private Canvas skyCanvas;
-    private RawImage skyImage, skyGlow, stars, clouds, rain, snow;
-    private Texture2D skyTexture, starTexture, rainTexture, snowTexture, haloTexture, cloudTexture, beamTexture;
+    private RawImage skyImage, skyGlow, stars, stars2, rain, snow;
+    private Texture2D skyTexture, starTexture, starTexture2, rainTexture, snowTexture, haloTexture, beamTexture;
+    private float starAlpha;
+    private Light rim;
     private float daylight = 1f; // 0 at night .. 1 by day, dimmed by weather; set by PaintSky
     private readonly Dictionary<Light, Renderer[]> beams = new Dictionary<Light, Renderer[]>(); // visible light shafts, outside the window's hierarchy so they never count in its bounds or outline
     private Material beamMaterial;
@@ -111,6 +117,19 @@ public class RoomAmbience : MonoBehaviour
         foreach (Light light in FindObjectsByType<Light>())
             if (light.type == LightType.Directional && (key == null || light.intensity > key.intensity)) key = light;
         if (key != null) { keyColor = key.color; keyIntensity = key.intensity; keyShadows = key.shadows; }
+        // A faint cool light from above and behind: it catches the tops of furniture in blue like moonlight. No shadows, so it costs little.
+        Camera view = Camera.main;
+        if (key != null && view != null)
+        {
+            rim = new GameObject("RimLight").AddComponent<Light>();
+            rim.transform.SetParent(transform, false);
+            Vector3 flat = Vector3.ProjectOnPlane(view.transform.forward, Vector3.up).normalized;
+            rim.transform.rotation = Quaternion.LookRotation(Vector3.down * 1.4f + flat * 0.6f - view.transform.right * 0.5f);
+            rim.type = LightType.Directional;
+            rim.color = new Color(0.55f, 0.68f, 1f);
+            rim.shadows = LightShadows.None;
+            rim.intensity = 0;
+        }
         ambientMode = RenderSettings.ambientMode;
         sky = RenderSettings.ambientSkyColor; equator = RenderSettings.ambientEquatorColor; ground = RenderSettings.ambientGroundColor;
 
@@ -122,7 +141,12 @@ public class RoomAmbience : MonoBehaviour
         vignette.smoothness.Override(0.6f);
         grade = profile.Add<ColorAdjustments>(true);
         grade.saturation.Override(8f);
-        grade.colorFilter.Override(new Color(1f, 0.96f, 0.9f));
+        grade.colorFilter.Override(new Color(0.98f, 0.98f, 1f));
+        // Blue shadows, warm highlights: the night-diorama look from ronnie's reference, at almost no cost.
+        var tone = profile.Add<SplitToning>(true);
+        tone.shadows.Override(new Color(0.38f, 0.46f, 0.64f));
+        tone.highlights.Override(new Color(0.6f, 0.55f, 0.47f));
+        tone.balance.Override(-15f);
         profile.Add<Tonemapping>(true).mode.Override(TonemappingMode.ACES);
         var grain = profile.Add<FilmGrain>(true);
         grain.type.Override(FilmGrainLookup.Thin1);
@@ -138,10 +162,10 @@ public class RoomAmbience : MonoBehaviour
         if (volume != null) Destroy(volume.sharedProfile);
         if (skyTexture != null) Destroy(skyTexture);
         if (haloTexture != null) Destroy(haloTexture);
-        if (cloudTexture != null) Destroy(cloudTexture);
         if (beamTexture != null) Destroy(beamTexture);
         if (beamMaterial != null) Destroy(beamMaterial);
         if (starTexture != null) Destroy(starTexture);
+        if (starTexture2 != null) Destroy(starTexture2);
         if (rainTexture != null) Destroy(rainTexture);
         if (snowTexture != null) Destroy(snowTexture);
         if (rainSound != null) Destroy(rainSound.clip);
@@ -162,12 +186,13 @@ public class RoomAmbience : MonoBehaviour
             bool showSky = !mini; // mini mode's window needs the camera's own clear colour
             if (skyCanvas.enabled != showSky) skyCanvas.enabled = showSky;
             // A Paint background colour hides only the sky itself; rain and snow still fall in front of the colour.
-            if (skyImage.enabled == SkyHidden) skyImage.enabled = skyGlow.enabled = stars.enabled = clouds.enabled = !SkyHidden;
-            if (showSky && !SkyHidden)
+            if (skyImage.enabled == SkyHidden) skyImage.enabled = skyGlow.enabled = stars.enabled = stars2.enabled = !SkyHidden;
+            if (showSky && !SkyHidden && starAlpha > 0)
             {
-                Rect c = clouds.uvRect;
-                c.x = Mathf.Repeat(c.x + Time.unscaledDeltaTime * 0.004f, 1f); // a slow drift, about four minutes across
-                clouds.uvRect = c;
+                // Twinkle: two star layers breathe out of step, so stars seem to come and go without any per-star cost.
+                float t = Time.unscaledTime;
+                stars.color = new Color(1f, 1f, 1f, starAlpha * (0.75f + 0.25f * Mathf.Sin(t * 1.3f)));
+                stars2.color = new Color(1f, 1f, 1f, starAlpha * (0.6f + 0.4f * Mathf.Sin(t * 0.9f + 2f)));
             }
             if (showSky && (skyClock -= Time.unscaledDeltaTime) <= 0) { skyClock = 30; PaintSky(); }
             if (showSky && (weather == Weather.Drizzle || weather == Weather.Rain))
@@ -213,12 +238,15 @@ public class RoomAmbience : MonoBehaviour
         key.intensity = Mathf.Lerp(keyIntensity, keyIntensity * mood, strength);
         key.shadows = mini ? LightShadows.None : (strength > 0.5f ? LightShadows.Soft : keyShadows);
         key.shadowStrength = Mathf.Lerp(1f, 0.5f, strength); // soft shadows that ground pieces without dark patches
+        if (rim != null) rim.intensity = strength * Mathf.Lerp(0.3f, 0.1f, daylight) * keyIntensity;
         if (ambientMode == AmbientMode.Trilight)
         {
             // The fill leans a little towards the window light, so the room follows the time of day.
-            RenderSettings.ambientSkyColor = Color.Lerp(sky, Color.Lerp(look.sky, windowColor * look.sky.maxColorComponent, 0.25f) * (1f + 0.1f * windows), strength);
-            RenderSettings.ambientEquatorColor = Color.Lerp(equator, look.equator, strength);
-            RenderSettings.ambientGroundColor = Color.Lerp(ground, look.ground, strength);
+            float night = 0.85f * (1f - daylight); // cooler after dark and in grey weather
+            Color daySky = Color.Lerp(look.sky, windowColor * look.sky.maxColorComponent, 0.25f) * (1f + 0.1f * windows);
+            RenderSettings.ambientSkyColor = Color.Lerp(sky, Color.Lerp(daySky, NightSky, night), strength);
+            RenderSettings.ambientEquatorColor = Color.Lerp(equator, Color.Lerp(look.equator, NightEquator, night), strength);
+            RenderSettings.ambientGroundColor = Color.Lerp(ground, Color.Lerp(look.ground, NightGround, night), strength);
         }
 
         bool post = strength > 0.01f && !mini;
@@ -234,7 +262,7 @@ public class RoomAmbience : MonoBehaviour
 
     // Lamps come and go as furniture is placed or deleted, so rescan now and then. A lamp is dimmed and shortened
     // from its authored values only when it is new or the style changed (the distraction effect flickers intensity
-    // in between), and gets a warm tint and no shadows once.
+    // in between), and gets its colour and no shadows once.
     private void ScanLamps()
     {
         lamps.Clear();
@@ -248,8 +276,8 @@ public class RoomAmbience : MonoBehaviour
             bool fresh = !lampBase.ContainsKey(light);
             if (fresh)
             {
+                light.color = Color.Lerp(light.color, LampColors[lampBase.Count % LampColors.Length], 0.85f);
                 lampBase[light] = new Vector2(light.intensity, light.range);
-                light.color = Color.Lerp(light.color, LampColor, 0.8f);
                 light.shadows = LightShadows.None;
             }
             if (fresh || restyle)
@@ -424,32 +452,15 @@ public class RoomAmbience : MonoBehaviour
         skyTexture = new Texture2D(1, 2, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
         skyImage = SkyLayer("Gradient", skyTexture, new Rect(0, 0.25f, 1, 0.5f)); // texel centre to texel centre: a full bottom-to-top blend
 
-        // Stars fade in at night: one small generated texture, tiled.
-        starTexture = Dots(256, 256, 90, 1, (x, y) => new Color(1f, 1f, 1f, 0.5f + Hash(x, y) * 0.5f));
-        stars = SkyLayer("Stars", starTexture, new Rect(0, 0, 2f * cam.aspect, 2f));
-
-        // Clouds: a few soft wide puffs on one tiling texture, drifting slowly sideways; clearer at night, heavier when grey.
-        cloudTexture = new Texture2D(256, 128, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Repeat, filterMode = FilterMode.Bilinear };
-        var puffs = new Vector4[14];
-        var cloudRng = new System.Random(11);
-        for (int i = 0; i < puffs.Length; i++) puffs[i] = new Vector4(cloudRng.Next(256), 30 + cloudRng.Next(70), 14 + cloudRng.Next(22), 0.5f + (float)cloudRng.NextDouble() * 0.5f);
-        var cloudPixels = new Color32[256 * 128];
-        for (int y = 0; y < 128; y++)
-            for (int x = 0; x < 256; x++)
-            {
-                float a = 0;
-                foreach (Vector4 p in puffs)
-                {
-                    float dx = Mathf.Abs(x - p.x); dx = Mathf.Min(dx, 256 - dx); // wraps, so the texture tiles
-                    float dy = (y - p.y) * 2f; // flattened: clouds are wider than tall
-                    a += p.w * Mathf.Exp(-(dx * dx + dy * dy) / (2f * p.z * p.z));
-                }
-                cloudPixels[y * 256 + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(a) * 0.9f);
-            }
-        cloudTexture.SetPixels32(cloudPixels);
-        cloudTexture.Apply();
-        clouds = SkyLayer("Clouds", cloudTexture, new Rect(0, 0, 1.2f * cam.aspect, 1f));
-        clouds.gameObject.AddComponent<Canvas>(); // scrolls every frame: rebuild only this layer
+        // Stars: crisp single pixels with a few small crosses, point filtered so they never blur, on two layers that twinkle
+        // out of step. Big textures tiled once across the screen, so no repeating pattern shows. ronnie found the old soft
+        // cloud puffs fuzzy (2026-10-18), so there are no clouds.
+        starTexture = Stars(960, 540, 260, 1);
+        stars = SkyLayer("Stars", starTexture, new Rect(0, 0, 1, 1));
+        stars.gameObject.AddComponent<Canvas>(); // twinkles every frame: rebuild only this layer
+        starTexture2 = Stars(960, 540, 160, 2);
+        stars2 = SkyLayer("Stars 2", starTexture2, new Rect(0, 0, 1, 1));
+        stars2.gameObject.AddComponent<Canvas>();
 
         // A soft glow behind the room instead of a sky photo (ronnie found the photo looked unpolished): the room
         // floats in a warm pool of light that follows the time-of-day colours.
@@ -511,6 +522,27 @@ public class RoomAmbience : MonoBehaviour
                 t.a *= (j + 1f) / length; // brightest at the falling (lower) end, fading up the tail
                 pixels[(y - j + height) % height * width + (x + j / 6) % width] = t;
             }
+        }
+        tex.SetPixels32(pixels);
+        tex.Apply();
+        return tex;
+    }
+
+    // `count` stars at seeded spots, brighter near the top of the sky; about one in eight is a small 5-pixel cross.
+    private static Texture2D Stars(int width, int height, int count, int seed)
+    {
+        var tex = new Texture2D(width, height, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Point };
+        var pixels = new Color32[width * height];
+        var rng = new System.Random(seed);
+        for (int i = 0; i < count; i++)
+        {
+            int x = 1 + rng.Next(width - 2), y = 1 + rng.Next(height - 2);
+            float a = (0.35f + 0.65f * (float)rng.NextDouble()) * Mathf.Lerp(0.4f, 1f, y / (float)height);
+            var c = new Color(0.88f, 0.93f, 1f, a);
+            pixels[y * width + x] = c;
+            if (rng.Next(8) != 0) continue;
+            c.a *= 0.45f;
+            pixels[y * width + x - 1] = pixels[y * width + x + 1] = pixels[(y - 1) * width + x] = pixels[(y + 1) * width + x] = c;
         }
         tex.SetPixels32(pixels);
         tex.Apply();
@@ -582,19 +614,19 @@ public class RoomAmbience : MonoBehaviour
         skyTexture.SetPixel(0, 0, bottom);
         skyTexture.SetPixel(0, 1, top);
         skyTexture.Apply();
-        stars.color = new Color(1f, 1f, 1f, clear ? 1f - day : 0f);
+        starAlpha = clear ? Mathf.Lerp(1f, 0.3f, day) : 0f; // faint by day, so the backdrop always reads as sky
+        stars.color = stars2.color = new Color(1f, 1f, 1f, starAlpha);
 
         // Window light: warm sunlight by day, a cool moonlight at night, dimmer when it's grey out.
         windowColor = Color.Lerp(new Color(0.55f, 0.65f, 1f), SunColor, day);
         windowIntensity = Mathf.Lerp(0.1f, 1.6f, day) * (weather == Weather.Rain ? 0.45f : clear ? 1f : 0.65f);
         foreach (Light light in windowLights) if (light != null) { light.color = windowColor; light.intensity = windowIntensity; }
         daylight = day * (weather == Weather.Rain ? 0.55f : clear ? 1f : 0.75f);
-        if (clouds != null) clouds.color = new Color(Mathf.Lerp(0.35f, 1f, day), Mathf.Lerp(0.38f, 0.95f, day), Mathf.Lerp(0.5f, 0.95f, day), Mathf.Lerp(0.08f, 0.22f, day) + grey * 0.25f);
 
         if (skyGlow != null)
         {
-            Color tint = Color.Lerp(bottom, new Color(0.85f, 0.5f, 0.6f), 0.5f); // a faint rose haze behind the room
-            tint.a = Mathf.Lerp(0.2f, 0.35f, day);
+            Color tint = Color.Lerp(bottom, new Color(0.3f, 0.5f, 0.85f), 0.5f); // a soft blue glow behind the room
+            tint.a = Mathf.Lerp(0.3f, 0.4f, day);
             skyGlow.color = tint;
         }
     }
@@ -674,7 +706,7 @@ public class RoomAmbience : MonoBehaviour
         particleRenderer.receiveShadows = false;
 
         // Pixel sparkles drifting up from below the room, so it hangs in the dark like a diorama: square dots, no
-        // filtering, a pale rose glow that twinkles out.
+        // filtering, a pale blue glow that twinkles out.
         GameObject sparkleGO = Instantiate(go, go.transform);
         sparkleGO.name = "Sparkles";
         sparkleGO.transform.position = new Vector3(floor.center.x, floor.min.y - size * 0.25f, floor.center.z);
@@ -683,7 +715,7 @@ public class RoomAmbience : MonoBehaviour
         sMain.startLifetime = 9f;
         sMain.startSpeed = new ParticleSystem.MinMaxCurve(size * 0.005f, size * 0.015f);
         sMain.startSize = new ParticleSystem.MinMaxCurve(size * 0.006f, size * 0.01f);
-        sMain.startColor = new Color(1f, 0.85f, 0.92f, 0.9f);
+        sMain.startColor = new Color(0.8f, 0.88f, 1f, 0.9f);
         sMain.maxParticles = 140;
         var sEmission = sparkles.emission;
         sEmission.rateOverTime = 14f;
@@ -695,6 +727,29 @@ public class RoomAmbience : MonoBehaviour
         pixel.Apply();
         sparkleMaterial = new Material(material) { mainTexture = pixel };
         sparkleGO.GetComponent<ParticleSystemRenderer>().sharedMaterial = sparkleMaterial;
+
+        // Low mist: a few big, faint, soft puffs drifting around the base of the room. They are depth tested, so the room
+        // hides the ones behind it and the mist wraps around it. Additive and pale blue, so it never greys the room out.
+        GameObject mistGO = Instantiate(sparkleGO, go.transform);
+        mistGO.name = "Mist";
+        mistGO.transform.position = new Vector3(floor.center.x, floor.min.y - size * 0.04f, floor.center.z);
+        ParticleSystem mist = mistGO.GetComponent<ParticleSystem>();
+        var mMain = mist.main;
+        mMain.startLifetime = 24f;
+        mMain.startSpeed = 0f;
+        mMain.startSize = new ParticleSystem.MinMaxCurve(size * 0.45f, size * 0.75f);
+        mMain.startColor = new Color(0.45f, 0.58f, 0.85f, 0.07f);
+        mMain.maxParticles = 24;
+        mMain.prewarm = true;
+        var mEmission = mist.emission;
+        mEmission.rateOverTime = 1f;
+        var mShape = mist.shape;
+        mShape.rotation = Vector3.zero;
+        mShape.scale = new Vector3(size * 1.6f, size * 0.06f, size * 1.6f);
+        var mNoise = mist.noise;
+        mNoise.strength = size * 0.02f;
+        mNoise.frequency = 0.05f;
+        mistGO.GetComponent<ParticleSystemRenderer>().sharedMaterial = material;
 
         // Soft dark disc just under the floor, a child of the motes so both hide together.
         GameObject shadow = GameObject.CreatePrimitive(PrimitiveType.Quad);
@@ -710,7 +765,7 @@ public class RoomAmbience : MonoBehaviour
         shadowMaterial = new Material(material);
         shadowMaterial.SetFloat("_Blend", 0);
         shadowMaterial.SetFloat("_DstBlend", (float)BlendMode.OneMinusSrcAlpha);
-        shadowMaterial.SetColor("_BaseColor", new Color(0.12f, 0.08f, 0.1f, 0.5f));
+        shadowMaterial.SetColor("_BaseColor", new Color(0.02f, 0.04f, 0.1f, 0.5f));
         shadowMaterial.renderQueue = (int)RenderQueue.Transparent - 10;
         var shadowRenderer = shadow.GetComponent<MeshRenderer>();
         shadowRenderer.sharedMaterial = shadowMaterial;

@@ -531,6 +531,17 @@ public class RoomManager : MonoBehaviour
     // need to know how high the ceiling is.
     private void SetUpSurfaces()
     {
+        // Re-importing the room model drops references to pieces it no longer has: forget those, and fall back to the
+        // room's own Wall_* / Floor pieces so Paint and decor still find the real walls and floor.
+        wallMeshes = System.Array.FindAll(wallMeshes, r => r != null);
+        floorMeshes = System.Array.FindAll(floorMeshes, r => r != null);
+        GameObject roomModel = GameObject.Find("BedroomBase");
+        if (roomModel != null)
+        {
+            Renderer[] parts = roomModel.GetComponentsInChildren<Renderer>();
+            if (wallMeshes.Length == 0) wallMeshes = System.Array.FindAll(parts, r => r.name.StartsWith("Wall_"));
+            if (floorMeshes.Length == 0) floorMeshes = System.Array.FindAll(parts, r => r.name == "Floor");
+        }
         if (wallMeshes.Length == 0)
         {
             GameObject walls = GameObject.Find("Room_Walls") ?? GameObject.Find("Walls");

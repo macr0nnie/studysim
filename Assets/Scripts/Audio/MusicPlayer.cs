@@ -51,8 +51,17 @@ public class MusicPlayer : MonoBehaviour
         if (changed) SavePlayerData();
     }
     
+    private ParticleSystem notes;
+    private float nextNote;
+    private RoomManager room;
+
     private void Update()
     {
+        if (isPlaying && audioSource.isPlaying && Time.unscaledTime >= nextNote)
+        {
+            nextNote = Time.unscaledTime + 1.6f;
+            FloatNote();
+        }
         if (isPlaying && audioSource.clip != null)
         {
             // Auto-advance when the song ends. A finished AudioSource rewinds time to 0, so check that it
@@ -64,6 +73,23 @@ public class MusicPlayer : MonoBehaviour
         }
     }
     
+    // A music note drifts up off the record player (or anything that plays music), else off the character.
+    private void FloatNote()
+    {
+        if (notes == null) notes = IconPop.Make("MusicNotes", 2.4f, UIIcons.Named("Icons_5"));
+        if (notes == null) return;
+        if (room == null) room = FindAnyObjectByType<RoomManager>();
+        GameObject source = null;
+        if (room != null)
+            foreach (GameObject piece in room.PlacedPieces)
+            {
+                string n = piece != null ? piece.name.ToLowerInvariant() : "";
+                if (n.Contains("vinyl") || n.Contains("record") || n.Contains("speaker") || n.Contains("radio")) { source = piece; break; }
+            }
+        if (source == null && FindAnyObjectByType<StudyCharacter>() is StudyCharacter character) source = character.gameObject;
+        if (IconPop.BoundsOf(source) is Bounds b) IconPop.Burst(notes, b, 1, 0.35f, new Color(1f, 0.85f, 0.95f));
+    }
+
     public List<Playlist> GetAllPlaylists()
     {
         return playlistLibrary.playlists;

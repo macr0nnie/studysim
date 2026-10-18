@@ -9,6 +9,7 @@ public static class GameSettings
     public static bool Desktop => !Web && !Application.isMobilePlatform;
     // Mini mode's window tricks and the Spotify reader use Windows calls (user32), so the Mac app goes without them.
     public static bool Windows => Application.platform == RuntimePlatform.WindowsPlayer || Application.platform == RuntimePlatform.WindowsEditor;
+    public static bool Mac => Application.platform == RuntimePlatform.OSXPlayer || Application.platform == RuntimePlatform.OSXEditor;
 
     public enum FocusMode { Pomodoro, DeepFocus, Sprint, Custom }
 

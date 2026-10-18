@@ -205,6 +205,38 @@ public class RoomManager : MonoBehaviour
     }
 
     public bool IsPlacing => currentPreview != null;
+
+    // Picks up another of the same store item, at the same size, if it can be paid for. False (with the denied sound) if not.
+    public bool PlaceAnother(GameObject piece)
+    {
+        FurnitureItem item = piece != null ? ItemOf(piece) : null;
+        if (item == null) return false;
+        if (item.price > 0 && (currency == null || currency.GetCoins() < item.price))
+        {
+            UISound.Play(UISound.Cue.Denied);
+            return false;
+        }
+        float size = sizes.TryGetValue(piece, out float z) ? z : 1f;
+        StartPlacingFurniture(item);
+        if (currentPreview == null) return false;
+        SetSize(currentPreview, size, false);
+        return true;
+    }
+
+    // Real-world size of a store item as it would arrive (metres, against the 4 m floor Fit measures with), for the store.
+    public Vector3 FittedSize(FurnitureItem item)
+    {
+        if (item == null || item.prefab == null || !hasRoomFloor) return Vector3.zero;
+        GameObject probe = Instantiate(item.prefab, new Vector3(0f, -500f, 0f), item.prefab.transform.rotation); // out of sight; gone before rendering
+        probe.name = item.prefab.name;
+        Fit(probe);
+        Physics.SyncTransforms();
+        Vector3 size = GetBounds(probe).size * 4f / Mathf.Min(roomFloor.size.x, roomFloor.size.z);
+        sizes.Remove(probe);
+        baseScales.Remove(probe);
+        Destroy(probe);
+        return size;
+    }
     public void CancelPlacing() => CancelPlacement();
 
     // Kept for the existing store buttons wired in the inspector.
@@ -433,6 +465,12 @@ public class RoomManager : MonoBehaviour
                 position = t.position + new Vector3(target.x - b.center.x, hit.point.y - b.min.y, target.z - b.center.z);
                 if (useGridPlacement && !shelfHit) position = SnapToGrid(position);
                 position += InsideFloor(b, position - t.position);
+                if (!shelfHit)
+                {
+                    Bounds moved = b;
+                    moved.center += position - t.position;
+                    position += SnapToEdges(obj, moved);
+                }
                 break;
         }
         if (lifts.TryGetValue(obj, out float lift)) position.y += lift;
@@ -450,6 +488,26 @@ public class RoomManager : MonoBehaviour
         float Push(float min, float max, float lo, float hi) =>
             max - min > hi - lo ? 0f : min < lo ? lo - min : max > hi ? hi - max : 0f; // a piece wider than the room is left alone
         return new Vector3(Push(b.min.x, b.max.x, roomFloor.min.x, roomFloor.max.x), 0f, Push(b.min.z, b.max.z, roomFloor.min.z, roomFloor.max.z));
+    }
+
+    // Close to a wall, or to the side of a piece at the same height, a floor piece slides over to sit flush against it.
+    private Vector3 SnapToEdges(GameObject obj, Bounds b)
+    {
+        if (!hasRoomFloor) return Vector3.zero;
+        float reach = Mathf.Min(roomFloor.size.x, roomFloor.size.z) * 0.03f; // ~12 cm in a 4 m room
+        float x = reach, z = reach;
+        void Try(ref float best, float move) { if (Mathf.Abs(move) < Mathf.Abs(best)) best = move; }
+        Try(ref x, roomFloor.min.x - b.min.x); Try(ref x, roomFloor.max.x - b.max.x);
+        Try(ref z, roomFloor.min.z - b.min.z); Try(ref z, roomFloor.max.z - b.max.z);
+        foreach (GameObject p in placedObjects)
+        {
+            if (p == null || p == obj || !p.activeInHierarchy || IsRider(p)) continue;
+            Bounds o = GetBounds(p);
+            if (o.max.y <= b.min.y + 0.01f || o.min.y >= b.max.y - 0.01f) continue; // what it stands on, or what stands on it
+            if (o.max.z > b.min.z && o.min.z < b.max.z) { Try(ref x, o.max.x - b.min.x); Try(ref x, o.min.x - b.max.x); }
+            if (o.max.x > b.min.x && o.min.x < b.max.x) { Try(ref z, o.max.z - b.min.z); Try(ref z, o.min.z - b.max.z); }
+        }
+        return new Vector3(Mathf.Abs(x) < reach ? x : 0f, 0f, Mathf.Abs(z) < reach ? z : 0f);
     }
 
     // How far a box reaches from its centre along a direction (half its thickness against a wall with that normal).
@@ -838,8 +896,9 @@ public class RoomManager : MonoBehaviour
         Action placed = onPreviewPlaced;
         onPreviewPlaced = null;
         placed?.Invoke();
-        // Fresh from the store: stay on it in edit mode, so it can be sized, turned or nudged straight away.
-        if (fromStore && placed == null)
+        // Fresh from the store: Shift + click keeps another in hand; otherwise stay on it in edit mode, so it can be
+        // sized, turned or nudged straight away.
+        if (fromStore && placed == null && !(Controls.Shift && PlaceAnother(placedObject)))
         {
             if (!isEditMode) EnterEditMode();
             Select(placedObject);

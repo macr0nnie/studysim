@@ -130,6 +130,7 @@ public class GameHUD : MonoBehaviour
             {
                 fitName.text = room.SelectedName;
                 lightsButton.gameObject.SetActive(room.SelectedHasLights);
+                anotherButton.gameObject.SetActive(room.ItemOf(room.SelectedPiece) != null);
                 fitInfo.text = room.SelectedFits
                     ? $"Height +{room.SelectedLift:0.00}   Size {room.SelectedSize:0.00}x"
                     : $"<color=#{ColorUtility.ToHtmlStringRGB(DangerColor)}>Overlaps something. Let go somewhere free, or {Controls.KeyName(Controls.Act.Undo)} to undo</color>";
@@ -152,7 +153,7 @@ public class GameHUD : MonoBehaviour
     // Edit mode, bottom centre (clear of the drawers on the left and the music card on the right): a key hint
     // bar, and above it the selected piece's panel to turn, remove, raise/lower and grow/shrink it.
     private GameObject fitPanel, hintBar, placeBar;
-    private Button lightsButton;
+    private Button lightsButton, anotherButton;
     private TMP_Text fitInfo, fitName;
     const float HintHeight = 40;
 
@@ -173,7 +174,7 @@ public class GameHUD : MonoBehaviour
 
         // While a piece is in hand (bought, not yet put down): what can be done to it before it lands.
         placeBar = HintBar("PlaceHints", canvas, 760);
-        TMP_Text how = MakeText("How", placeBar.transform, "Click to place  ·  Shift + wheel sizes", CaptionSize, MutedText, TextAlignmentOptions.Center);
+        TMP_Text how = MakeText("How", placeBar.transform, "Click to place  ·  Shift + click for another  ·  Shift + wheel sizes", CaptionSize, MutedText, TextAlignmentOptions.Center);
         how.enableAutoSizing = true;
         how.fontSizeMin = 10;
         how.fontSizeMax = CaptionSize;
@@ -216,7 +217,7 @@ public class GameHUD : MonoBehaviour
         fitPanel = Make("FitPanel", canvas, typeof(Image), typeof(VerticalLayoutGroup));
         var rect = (RectTransform)fitPanel.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0.5f, 0);
-        rect.sizeDelta = new Vector2(520, 160);
+        rect.sizeDelta = new Vector2(620, 160);
         rect.anchoredPosition = new Vector2(0, DockTop + 12 + HintHeight + 8);
         Style(fitPanel.GetComponent<Image>(), PanelColor);
         var v = fitPanel.GetComponent<VerticalLayoutGroup>();
@@ -232,6 +233,8 @@ public class GameHUD : MonoBehaviour
         fitName.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
         lightsButton = SmallButton(header.transform, "Lights", TabColor, 90);
         lightsButton.onClick.AddListener(() => room.ToggleSelectedLights());
+        anotherButton = SmallButton(header.transform, "Buy another", TabColor, 110);
+        anotherButton.onClick.AddListener(() => room.PlaceAnother(room.SelectedPiece));
         Button rotate = SmallButton(header.transform, "Rotate", TabColor, 110);
         KeyHint(rotate.GetComponentInChildren<TMP_Text>(), "Rotate", Controls.Act.Rotate);
         rotate.onClick.AddListener(() => room.RotateSelected());

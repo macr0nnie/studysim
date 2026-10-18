@@ -283,7 +283,7 @@ public class PaintUI : MonoBehaviour
         MeshFilter shapeFilter = shape == null ? null : shape.GetComponentInChildren<MeshFilter>();
         foreach (Renderer r in Renderers(Target.Floor))
         {
-            if (r == null || !r.TryGetComponent(out MeshFilter filter)) continue;
+            if (r == null || r.name != "Floor" || !r.TryGetComponent(out MeshFilter filter)) continue; // the slab under it (Base) stays
             if (!originalFloors.ContainsKey(r)) originalFloors[r] = (filter.sharedMesh, r.sharedMaterials);
             if (shapeFilter == null) room.SetSurfaceShape(r, originalFloors[r].mesh, originalFloors[r].materials);
             else room.SetSurfaceShape(r, shapeFilter.sharedMesh, shapeFilter.GetComponent<Renderer>().sharedMaterials);

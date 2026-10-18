@@ -1867,68 +1867,8 @@ public class RoomManager : MonoBehaviour
     // A little pop of hearts that float up off a freshly placed piece.
     private void PlayPlacementEffect(GameObject piece)
     {
-        Renderer[] renderers = piece.GetComponentsInChildren<Renderer>();
-        if (renderers.Length == 0 || puffHearts == null || puffHearts.Length == 0) return;
-        Bounds b = renderers[0].bounds;
-        foreach (Renderer r in renderers) b.Encapsulate(r.bounds);
-        if (puff == null) puff = BuildPuff();
-        float s = Mathf.Max(b.size.x, b.size.z, 0.2f);
-        var p = new ParticleSystem.EmitParams();
-        for (int i = 0; i < 14; i++)
-        {
-            p.position = new Vector3(b.center.x + UnityEngine.Random.Range(-0.4f, 0.4f) * b.size.x, b.min.y + UnityEngine.Random.Range(0.3f, 1f) * b.size.y, b.center.z + UnityEngine.Random.Range(-0.4f, 0.4f) * b.size.z);
-            p.velocity = new Vector3(UnityEngine.Random.Range(-0.4f, 0.4f), UnityEngine.Random.Range(0.6f, 1.2f), UnityEngine.Random.Range(-0.4f, 0.4f)) * s;
-            p.startSize = s * UnityEngine.Random.Range(0.07f, 0.12f);
-            puff.Emit(p, 1);
-        }
-    }
-
-    private ParticleSystem BuildPuff()
-    {
-        var go = new GameObject("PlacePuff");
-        go.transform.SetParent(transform, false);
-        var ps = go.AddComponent<ParticleSystem>();
-        ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-        var main = ps.main;
-        main.startLifetime = 1.2f;
-        main.simulationSpace = ParticleSystemSimulationSpace.World;
-        main.useUnscaledTime = true;
-        main.maxParticles = 200;
-        var emission = ps.emission;
-        emission.enabled = false; // only Emit() from placing
-        ps.GetComponent<ParticleSystemRenderer>().shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        var drag = ps.limitVelocityOverLifetime;
-        drag.enabled = true;
-        drag.limit = 0f;
-        drag.dampen = 0.06f; // shoot up, then hang and drift
-        var grow = ps.sizeOverLifetime;
-        grow.enabled = true;
-        grow.size = new ParticleSystem.MinMaxCurve(1f, new AnimationCurve(new Keyframe(0, 0.2f), new Keyframe(0.15f, 1.15f), new Keyframe(0.3f, 1f), new Keyframe(0.75f, 1f), new Keyframe(1, 0)));
-        var fade = ps.colorOverLifetime;
-        fade.enabled = true;
-        var gradient = new Gradient();
-        gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0), new GradientColorKey(Color.white, 1) },
-            new[] { new GradientAlphaKey(1, 0), new GradientAlphaKey(1, 0.7f), new GradientAlphaKey(0, 1) });
-        fade.color = gradient;
-        var sheet = ps.textureSheetAnimation;
-        sheet.enabled = true;
-        sheet.mode = ParticleSystemAnimationMode.Sprites;
-        foreach (Sprite heart in puffHearts) sheet.AddSprite(heart); // all from one sheet, so one material
-        sheet.frameOverTime = new ParticleSystem.MinMaxCurve(0f);
-        sheet.startFrame = new ParticleSystem.MinMaxCurve(0f, puffHearts.Length - 0.01f); // a random heart each
-        var material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")); // in Always Included Shaders
-        material.SetFloat("_Surface", 1);
-        material.SetFloat("_Blend", 0);
-        material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.SrcAlpha);
-        material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-        material.SetFloat("_ZWrite", 0);
-        material.SetOverrideTag("RenderType", "Transparent");
-        material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
-        material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-        material.mainTexture = puffHearts[0].texture;
-        ps.GetComponent<ParticleSystemRenderer>().sharedMaterial = material;
-        ps.Play();
-        return ps;
+        if (puff == null) puff = IconPop.Make("PlacePuff", 1.2f, puffHearts);
+        if (IconPop.BoundsOf(piece) is Bounds b) IconPop.Burst(puff, b, 14, 1f, Color.white);
     }
 
     // Snaps the given position to the defined grid.

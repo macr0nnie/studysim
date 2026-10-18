@@ -1,6 +1,7 @@
-# Builds lofilife for WebGL, Windows and macOS on GitHub's machines on every push, keeps both builds as
-# downloads on the run page, and pushes main builds to the itch.io playtest page. Main updates the
-# "Early Access" GitHub pre-release; the release branch publishes a new versioned GitHub release.
+# Builds lofilife for WebGL, Windows and macOS on GitHub's machines on every push, all from the same commit
+# and stamped with the same version label (shown in the main menu), and keeps the builds as downloads on the
+# run page. Main updates the "Early Access" pre-releases and the itch.io playtest page; the release branch
+# publishes new versioned GitHub releases and, once ITCH_RELEASE_TARGET is set, the public itch.io page.
 # Setup: docs/CI-SETUP.md
 name: Playtest build
 
@@ -20,7 +21,20 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       ready: ${{ steps.check.outputs.ready }}
+      version: ${{ steps.version.outputs.version }}
+      label: ${{ steps.version.outputs.label }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: ProjectSettings
+
+      # One version for every platform in this run: Player Settings version + run number + commit.
+      - id: version
+        run: |
+          version=$(sed -n 's/^  bundleVersion: //p' ProjectSettings/ProjectSettings.asset)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "label=build ${{ github.run_number }} (${GITHUB_SHA::7})" >> "$GITHUB_OUTPUT"
+
       - id: check
         env:
           UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
@@ -41,11 +55,11 @@ jobs:
           - targetPlatform: WebGL
             name: WebGL
             output: build/WebGL/lofilife # index.html must sit at the root of what itch gets
-            channel: playtest-web
+            channel: web
           - targetPlatform: StandaloneWindows64
             name: Windows
             output: build/StandaloneWindows64
-            channel: playtest-windows
+            channel: windows
     steps:
       # The Unity image plus Library don't fit in the runner's default free space.
       - name: Free disk space
@@ -58,6 +72,9 @@ jobs:
           path: Library
           key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: Library-${{ matrix.targetPlatform }}-
+
+      - name: Stamp version
+        run: echo "${{ needs.licence.outputs.label }}" > Assets/Resources/BuildInfo.txt
 
       # The editor is sometimes SIGKILLed (exit 137) just after loading a restored Library;
       # every run with a fresh Library has built, so one retry starts from an empty Library.
@@ -97,17 +114,18 @@ jobs:
           path: ${{ matrix.output }}
           retention-days: 14
 
+      # main -> playtest page (playtest-<platform> channels); release -> public page, only once ITCH_RELEASE_TARGET is set.
       - name: Push to itch.io
-        if: github.ref == 'refs/heads/main'
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
-          ITCH_TARGET: ${{ vars.ITCH_TARGET || 'macronnie/lofilife-playtest' }}
+          TARGET: ${{ github.ref == 'refs/heads/main' && (vars.ITCH_TARGET || 'macronnie/lofilife-playtest') || (github.ref == 'refs/heads/release' && vars.ITCH_RELEASE_TARGET || '') }}
+          CHANNEL: ${{ github.ref == 'refs/heads/main' && 'playtest-' || '' }}${{ matrix.channel }}
+          USERVERSION: ${{ needs.licence.outputs.version }}+${{ github.run_number }}
         run: |
-          if [ -z "$BUTLER_API_KEY" ]; then echo "No BUTLER_API_KEY secret, skipping itch.io"; exit 0; fi
+          if [ -z "$BUTLER_API_KEY" ] || [ -z "$TARGET" ]; then echo "itch.io not set up for $GITHUB_REF_NAME, skipping"; exit 0; fi
           curl -sSfL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip -d butler && chmod +x butler/butler
-          butler/butler push "${{ matrix.output }}" "$ITCH_TARGET:${{ matrix.channel }}" \
-            --userversion "0.1.${{ github.run_number }}-${GITHUB_SHA::7}"
+          butler/butler push "${{ matrix.output }}" "$TARGET:$CHANNEL" --userversion "$USERVERSION"
 
   # The Mac app is its own job and its own GitHub release, so Mac and Windows ship independently.
   # One universal app (Apple silicon + Intel), ad-hoc signed here because Apple silicon won't run unsigned code.
@@ -131,6 +149,9 @@ jobs:
           path: Library
           key: Library-StandaloneOSX-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
           restore-keys: Library-StandaloneOSX-
+
+      - name: Stamp version
+        run: echo "${{ needs.licence.outputs.label }}" > Assets/Resources/BuildInfo.txt
 
       # The editor is sometimes SIGKILLed (exit 137) just after loading a restored Library;
       # every run with a fresh Library has built, so one retry starts from an empty Library.
@@ -180,24 +201,25 @@ jobs:
           path: lofilife-mac.zip
           retention-days: 14
 
+      # main -> playtest page (playtest-<platform> channels); release -> public page, only once ITCH_RELEASE_TARGET is set.
       - name: Push to itch.io
-        if: github.ref == 'refs/heads/main'
         env:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
-          ITCH_TARGET: ${{ vars.ITCH_TARGET || 'macronnie/lofilife-playtest' }}
+          TARGET: ${{ github.ref == 'refs/heads/main' && (vars.ITCH_TARGET || 'macronnie/lofilife-playtest') || (github.ref == 'refs/heads/release' && vars.ITCH_RELEASE_TARGET || '') }}
+          CHANNEL: ${{ github.ref == 'refs/heads/main' && 'playtest-' || '' }}mac
+          USERVERSION: ${{ needs.licence.outputs.version }}+${{ github.run_number }}
         run: |
-          if [ -z "$BUTLER_API_KEY" ]; then echo "No BUTLER_API_KEY secret, skipping itch.io"; exit 0; fi
+          if [ -z "$BUTLER_API_KEY" ] || [ -z "$TARGET" ]; then echo "itch.io not set up for $GITHUB_REF_NAME, skipping"; exit 0; fi
           curl -sSfL -o butler.zip https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default
           unzip -q butler.zip -d butler && chmod +x butler/butler
-          butler/butler push Builds/macOS "$ITCH_TARGET:playtest-mac" \
-            --userversion "0.1.${{ github.run_number }}-${GITHUB_SHA::7}"
+          butler/butler push "Builds/macOS" "$TARGET:$CHANNEL" --userversion "$USERVERSION"
 
       - name: Publish Mac release
         env:
           GH_TOKEN: ${{ github.token }}
           RUN: ${{ github.run_number }}
+          version: ${{ needs.licence.outputs.version }}
         run: |
-          version=$(sed -n 's/^  bundleVersion: //p' ProjectSettings/ProjectSettings.asset)
           mv lofilife-mac.zip "lofilife-$version-mac.zip"
           if [ "$GITHUB_REF_NAME" = main ]; then
             gh release delete mac-early-access --yes --cleanup-tag || true
@@ -210,14 +232,14 @@ jobs:
           fi
 
   github-release:
-    needs: build
+    needs: [licence, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
         with:
-          sparse-checkout: ProjectSettings
+          sparse-checkout: BrowserExtension
 
       - uses: actions/download-artifact@v4
         with:
@@ -227,11 +249,14 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RUN: ${{ github.run_number }}
+          version: ${{ needs.licence.outputs.version }}
         run: |
-          version=$(sed -n 's/^  bundleVersion: //p' ProjectSettings/ProjectSettings.asset)
           (cd "lofilife-WebGL-$RUN" && zip -qr "../lofilife-$version-web.zip" .)
           (cd "lofilife-Windows-$RUN" && zip -qr "../lofilife-$version-windows.zip" .)
-          files="lofilife-$version-web.zip lofilife-$version-windows.zip"
+          # The extension from the same commit, for loading unpacked; the Chrome Web Store copy comes from extension.yml.
+          ext=$(jq -r .version BrowserExtension/manifest.json)
+          (cd BrowserExtension && zip -qr "../lofilife-focus-$ext.zip" . -x 'store/*' 'tests/*' 'README.md')
+          files="lofilife-$version-web.zip lofilife-$version-windows.zip lofilife-focus-$ext.zip"
           if [ "$GITHUB_REF_NAME" = main ]; then
             # One rolling pre-release that always holds the newest main build.
             gh release delete early-access --yes --cleanup-tag || true

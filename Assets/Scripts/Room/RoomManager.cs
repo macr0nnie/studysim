@@ -1751,15 +1751,14 @@ public class RoomManager : MonoBehaviour
         return new Bounds(obj.transform.position, Vector3.zero);
     }
 
-    // Plays a particle effect at the specified position.
+    [SerializeField] private Texture2D puffHeart; // Assets/ART/UI/Heart.png
     private ParticleSystem puff;
-    private static readonly Color[] PuffColors = { new Color(1f, 0.62f, 0.78f), new Color(1f, 0.9f, 0.7f), new Color(0.82f, 0.74f, 1f), Color.white };
 
-    // A little pop of pixel hearts and sparkles that float up off a freshly placed piece.
+    // A little pop of hearts that float up off a freshly placed piece.
     private void PlayPlacementEffect(GameObject piece)
     {
         Renderer[] renderers = piece.GetComponentsInChildren<Renderer>();
-        if (renderers.Length == 0) return;
+        if (renderers.Length == 0 || puffHeart == null) return;
         Bounds b = renderers[0].bounds;
         foreach (Renderer r in renderers) b.Encapsulate(r.bounds);
         if (puff == null) puff = BuildPuff();
@@ -1770,7 +1769,6 @@ public class RoomManager : MonoBehaviour
             p.position = new Vector3(b.center.x + UnityEngine.Random.Range(-0.4f, 0.4f) * b.size.x, b.min.y + UnityEngine.Random.Range(0.3f, 1f) * b.size.y, b.center.z + UnityEngine.Random.Range(-0.4f, 0.4f) * b.size.z);
             p.velocity = new Vector3(UnityEngine.Random.Range(-0.4f, 0.4f), UnityEngine.Random.Range(0.6f, 1.2f), UnityEngine.Random.Range(-0.4f, 0.4f)) * s;
             p.startSize = s * UnityEngine.Random.Range(0.07f, 0.12f);
-            p.startColor = PuffColors[UnityEngine.Random.Range(0, PuffColors.Length)];
             puff.Emit(p, 1);
         }
     }
@@ -1802,25 +1800,6 @@ public class RoomManager : MonoBehaviour
         gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0), new GradientColorKey(Color.white, 1) },
             new[] { new GradientAlphaKey(1, 0), new GradientAlphaKey(1, 0.7f), new GradientAlphaKey(0, 1) });
         fade.color = gradient;
-        // Two tiles side by side: a heart and a four-point sparkle, picked at random per particle.
-        var sheet = ps.textureSheetAnimation;
-        sheet.enabled = true;
-        sheet.numTilesX = 2;
-        sheet.numTilesY = 1;
-        sheet.frameOverTime = new ParticleSystem.MinMaxCurve(0f);
-        sheet.startFrame = new ParticleSystem.MinMaxCurve(0f, 1.99f);
-
-        string[] heart = { ".XX.XX.", "XXXXXXX", "XXXXXXX", ".XXXXX.", "..XXX..", "...X...", "......." };
-        string[] spark = { "...X...", "...X...", "..XXX..", "XXXXXXX", "..XXX..", "...X...", "...X..." };
-        var tex = new Texture2D(18, 9, TextureFormat.RGBA32, false) { filterMode = FilterMode.Point, wrapMode = TextureWrapMode.Clamp };
-        tex.SetPixels(new Color[18 * 9]); // clear
-        for (int y = 0; y < 7; y++)
-            for (int x = 0; x < 7; x++)
-            {
-                if (heart[y][x] == 'X') tex.SetPixel(1 + x, 7 - y, Color.white); // rows read top-down, texture rows go bottom-up
-                if (spark[y][x] == 'X') tex.SetPixel(10 + x, 7 - y, Color.white);
-            }
-        tex.Apply();
         var material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")); // in Always Included Shaders
         material.SetFloat("_Surface", 1);
         material.SetFloat("_Blend", 0);
@@ -1830,7 +1809,7 @@ public class RoomManager : MonoBehaviour
         material.SetOverrideTag("RenderType", "Transparent");
         material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
         material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
-        material.mainTexture = tex;
+        material.mainTexture = puffHeart;
         ps.GetComponent<ParticleSystemRenderer>().sharedMaterial = material;
         ps.Play();
         return ps;

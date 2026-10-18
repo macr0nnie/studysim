@@ -4645,7 +4645,7 @@ MonoBehaviour:
   useGridPlacement: 1
   validPlacementMaterial: {fileID: 2100000, guid: f3bcf5d20c842d145a3a746f211a36d8, type: 2}
   invalidPlacementMaterial: {fileID: 2100000, guid: 925e0428b6c95b845b062253310915d2, type: 2}
-  placementParticlePrefab: {fileID: 3296598508339629422, guid: a2fd47dafde479947bfc42f12de8dc64, type: 3}
+  puffHeart: {fileID: 2800000, guid: 3d3137577e12a1647b12240911423147, type: 3}
   wallMeshes: []
   floorMeshes: []
 --- !u!114 &5875922006720659369

@@ -29,6 +29,22 @@ public static class RoomTextures
             return Shade(Hex(0xA87A55), Mathf.Sin(x * 0.9f + Noise(x / 32, 0) * 6f) * 0.04f + Noise(x, y / 8) * 0.05f + Noise(x / 32, 3) * 0.1f);
         }),
         Make("Plaster", 2f, 3f, (x, y) => Shade(Hex(0xEADFD0), Noise(x / 4, y / 4) * 0.06f + Noise(x, y) * 0.03f)),
+        // Soft, flat patterns for the low-poly look: clean shapes, no grain.
+        Make("Gingham", 2f, 0f, (x, y) => ((x % 16 < 8 ? 1 : 0) + (y % 16 < 8 ? 1 : 0)) switch
+        {
+            2 => Hex(0xE3A27A),
+            1 => Hex(0xF0CBAA),
+            _ => Hex(0xF7EEDF),
+        }),
+        Make("Tiny Flowers", 3f, 0f, (x, y) =>
+        {
+            int cx = (x + (y / 32 % 2) * 16) % 32 - 16, cy = y % 32 - 16;
+            if (cx * cx + cy * cy < 5) return Hex(0xF2C14E);
+            foreach ((int px, int py) in new[] { (5, 0), (-5, 0), (0, 5), (0, -5) })
+                if ((cx - px) * (cx - px) + (cy - py) * (cy - py) < 9) return Hex(0xEFA7B5);
+            return Hex(0xFAF1E6);
+        }),
+        Make("Soft Stripes", 3f, 0f, (x, y) => x % 32 < 12 ? Hex(0xDDE7D2) : Hex(0xF6F0E4)),
     };
 
     public static Material[] Floors => floors ??= new[]
@@ -49,6 +65,30 @@ public static class RoomTextures
         {
             if (x % 32 < 2 || y % 32 < 2) return Hex(0xD8CBB8);
             return Shade(Hex(0xC27A55), Noise(x / 32, y / 32) * 0.12f + Noise(x, y) * 0.04f);
+        }),
+        // Low-poly floors: wide boards in a few flat shades, thin soft seams.
+        Make("Honey Planks", 2f, 2f, (x, y) =>
+        {
+            int row = y / 32, joint = (x + row * 48) % 128;
+            if (y % 32 < 2 || joint < 2) return Hex(0xB97A4A);
+            return row % 3 == 0 ? Hex(0xE2A86E) : row % 3 == 1 ? Hex(0xD99C62) : Hex(0xE8B47E);
+        }),
+        Make("Pale Planks", 2f, 2f, (x, y) =>
+        {
+            int row = y / 32, joint = (x + row * 48) % 128;
+            if (y % 32 < 2 || joint < 2) return Hex(0xB9A88E);
+            return row % 2 == 0 ? Hex(0xE9DCC4) : Hex(0xE1D2B6);
+        }),
+        Make("Basket Weave", 3f, 2f, (x, y) =>
+        {
+            bool across = (x / 32 + y / 32) % 2 == 0;
+            if (x % 32 < 1 || y % 32 < 1 || (across ? y % 16 < 1 : x % 16 < 1)) return Hex(0xA8743F);
+            return across ? Hex(0xD9A066) : Hex(0xCF945B);
+        }),
+        Make("Sage Tiles", 4f, 2f, (x, y) =>
+        {
+            if (x % 32 < 2 || y % 32 < 2) return Hex(0xF3EEE3);
+            return (x / 32 + y / 32) % 2 == 0 ? Hex(0xA9C2A0) : Hex(0xB7CDAE);
         }),
     };
 

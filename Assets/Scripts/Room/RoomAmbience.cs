@@ -10,7 +10,7 @@ using UnityEngine.UI;
 // warm soft lamps, and a light URP Volume (bloom, vignette, grading). The room dims and warms while a study
 // session runs or every lamp is off, and brightens on a break. Settings > Sound > Lighting picks Off / Cozy / Bright.
 // Behind the room is a deep blue night backdrop that follows the clock (a soft glow, crisp twinkling stars, weather from Settings > Display; hidden
-// while Paint > Background has a colour), and a few dust motes drift in the room, with low mist, a soft shadow and pixel sparkles under it.
+// while Paint > Background has a colour), and a few dust motes drift in the room, with low mist and a soft shadow under it.
 // Lamps each get a soft colour of their own, and a faint cool rim light from behind picks out the edges of the furniture.
 // Each window on a wall gets a soft spot light that shines into the room: daylight by day, moonlight at night, dimmer in bad weather.
 // Mini mode owns shadows and post-processing while it is active, so this only turns the Volume off there.
@@ -26,19 +26,19 @@ public class RoomAmbience : MonoBehaviour
     {
         // Soft and even: a warm fill on the walls and floor carries the room, the key light only adds a gentle direction.
         key = new Color(1f, 0.82f, 0.62f), sky = new Color(0.66f, 0.64f, 0.72f), equator = new Color(0.5f, 0.43f, 0.38f), ground = new Color(0.34f, 0.28f, 0.24f),
-        keyFocus = 0.55f, keyBreak = 0.75f, exposure = 0f, bloom = 0.3f, vignette = 0.32f, lampIntensity = 0.04f, lampRange = 0.9f,
+        keyFocus = 0.55f, keyBreak = 0.75f, exposure = 0f, bloom = 0.3f, vignette = 0.2f, lampIntensity = 0.7f, lampRange = 0.6f,
     };
     private static readonly Look Bright = new Look
     {
         key = new Color(1f, 0.94f, 0.84f), sky = new Color(0.82f, 0.84f, 0.9f), equator = new Color(0.62f, 0.58f, 0.54f), ground = new Color(0.45f, 0.4f, 0.36f),
-        keyFocus = 0.85f, keyBreak = 1.05f, exposure = 0.2f, bloom = 0.35f, vignette = 0.12f, lampIntensity = 0.1f, lampRange = 0.9f,
+        keyFocus = 0.85f, keyBreak = 1.05f, exposure = 0.2f, bloom = 0.35f, vignette = 0.1f, lampIntensity = 1f, lampRange = 0.7f,
     };
 
     private const float LampScan = 2f, Fade = 1.5f, LampsOffDim = 0.65f;
-    // Lamps take these in turn as they are placed: warm first, then pink, teal and lavender, so a room of lamps reads colourful.
-    private static readonly Color[] LampColors = { new Color(1f, 0.7f, 0.4f), new Color(1f, 0.55f, 0.8f), new Color(0.45f, 0.9f, 0.85f), new Color(0.72f, 0.62f, 1f) };
-    // Night fill: the room sits in cool blue light after dark (ronnie's reference, 2026-10-18), warm lamps against it.
-    private static readonly Color NightSky = new Color(0.36f, 0.45f, 0.72f), NightEquator = new Color(0.3f, 0.34f, 0.52f), NightGround = new Color(0.24f, 0.24f, 0.36f);
+    // Lamps take these in turn as they are placed: mostly warm (amber, rose, peach) with the odd teal, warm light in a cool night.
+    private static readonly Color[] LampColors = { new Color(1f, 0.68f, 0.38f), new Color(1f, 0.58f, 0.62f), new Color(1f, 0.78f, 0.52f), new Color(0.5f, 0.9f, 0.85f) };
+    // Night fill: a dim cool blue (ronnie, 2026-10-19: cool night with warm lamps), dark enough that the lamps make the pools of light.
+    private static readonly Color NightSky = new Color(0.22f, 0.28f, 0.46f), NightEquator = new Color(0.17f, 0.2f, 0.33f), NightGround = new Color(0.11f, 0.11f, 0.18f);
 
     // Sky by hour of the day: top and bottom of the gradient. Hours ascend from 0 to 24 so every hour has a pair.
     // Deep blue at every hour (ronnie's reference, 2026-10-18): navy at night, a little lighter and bluer by day, so the
@@ -135,22 +135,21 @@ public class RoomAmbience : MonoBehaviour
 
         var profile = ScriptableObject.CreateInstance<VolumeProfile>();
         bloom = profile.Add<Bloom>(true);
-        bloom.threshold.Override(0.9f); // sunlit patches and lamp bulbs glow softly
+        bloom.threshold.Override(0.75f); // lamp shades, the window and flames glow softly
         bloom.scatter.Override(0.85f);
         vignette = profile.Add<Vignette>(true);
         vignette.smoothness.Override(0.6f);
         grade = profile.Add<ColorAdjustments>(true);
         grade.saturation.Override(8f);
-        grade.colorFilter.Override(new Color(0.98f, 0.98f, 1f));
-        // Blue shadows, warm highlights: the night-diorama look from ronnie's reference, at almost no cost.
+        grade.colorFilter.Override(new Color(1f, 0.97f, 0.93f));
+        // Slightly cool shadows, warm highlights: the night stays blue while lamp light stays warm.
         var tone = profile.Add<SplitToning>(true);
-        tone.shadows.Override(new Color(0.38f, 0.46f, 0.64f));
-        tone.highlights.Override(new Color(0.6f, 0.55f, 0.47f));
-        tone.balance.Override(-15f);
-        profile.Add<Tonemapping>(true).mode.Override(TonemappingMode.ACES);
+        tone.shadows.Override(new Color(0.45f, 0.48f, 0.57f));
+        tone.highlights.Override(new Color(0.62f, 0.54f, 0.42f));
+        profile.Add<Tonemapping>(true).mode.Override(TonemappingMode.Neutral); // ACES greyed out the warm highlights
         var grain = profile.Add<FilmGrain>(true);
         grain.type.Override(FilmGrainLookup.Thin1);
-        grain.intensity.Override(0.12f);
+        grain.intensity.Override(0.04f);
         volume = gameObject.AddComponent<Volume>();
         volume.isGlobal = true;
         volume.sharedProfile = profile;
@@ -242,7 +241,7 @@ public class RoomAmbience : MonoBehaviour
         if (ambientMode == AmbientMode.Trilight)
         {
             // The fill leans a little towards the window light, so the room follows the time of day.
-            float night = 0.85f * (1f - daylight); // cooler after dark and in grey weather
+            float night = 1f - daylight; // cooler after dark and in grey weather
             Color daySky = Color.Lerp(look.sky, windowColor * look.sky.maxColorComponent, 0.25f) * (1f + 0.1f * windows);
             RenderSettings.ambientSkyColor = Color.Lerp(sky, Color.Lerp(daySky, NightSky, night), strength);
             RenderSettings.ambientEquatorColor = Color.Lerp(equator, Color.Lerp(look.equator, NightEquator, night), strength);
@@ -279,6 +278,7 @@ public class RoomAmbience : MonoBehaviour
                 light.color = Color.Lerp(light.color, LampColors[lampBase.Count % LampColors.Length], 0.85f);
                 lampBase[light] = new Vector2(light.intensity, light.range);
                 light.shadows = LightShadows.None;
+                GlowShade(light);
             }
             if (fresh || restyle)
             {
@@ -327,7 +327,7 @@ public class RoomAmbience : MonoBehaviour
             light.enabled = on;
             light.shadows = MiniMode.Active ? LightShadows.None : LightShadows.Soft;
             Beam(light, b, floor, on && !MiniMode.Active);
-            Glow(renderers, on ? windowColor * windowIntensity * 2f : Color.black);
+            Glow(renderers, on ? windowColor * Mathf.Max(windowIntensity * 2f, 0.9f) : Color.black); // never a dead pane at night
         }
         foreach (Light gone in new List<Light>(beams.Keys))
             if (gone == null) { foreach (Renderer r in beams[gone]) if (r != null) Destroy(r.gameObject); beams.Remove(gone); }
@@ -335,6 +335,27 @@ public class RoomAmbience : MonoBehaviour
 
     // Glass whose material is named WindowGlow (the cozy windows) shines in the window light's colour, so the pane glows
     // softly by day and dims at night. Instanced materials, so the asset itself is never changed.
+    // The smallest part of the lamp nearest its light (the shade or bulb) glows softly in the lamp's colour, so bloom has
+    // something warm to catch. Instanced materials, like the windows.
+    private static void GlowShade(Light light)
+    {
+        Renderer shade = null;
+        float best = float.MaxValue;
+        Vector3 at = light.transform.position;
+        foreach (Renderer r in light.GetComponentInParent<Furniture>().GetComponentsInChildren<Renderer>())
+        {
+            if (r is ParticleSystemRenderer) continue;
+            float score = (r.bounds.ClosestPoint(at) - at).sqrMagnitude + r.bounds.size.sqrMagnitude * 0.05f;
+            if (score < best) { best = score; shade = r; }
+        }
+        if (shade == null) return;
+        foreach (Material m in shade.materials)
+        {
+            m.EnableKeyword("_EMISSION");
+            m.SetColor("_EmissionColor", light.color * 0.8f);
+        }
+    }
+
     private static void Glow(Renderer[] renderers, Color color)
     {
         foreach (Renderer r in renderers)
@@ -607,7 +628,8 @@ public class RoomAmbience : MonoBehaviour
         while (i < SkyKeys.Length - 2 && hour > SkyKeys[i + 1].hour) i++;
         float t = Mathf.InverseLerp(SkyKeys[i].hour, SkyKeys[i + 1].hour, hour);
         Color bottom = Color.Lerp(SkyKeys[i].bottom, SkyKeys[i + 1].bottom, t), top = Color.Lerp(SkyKeys[i].top, SkyKeys[i + 1].top, t);
-        float day = Mathf.Clamp01(Mathf.Min(hour - 6f, 20f - hour) / 2f); // 0 at night, 1 from 8:00 to 18:00
+        // Always night (ronnie, 2026-10-19: cool night with warm lamps): the clock only shifts the sky colours a little.
+        const float day = 0f;
         bool clear = weather == Weather.Clear;
         float grey = weather == Weather.Rain ? 0.65f : weather == Weather.Clear ? 0f : 0.45f;
         bottom = Overcast(bottom, grey); top = Overcast(top, grey);
@@ -718,7 +740,7 @@ public class RoomAmbience : MonoBehaviour
         sMain.startColor = new Color(0.8f, 0.88f, 1f, 0.9f);
         sMain.maxParticles = 140;
         var sEmission = sparkles.emission;
-        sEmission.rateOverTime = 14f;
+        sEmission.rateOverTime = 0f; // off: one layer too many with stars and mist (2026-10-19); mist below copies its settings
         var sShape = sparkles.shape;
         sShape.scale = new Vector3(size * 1.6f, size * 1.6f, size * 0.3f); // thin along Z, which the rotation turns upright
         sShape.rotation = new Vector3(-90, 0, 0); // the box emits along +Z; tip it so they rise

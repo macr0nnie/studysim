@@ -80,6 +80,7 @@ public class RoomAmbience : MonoBehaviour
     private readonly Dictionary<Light, Vector2> lampBase = new Dictionary<Light, Vector2>(); // authored (intensity, range)
     private Style lampStyle = (Style)(-1);
     private Light key;
+    private readonly List<Light> strays = new List<Light>();
     private TimerManager timer;
     private Volume volume;
     private Bloom bloom;
@@ -116,10 +117,23 @@ public class RoomAmbience : MonoBehaviour
         BuildSky();
         foreach (Light light in FindObjectsByType<Light>())
             if (light.type == LightType.Directional && (key == null || light.intensity > key.intensity)) key = light;
-        if (key != null) { keyColor = key.color; keyIntensity = key.intensity; keyShadows = key.shadows; }
+        if (key == null)
+        {
+            // The room scene has no sun of its own, and without a key light none of the look below would run.
+            key = new GameObject("KeyLight").AddComponent<Light>();
+            key.transform.SetParent(transform, false);
+            key.transform.rotation = Quaternion.Euler(50f, -30f, 0f);
+            key.type = LightType.Directional;
+            key.color = new Color(1f, 0.92f, 0.82f);
+            key.shadows = LightShadows.Soft;
+        }
+        keyColor = key.color; keyIntensity = key.intensity; keyShadows = key.shadows;
+        // Hand-placed lights that are not part of a lamp (a stray yellow point light flooded the room): off while the look is on.
+        foreach (Light light in FindObjectsByType<Light>())
+            if (light.type != LightType.Directional && light.GetComponentInParent<Furniture>() == null && light.enabled) strays.Add(light);
         // A faint cool light from above and behind: it catches the tops of furniture in blue like moonlight. No shadows, so it costs little.
         Camera view = Camera.main;
-        if (key != null && view != null)
+        if (view != null)
         {
             rim = new GameObject("RimLight").AddComponent<Light>();
             rim.transform.SetParent(transform, false);
@@ -235,6 +249,7 @@ public class RoomAmbience : MonoBehaviour
         // strength 0 is the scene as it was authored.
         key.color = Color.Lerp(keyColor, Color.Lerp(look.key, look.key * new Color(1f, 0.9f, 0.8f), warm) * sun, strength);
         key.intensity = Mathf.Lerp(keyIntensity, keyIntensity * mood, strength);
+        foreach (Light stray in strays) if (stray != null) stray.enabled = strength < 0.5f;
         key.shadows = mini ? LightShadows.None : (strength > 0.5f ? LightShadows.Soft : keyShadows);
         key.shadowStrength = Mathf.Lerp(1f, 0.5f, strength); // soft shadows that ground pieces without dark patches
         if (rim != null) rim.intensity = strength * Mathf.Lerp(0.3f, 0.1f, daylight) * keyIntensity;

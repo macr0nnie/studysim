@@ -256,16 +256,18 @@ public class PaintUI : MonoBehaviour
         Refresh();
     }
 
-    // Original materials, then the chosen material, then the chosen colour on top.
+    // Original materials, then the chosen material (its grey copy when a colour goes on top), then the colour.
     private void ApplySurface(Target t)
     {
         Renderer[] renderers = Renderers(t);
         room.Tint(renderers, null);
         int index = t == Target.Walls ? paint.wallMaterial : paint.floorMaterial;
         Material[] materials = Materials(t);
-        if (index >= 0 && index < materials.Length) room.SetSurfaceMaterial(renderers, materials[index]);
         string hex = t == Target.Walls ? paint.wallColor : paint.floorColor;
-        if (hex.Length > 0 && ColorUtility.TryParseHtmlString("#" + hex, out Color c)) room.Tint(renderers, c);
+        Color c = default;
+        bool tinted = hex.Length > 0 && ColorUtility.TryParseHtmlString("#" + hex, out c);
+        if (index >= 0 && index < materials.Length) room.SetSurfaceMaterial(renderers, tinted ? RoomTextures.Grey(materials[index]) : materials[index]);
+        if (tinted) room.Tint(renderers, c);
     }
 
     private GameObject[] FloorShapes => surfaces == null || surfaces.floorShapes == null ? new GameObject[0] : surfaces.floorShapes;

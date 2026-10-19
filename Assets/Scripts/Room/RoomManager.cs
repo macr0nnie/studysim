@@ -1305,6 +1305,7 @@ public class RoomManager : MonoBehaviour
             foreach (Material m in r.materials)
             {
                 if (m.name.StartsWith("Grout") || m.name.StartsWith("Subfloor")) continue; // 3D floors keep their gaps dark
+                if (m.HasProperty("_BaseMap") && RoomTextures.Grey(m.GetTexture("_BaseMap")) is Texture grey) m.SetTexture("_BaseMap", grey); // true colour on patterns
                 if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", color.Value);
                 if (m.HasProperty("_Color")) m.SetColor("_Color", color.Value);
             }

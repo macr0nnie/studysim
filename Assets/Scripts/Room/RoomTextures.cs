@@ -1,13 +1,15 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 // Textured wall and floor materials for the Paint drawer (wallpaper, brick, panels, planks, tiles...), drawn in code
 // so they need no image assets. PaintUI lists them after the pack's plain materials in Resources/RoomSurfaces.
-// Made once per run and shared; a colour picked in the drawer tints them like any other material.
+// Made once per run and shared; a colour picked in the drawer tints a grey copy of them (Grey).
 public static class RoomTextures
 {
     private const int Size = 128;
     private static Material[] walls, floors;
+    private static readonly Dictionary<Material, Material> greys = new Dictionary<Material, Material>();
 
     public static Material[] Walls => walls ??= new[]
     {
@@ -112,6 +114,41 @@ public static class RoomTextures
         material.SetFloat("_Smoothness", 0.15f);
         if (bump > 0) Bump(material, pixels, bump);
         return material;
+    }
+
+    // A grey copy of a textured material, so a colour picked on top shows as that colour instead of mixing with the
+    // pattern's own (ronnie, 2026-10-19). The pattern keeps its light and dark; its lightest pixel becomes white.
+    // Read back through the GPU, as the pack's textures and ours aren't CPU-readable.
+    public static Material Grey(Material material)
+    {
+        if (material == null || material.mainTexture == null) return material;
+        if (greys.TryGetValue(material, out Material grey)) return grey;
+        Texture source = material.mainTexture;
+        var rt = RenderTexture.GetTemporary(source.width, source.height, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.sRGB);
+        Graphics.Blit(source, rt);
+        var texture = new Texture2D(source.width, source.height, TextureFormat.RGBA32, true) { name = source.name + " Grey", wrapMode = TextureWrapMode.Repeat, filterMode = source.filterMode, anisoLevel = 4 };
+        RenderTexture previous = RenderTexture.active;
+        RenderTexture.active = rt;
+        texture.ReadPixels(new Rect(0, 0, source.width, source.height), 0, 0, false);
+        RenderTexture.active = previous;
+        RenderTexture.ReleaseTemporary(rt);
+
+        Color[] pixels = texture.GetPixels();
+        float top = 0.01f;
+        foreach (Color c in pixels) top = Mathf.Max(top, c.grayscale);
+        for (int i = 0; i < pixels.Length; i++)
+        {
+            float l = pixels[i].grayscale / top;
+            pixels[i] = new Color(l, l, l, pixels[i].a);
+        }
+        texture.SetPixels(pixels);
+        texture.Apply(true, true);
+
+        grey = new Material(material) { name = material.name + " Grey" };
+        grey.SetTexture("_BaseMap", texture);
+        grey.mainTexture = texture;
+        greys[material] = grey;
+        return grey;
     }
 
     // Height is the pattern's brightness (grooves and grout are the darker pixels); the slope between neighbours,

@@ -326,7 +326,7 @@ public class RoomAmbience : MonoBehaviour
             light.intensity = windowIntensity;
             light.enabled = on;
             light.shadows = MiniMode.Active ? LightShadows.None : LightShadows.Soft;
-            Beam(light, b, floor, on && !MiniMode.Active);
+            Beam(light, b, floor, false); // shafts off: one layer too many in the night look (ronnie, 2026-10-19)
             Glow(renderers, on ? windowColor * Mathf.Max(windowIntensity * 2f, 0.9f) : Color.black); // never a dead pane at night
         }
         foreach (Light gone in new List<Light>(beams.Keys))
@@ -686,7 +686,7 @@ public class RoomAmbience : MonoBehaviour
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.useUnscaledTime = true;
         var emission = dust.emission;
-        emission.rateOverTime = 4f;
+        emission.rateOverTime = 0f; // motes off (ronnie, 2026-10-19); the object stays as the parent of the mist and shadow
         var shape = dust.shape;
         shape.shapeType = ParticleSystemShapeType.Box;
         shape.scale = new Vector3(floor.size.x * 0.8f, size * 0.6f, floor.size.z * 0.8f);

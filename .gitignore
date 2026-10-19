@@ -74,3 +74,6 @@ crashlytics-build.properties
 
 # Written by CI before each build (version label shown in the main menu)
 /[Aa]ssets/[Rr]esources/BuildInfo.txt*
+
+# Study Sim > Capture Screenshot output
+/[Ss]creenshots/

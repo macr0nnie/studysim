@@ -10,7 +10,7 @@ using UnityEngine.UI;
 // warm soft lamps, and a light URP Volume (bloom, vignette, grading). The room dims and warms while a study
 // session runs or every lamp is off, and brightens on a break. Settings > Sound > Lighting picks Off / Cozy / Bright.
 // Behind the room is a deep blue night backdrop that follows the clock (a soft glow, crisp twinkling stars, weather from Settings > Display; hidden
-// while Paint > Background has a colour), and a few dust motes drift in the room, with low mist and a soft shadow under it.
+// while Paint > Background has a colour), and a few dust motes drift in the room, with a soft shadow under it.
 // Lamps each get a soft colour of their own, and a faint cool rim light from behind picks out the edges of the furniture.
 // Each window on a wall gets a soft spot light that shines into the room: daylight by day, moonlight at night, dimmer in bad weather.
 // Mini mode owns shadows and post-processing while it is active, so this only turns the Volume off there.
@@ -713,7 +713,7 @@ public class RoomAmbience : MonoBehaviour
         main.simulationSpace = ParticleSystemSimulationSpace.World;
         main.useUnscaledTime = true;
         var emission = dust.emission;
-        emission.rateOverTime = 0f; // motes off (ronnie, 2026-10-19); the object stays as the parent of the mist and shadow
+        emission.rateOverTime = 0f; // motes off (ronnie, 2026-10-19); the object stays as the parent of the shadow
         var shape = dust.shape;
         shape.shapeType = ParticleSystemShapeType.Box;
         shape.scale = new Vector3(floor.size.x * 0.8f, size * 0.6f, floor.size.z * 0.8f);
@@ -767,7 +767,7 @@ public class RoomAmbience : MonoBehaviour
         sMain.startColor = new Color(0.8f, 0.88f, 1f, 0.9f);
         sMain.maxParticles = 140;
         var sEmission = sparkles.emission;
-        sEmission.rateOverTime = 0f; // off: one layer too many with stars and mist (2026-10-19); mist below copies its settings
+        sEmission.rateOverTime = 0f; // off: one layer too many with the stars (2026-10-19)
         var sShape = sparkles.shape;
         sShape.scale = new Vector3(size * 1.6f, size * 1.6f, size * 0.3f); // thin along Z, which the rotation turns upright
         sShape.rotation = new Vector3(-90, 0, 0); // the box emits along +Z; tip it so they rise
@@ -776,29 +776,6 @@ public class RoomAmbience : MonoBehaviour
         pixel.Apply();
         sparkleMaterial = new Material(material) { mainTexture = pixel };
         sparkleGO.GetComponent<ParticleSystemRenderer>().sharedMaterial = sparkleMaterial;
-
-        // Low mist: a few big, faint, soft puffs drifting around the base of the room. They are depth tested, so the room
-        // hides the ones behind it and the mist wraps around it. Additive and pale blue, so it never greys the room out.
-        GameObject mistGO = Instantiate(sparkleGO, go.transform);
-        mistGO.name = "Mist";
-        mistGO.transform.position = new Vector3(floor.center.x, floor.min.y - size * 0.04f, floor.center.z);
-        ParticleSystem mist = mistGO.GetComponent<ParticleSystem>();
-        var mMain = mist.main;
-        mMain.startLifetime = 24f;
-        mMain.startSpeed = 0f;
-        mMain.startSize = new ParticleSystem.MinMaxCurve(size * 0.45f, size * 0.75f);
-        mMain.startColor = new Color(0.45f, 0.58f, 0.85f, 0.07f);
-        mMain.maxParticles = 24;
-        mMain.prewarm = true;
-        var mEmission = mist.emission;
-        mEmission.rateOverTime = 1f;
-        var mShape = mist.shape;
-        mShape.rotation = Vector3.zero;
-        mShape.scale = new Vector3(size * 1.6f, size * 0.06f, size * 1.6f);
-        var mNoise = mist.noise;
-        mNoise.strength = size * 0.02f;
-        mNoise.frequency = 0.05f;
-        mistGO.GetComponent<ParticleSystemRenderer>().sharedMaterial = material;
 
         // Soft dark disc just under the floor, a child of the motes so both hide together.
         GameObject shadow = GameObject.CreatePrimitive(PrimitiveType.Quad);

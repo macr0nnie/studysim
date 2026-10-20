@@ -86,12 +86,13 @@ public class MusicPlayerUI : MonoBehaviour
         if (!showingSpotify)
         {
             showingSpotify = true;
-            nowLabel.text = "SPOTIFY";
             spotifyArtKey = null; // re-apply the cover below
             progressFill.anchorMax = new Vector2(0, 1);
             elapsed.text = total.text = "";
             shownTime = shownLength = -1;
         }
+        if (!string.Equals(nowLabel.text, SpotifyLink.Source, System.StringComparison.OrdinalIgnoreCase))
+            nowLabel.text = SpotifyLink.Source.ToUpperInvariant(); // on Mac it can switch between Spotify and Apple Music
         bool covers = GameSettings.OnlineCovers;
         string key = covers + "\n" + SpotifyLink.Artist + "\n" + SpotifyLink.Title; // the setting is in the key so switching it re-applies
         if (key != spotifyArtKey)
@@ -101,7 +102,7 @@ public class MusicPlayerUI : MonoBehaviour
             if (covers && SpotifyLink.Title.Length > 0) StartCoroutine(FetchSpotifyArt(key));
         }
         bool playing = SpotifyLink.Playing;
-        title.text = SpotifyLink.Title.Length > 0 ? SpotifyLink.Title : "Spotify is open";
+        title.text = SpotifyLink.Title.Length > 0 ? SpotifyLink.Title : SpotifyLink.Source + " is open";
         artist.text = SpotifyLink.Artist.Length > 0 ? SpotifyLink.Artist : "Press play to start it";
         playIcon.enabled = !playing;
         pauseLeft.enabled = pauseRight.enabled = playing;

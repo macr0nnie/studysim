@@ -74,6 +74,14 @@ public static class ShipSetupTools
             locationPathName = "Builds/macOS/lofilife.app",
             target = BuildTarget.StandaloneOSX,
         });
+        // macOS asks the player before the game may read and control Spotify / Apple Music; this is the reason it shows.
+        string plist = "Builds/macOS/lofilife.app/Contents/Info.plist";
+        if (System.IO.File.Exists(plist) && !System.IO.File.ReadAllText(plist).Contains("NSAppleEventsUsageDescription"))
+        {
+            string text = System.IO.File.ReadAllText(plist);
+            int end = text.LastIndexOf("</dict>", System.StringComparison.Ordinal);
+            if (end > 0) System.IO.File.WriteAllText(plist, text.Insert(end, "\t<key>NSAppleEventsUsageDescription</key>\n\t<string>lofilife shows the song playing in Spotify or Apple Music and lets you play, pause and skip it.</string>\n"));
+        }
         Debug.Log($"Study Sim macOS build: {report.summary.result} in Builds/macOS.");
         FailCI(report);
     }

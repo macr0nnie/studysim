@@ -7,7 +7,7 @@ public static class GameSettings
     public static bool Web => Application.platform == RuntimePlatform.WebGLPlayer;
     // Windows/Mac/Linux app: the only place the extension bridge and Quit work (not web, iPhone or iPad).
     public static bool Desktop => !Web && !Application.isMobilePlatform;
-    // Mini mode's window tricks and the Spotify reader use Windows calls (user32), so the Mac app goes without them.
+    // Mini mode and the Spotify link use different system calls on each (user32 on Windows, Cocoa/AppleScript on Mac).
     public static bool Windows => Application.platform == RuntimePlatform.WindowsPlayer || Application.platform == RuntimePlatform.WindowsEditor;
     public static bool Mac => Application.platform == RuntimePlatform.OSXPlayer || Application.platform == RuntimePlatform.OSXEditor;
 

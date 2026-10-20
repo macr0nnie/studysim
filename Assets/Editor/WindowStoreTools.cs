@@ -3,8 +3,8 @@ using UnityEditor;
 using UnityEngine;
 
 // Turns window_cozy.fbx / window_curtains.fbx into wall pieces for the store. The light and glow come from
-// RoomAmbience: it gives every placed piece named "Window" its own WindowLight and makes "WindowGlow*" materials
-// (the glass, as imported) emit in that light's colour, so the prefabs carry no light of their own.
+// RoomAmbience: it gives every placed piece named "Window" its own WindowLight and turns "WindowGlow*" materials
+// (the glass, as imported) into a see-through gap, so the prefabs carry no light of their own.
 public static class WindowStoreTools
 {
     const string PrefabFolder = "Assets/ART/Models/Furniture";
@@ -66,7 +66,7 @@ public static class WindowStoreTools
         all = Bounds(root);
 
         if (!glass.sharedMaterials.Any(m => m != null && m.name.StartsWith("WindowGlow")))
-            Debug.LogWarning($"{model.name}: the glass has no WindowGlow material, so it won't glow");
+            Debug.LogWarning($"{model.name}: the glass has no WindowGlow material, so it won't be see-through");
 
         root.AddComponent<Furniture>().Type = Furniture.FurnitureType.Wall;
         var box = root.AddComponent<BoxCollider>();

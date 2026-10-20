@@ -8,19 +8,20 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using static UIKit;
 
-// Game settings window (Settings in the dock, or Esc): Sound, Focus, Display, Notifications, Controls, the browser
+// Game settings window (Settings in the dock, or Esc): Sound, Display, Notifications, Controls, the browser
 // extension and Credits, plus Save now, Main menu and Save and quit. Every page scrolls, so nothing runs off the
-// window. Values live in GameSettings and Controls.
+// window. Timer settings (focus mode, lengths, strict, auto-start) have their own window, opened from the timer's
+// clock button. Values live in GameSettings and Controls.
 public class SettingsUI : MonoBehaviour
 {
 
-    private GameObject window;
+    private GameObject window, timerWindow;
     private GameObject[] pages;
     private Image[] tabs;
     private TimerManager timer;
     private ChromeWebEx bridge;
 
-    // Focus page
+    // Timer window
     private Image[] modeCards;
     private GameObject customLengths;
     private Slider study, rest;
@@ -30,8 +31,8 @@ public class SettingsUI : MonoBehaviour
     private Image statusDot;
     private TMP_Text statusText, testResult;
 
-    private static readonly string[] PageNames = { "Sound", "Focus", "Display", "Notifications", "Controls", "Browser extension", "Credits" };
-    private const int ExtensionPage = 5;
+    private static readonly string[] PageNames = { "Sound", "Display", "Notifications", "Controls", "Browser extension", "Credits" };
+    private const int ExtensionPage = 4;
 
     // Controls page
     private TMP_Text[] keyLabels;
@@ -63,6 +64,7 @@ public class SettingsUI : MonoBehaviour
         {
             RoomManager room = FindAnyObjectByType<RoomManager>();
             if (room != null && room.IsPlacing) room.CancelPlacing(); // Esc puts down a piece in hand before it opens Settings
+            else if (timerWindow.activeSelf) ToggleTimer();
             else Toggle();
         }
         if (window.activeSelf && pages[ExtensionPage].activeSelf && GameSettings.Desktop) RefreshExtension();
@@ -71,7 +73,12 @@ public class SettingsUI : MonoBehaviour
     public void Toggle()
     {
         window.SetActive(!window.activeSelf);
-        if (window.activeSelf) RefreshFocus();
+    }
+
+    public void ToggleTimer()
+    {
+        timerWindow.SetActive(!timerWindow.activeSelf);
+        if (timerWindow.activeSelf) RefreshFocus();
     }
 
     private void ShowPage(int index)
@@ -81,7 +88,6 @@ public class SettingsUI : MonoBehaviour
             pages[i].SetActive(i == index);
             tabs[i].color = i == index ? SelectedColor : TabColor;
         }
-        if (index == 1) RefreshFocus();
     }
 
     private static void Quit()
@@ -192,29 +198,13 @@ public class SettingsUI : MonoBehaviour
 
         NavButton(canvas, 4, "Settings", Controls.Act.Settings).onClick.AddListener(Toggle);
 
-        // Dimmed backdrop (click to close) with the window centred on it. They are siblings so a click
-        // inside the window doesn't bubble up to the backdrop's button.
-        window = Make("SettingsWindow", canvas);
-        Stretch((RectTransform)window.transform);
-        GameObject backdrop = Make("Backdrop", window.transform, typeof(Image), typeof(Button));
-        Stretch((RectTransform)backdrop.transform);
-        backdrop.GetComponent<Image>().color = new Color(0.05f, 0.03f, 0.08f, 0.6f);
-        backdrop.GetComponent<Button>().transition = Selectable.Transition.None;
-        backdrop.GetComponent<Button>().onClick.AddListener(Toggle);
+        window = Window(canvas, "Settings", new Vector2(900, 660), Toggle, out GameObject frame);
 
-        GameObject frame = Make("Frame", window.transform, typeof(Image), typeof(VerticalLayoutGroup), typeof(Shadow));
-        var frameRect = (RectTransform)frame.transform;
-        frameRect.sizeDelta = new Vector2(900, 660);
-        Style(frame.GetComponent<Image>(), PanelColor);
-        frame.GetComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.4f);
-        frame.GetComponent<Shadow>().effectDistance = new Vector2(0, -8);
-        var frameLayout = frame.GetComponent<VerticalLayoutGroup>();
-        frameLayout.padding = new RectOffset(24, 24, 20, 24);
-        frameLayout.spacing = 16;
-        frameLayout.childControlWidth = frameLayout.childControlHeight = true;
-        frameLayout.childForceExpandWidth = true;
-        frameLayout.childForceExpandHeight = false;
-        Header(frame.transform, "Settings", Toggle);
+        timerWindow = Window(canvas, "Timer", new Vector2(680, 600), ToggleTimer, out GameObject timerFrame);
+        Transform timerList = ScrollList(timerFrame.transform, out _);
+        StackChildren(timerList, 10);
+        BuildFocus(timerList);
+        timerWindow.SetActive(false);
 
         GameObject body = Row("Body", frame.transform, 0, 24, false);
         body.GetComponent<LayoutElement>().flexibleHeight = 1;
@@ -270,15 +260,42 @@ public class SettingsUI : MonoBehaviour
             StackChildren(lists[i], 10);
         }
         BuildSound(lists[0]);
-        BuildFocus(lists[1]);
-        BuildDisplay(lists[2]);
-        BuildNotifications(lists[3]);
-        BuildControls(lists[4]);
+        BuildDisplay(lists[1]);
+        BuildNotifications(lists[2]);
+        BuildControls(lists[3]);
         BuildExtension(lists[ExtensionPage]);
-        BuildCredits(lists[6]);
+        BuildCredits(lists[5]);
 
         ShowPage(0);
         window.SetActive(false);
+    }
+
+    private static GameObject Window(Transform canvas, string title, Vector2 size, Action close, out GameObject frame)
+    {
+        // Dimmed backdrop (click to close) with the window centred on it. They are siblings so a click
+        // inside the window doesn't bubble up to the backdrop's button.
+        GameObject window = Make(title + "Window", canvas);
+        Stretch((RectTransform)window.transform);
+        GameObject backdrop = Make("Backdrop", window.transform, typeof(Image), typeof(Button));
+        Stretch((RectTransform)backdrop.transform);
+        backdrop.GetComponent<Image>().color = new Color(0.05f, 0.03f, 0.08f, 0.6f);
+        backdrop.GetComponent<Button>().transition = Selectable.Transition.None;
+        backdrop.GetComponent<Button>().onClick.AddListener(() => close());
+
+        frame = Make("Frame", window.transform, typeof(Image), typeof(VerticalLayoutGroup), typeof(Shadow));
+        var frameRect = (RectTransform)frame.transform;
+        frameRect.sizeDelta = size;
+        Style(frame.GetComponent<Image>(), PanelColor);
+        frame.GetComponent<Shadow>().effectColor = new Color(0, 0, 0, 0.4f);
+        frame.GetComponent<Shadow>().effectDistance = new Vector2(0, -8);
+        var frameLayout = frame.GetComponent<VerticalLayoutGroup>();
+        frameLayout.padding = new RectOffset(24, 24, 20, 24);
+        frameLayout.spacing = 16;
+        frameLayout.childControlWidth = frameLayout.childControlHeight = true;
+        frameLayout.childForceExpandWidth = true;
+        frameLayout.childForceExpandHeight = false;
+        Header(frame.transform, title, close);
+        return window;
     }
 
     private void BuildSound(Transform page)
@@ -333,7 +350,12 @@ public class SettingsUI : MonoBehaviour
             () => GameSettings.AutoStartBreak, v => GameSettings.AutoStartBreak = v);
         Switch(page, "Start the next session automatically", "After a break, the next session starts by itself.",
             () => GameSettings.AutoStartStudy, v => GameSettings.AutoStartStudy = v);
+    }
 
+
+    private void BuildDisplay(Transform page)
+    {
+        Heading(page, "You");
         GameObject nameRow = Row("Your name", page, 48, 12, false);
         nameRow.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;
         Label(nameRow.transform, "Your name", "What your study buddy calls you.");
@@ -344,11 +366,7 @@ public class SettingsUI : MonoBehaviour
         nameField.characterLimit = 20;
         nameField.text = CharacterDialogue.PlayerName;
         nameField.onEndEdit.AddListener(v => CharacterDialogue.PlayerName = v);
-    }
 
-
-    private void BuildDisplay(Transform page)
-    {
         Heading(page, "Room");
         GameObject light = Row("Ambience", page, 48, 12, false);
         light.GetComponent<HorizontalLayoutGroup>().childAlignment = TextAnchor.MiddleLeft;

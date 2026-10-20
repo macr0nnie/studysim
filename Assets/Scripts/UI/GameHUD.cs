@@ -477,14 +477,15 @@ public class GameHUD : MonoBehaviour
     private Button timerMinus, timerPlus;
     private TMP_Text timerPhase;
 
-    // Under the countdown: -5 | play/pause | stop | +5, and which phase is running. Lengths only
+    // Under the countdown: -5 | play/pause | stop | +5, which phase is running, and a clock that opens the
+    // timer settings. Lengths only
     // change while the timer is stopped, so -5/+5 grey out while it runs.
     private void BuildTimerBar(Transform canvas)
     {
         GameObject bar = Make("TimerControls", canvas, typeof(Image), typeof(HorizontalLayoutGroup));
         var rect = (RectTransform)bar.transform;
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(1, 1); // top right, clear of the clock text
-        rect.sizeDelta = new Vector2(330, 96);
+        rect.sizeDelta = new Vector2(376, 96);
         rect.anchoredPosition = new Vector2(-24, -8);
         Style(bar.GetComponent<Image>(), PanelColor);
         var layout = bar.GetComponent<HorizontalLayoutGroup>();
@@ -526,6 +527,12 @@ public class GameHUD : MonoBehaviour
 
         timerPhase = MakeText("Phase", bar.transform, "Focus", CaptionSize, MutedText, TextAlignmentOptions.Center);
         ((RectTransform)timerPhase.transform).sizeDelta = new Vector2(52, 36);
+
+        Button settings = TimerButton(bar.transform, "TimerSettings", 36, 36, TabColor, () => FindAnyObjectByType<SettingsUI>()?.ToggleTimer());
+        settings.GetComponent<Image>().sprite = Circle;
+        Glyph(settings.transform, Circle, new Vector2(20, 20), Vector2.zero); // clock face
+        Glyph(settings.transform, null, new Vector2(2, 7), new Vector2(0, 3)).color = PanelColor;
+        Glyph(settings.transform, null, new Vector2(6, 2), new Vector2(2, 0)).color = PanelColor;
     }
 
     private static Button TimerButton(Transform parent, string name, float width, float height, Color color, UnityEngine.Events.UnityAction onClick)

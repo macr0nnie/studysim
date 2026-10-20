@@ -221,6 +221,11 @@ public class RoomAmbience : MonoBehaviour
                 r.x = Mathf.Repeat(r.x + Mathf.Sin(Time.unscaledTime * 0.4f) * Time.unscaledDeltaTime * 0.03f, 1f); // a slow sideways drift
                 snow.uvRect = r;
             }
+            // What window gaps show (WindowCut shader): the sky's stars, or the plain colour when the sky is hidden.
+            bool skyShown = showSky && !SkyHidden;
+            Shader.SetGlobalFloat("_StudyStarAlpha", skyShown ? stars.color.a : 0f);
+            Color solid = skyCanvas.worldCamera.backgroundColor;
+            Shader.SetGlobalColor("_StudyWindowSolid", skyShown ? Color.clear : new Color(solid.r, solid.g, solid.b, 1f));
         }
         if (key == null) return;
         if ((scanClock -= Time.unscaledDeltaTime) <= 0) { scanClock = LampScan; ScanLamps(); ScanWindows(); if (dust == null) BuildDust(); }
@@ -342,16 +347,14 @@ public class RoomAmbience : MonoBehaviour
             light.enabled = on;
             light.shadows = MiniMode.Active ? LightShadows.None : LightShadows.Soft;
             Beam(light, b, floor, false); // shafts off: one layer too many in the night look (ronnie, 2026-10-19)
-            Glow(renderers, on ? windowColor * Mathf.Max(windowIntensity * 2f, 0.9f) : Color.black); // never a dead pane at night
+            if (!FurnitureRole.NameHas(g, "stained")) CutGlass(renderers); // stained glass keeps its colours
         }
         foreach (Light gone in new List<Light>(beams.Keys))
             if (gone == null) { foreach (Renderer r in beams[gone]) if (r != null) Destroy(r.gameObject); beams.Remove(gone); }
     }
 
-    // Glass whose material is named WindowGlow (the cozy windows) shines in the window light's colour, so the pane glows
-    // softly by day and dims at night. Instanced materials, so the asset itself is never changed.
     // The smallest part of the lamp nearest its light (the shade or bulb) glows softly in the lamp's colour, so bloom has
-    // something warm to catch. Instanced materials, like the windows.
+    // something warm to catch. Instanced materials, so the asset itself is never changed.
     private static void GlowShade(Light light)
     {
         Renderer shade = null;
@@ -371,17 +374,24 @@ public class RoomAmbience : MonoBehaviour
         }
     }
 
-    private static void Glow(Renderer[] renderers, Color color)
+    // Window glass becomes a see-through gap (ronnie, 2026-10-19): the WindowCut material draws the sky behind the room
+    // and is drawn before the walls, so the wall behind the pane is hidden. Glass parts are found by material name.
+    private static Material cutMaterial;
+    private static void CutGlass(Renderer[] renderers)
     {
+        if (cutMaterial == null)
+        {
+            Shader shader = Resources.Load<Shader>("Effects/WindowCut");
+            if (shader == null) return;
+            cutMaterial = new Material(shader) { name = "WindowCut" };
+        }
         foreach (Renderer r in renderers)
         {
-            if (!System.Array.Exists(r.sharedMaterials, m => m != null && m.name.StartsWith("WindowGlow"))) continue;
-            foreach (Material m in r.materials)
-            {
-                if (!m.name.StartsWith("WindowGlow")) continue;
-                m.EnableKeyword("_EMISSION");
-                m.SetColor("_EmissionColor", color);
-            }
+            Material[] slots = r.sharedMaterials;
+            bool cut = false;
+            for (int i = 0; i < slots.Length; i++)
+                if (slots[i] != null && (slots[i].name.Contains("Glass") || slots[i].name.StartsWith("WindowGlow"))) { slots[i] = cutMaterial; cut = true; }
+            if (cut) r.sharedMaterials = slots;
         }
     }
 
@@ -493,6 +503,8 @@ public class RoomAmbience : MonoBehaviour
         // cloud puffs fuzzy (2026-10-18), so there are no clouds.
         starTexture = Stars(960, 540, 260, 1);
         stars = SkyLayer("Stars", starTexture, new Rect(0, 0, 1, 1));
+        Shader.SetGlobalTexture("_StudySkyGradient", skyTexture);
+        Shader.SetGlobalTexture("_StudyStars", starTexture);
         stars.gameObject.AddComponent<Canvas>(); // twinkles every frame: rebuild only this layer
         starTexture2 = Stars(960, 540, 160, 2);
         stars2 = SkyLayer("Stars 2", starTexture2, new Rect(0, 0, 1, 1));

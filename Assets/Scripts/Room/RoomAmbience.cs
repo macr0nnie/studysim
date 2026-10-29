@@ -403,7 +403,7 @@ public class RoomAmbience : MonoBehaviour
         {
             if (beamMaterial == null)
             {
-                Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit"); // in Always Included Shaders
+                Shader shader = Resources.Load<Shader>("Effects/ParticleSprite"); // Resources, so builds have it
                 if (shader == null) return;
                 beamTexture = new Texture2D(32, 64, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
                 for (int y = 0; y < 64; y++)
@@ -691,7 +691,7 @@ public class RoomAmbience : MonoBehaviour
     private void BuildDust()
     {
         if (room == null || room.FloorRenderers == null || room.FloorRenderers.Length == 0) return;
-        Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit"); // in Always Included Shaders, so builds have it
+        Shader shader = Resources.Load<Shader>("Effects/ParticleSprite"); // Resources, so builds have it
         if (shader == null) return;
         Bounds floor = new Bounds();
         bool any = false;

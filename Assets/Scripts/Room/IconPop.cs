@@ -53,7 +53,7 @@ public static class IconPop
                     if (shapes[i][y][x] == 'X') tex.SetPixel(i * 9 + 1 + x, 7 - y, Color.white); // rows read top-down, texture rows go bottom-up
         tex.Apply();
 
-        var material = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit")); // in Always Included Shaders
+        var material = new Material(Resources.Load<Shader>("Effects/ParticleSprite")); // Resources, so builds have it
         material.SetFloat("_Surface", 1);
         material.SetFloat("_Blend", 0);
         material.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);

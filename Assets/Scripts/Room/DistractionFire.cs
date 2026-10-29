@@ -170,7 +170,7 @@ public class DistractionFire
     {
         if (material != null) return material;
         Shader shader = Resources.Load<Shader>("Effects/Fire");
-        if (shader == null) shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
+        if (shader == null) shader = Resources.Load<Shader>("Effects/ParticleSprite");
         material = new Material(shader) { name = "Distraction Fire" };
         return material;
     }
